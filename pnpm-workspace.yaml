@@ -1,0 +1,8 @@
+packages:
+  - "packages/*"
+  - "packages/packs/*"
+  - "apps/*"
+# esbuild necesita ejecutar su script de instalación para descargar el binario
+# nativo que usa tsup al compilar los paquetes.
+allowBuilds:
+  esbuild: true

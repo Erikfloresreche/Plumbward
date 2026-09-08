@@ -1,0 +1,27 @@
+{
+  "name": "@governance/cli",
+  "version": "0.1.0",
+  "type": "module",
+  "bin": {
+    "governance": "./dist/index.js"
+  },
+  "main": "./dist/index.js",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@clack/prompts": "^0.9.0",
+    "@governance/ast": "workspace:*",
+    "@governance/core": "workspace:*",
+    "@governance/pack-node-ts": "workspace:*",
+    "@governance/packs-sdk": "workspace:*",
+    "@governance/scanner": "workspace:*",
+    "cac": "^6.7.14",
+    "execa": "^9.5.2",
+    "picocolors": "^1.1.1"
+  }
+}
