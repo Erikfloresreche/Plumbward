@@ -1,5 +1,5 @@
 import { ensureBlock as ensureBlockInText, patchJson, patchYaml } from '@governance/ast'
-import type { ChangePlan, Operation } from './types.js'
+import type { AddDependencyOp, ChangePlan, ExecCommandOp, Operation } from './types.js'
 import { readFileIfExists, resolveInRepo } from './fs.js'
 import { withManagedHeader } from './apply.js'
 
@@ -16,8 +16,12 @@ export interface SimulationResult {
   readonly changes: readonly SimulatedChange[]
   /** Operaciones que no producen cambio (el repo ya está conforme). */
   readonly noOps: readonly Operation[]
-  /** Operaciones que no tocan ficheros (dependencias y comandos). */
-  readonly sideEffects: readonly Operation[]
+  /**
+   * Operaciones que no tocan ficheros. El tipo es deliberadamente estrecho: sólo
+   * dependencias y comandos pueden acabar aquí, y quien lo consuma necesita
+   * poder leer `cmd` y `args` sin comprobaciones redundantes.
+   */
+  readonly sideEffects: readonly (AddDependencyOp | ExecCommandOp)[]
 }
 
 /**
@@ -37,7 +41,7 @@ export async function simulatePlan(
   const original = new Map<string, string | null>()
   const reasons = new Map<string, string[]>()
   const noOps: Operation[] = []
-  const sideEffects: Operation[] = []
+  const sideEffects: (AddDependencyOp | ExecCommandOp)[] = []
 
   const load = async (path: string): Promise<string | null> => {
     if (overlay.has(path)) return overlay.get(path) ?? null
