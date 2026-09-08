@@ -83,6 +83,18 @@ export function profileToYaml(profile: Profile): string {
 #   devcontainer  Genera un entorno de desarrollo contenedorizado.
 #   aiAssistants  Para qué asistentes se generan ficheros de reglas.
 #   language      Idioma de los textos y comentarios generados.
+#   agentBoundaries
+#                 Qué se le prohíbe EJECUTAR a un asistente de IA:
+#                   git             true = no ejecuta commit, push, merge,
+#                                   rebase ni reset; los lanza una persona.
+#                                   Los comandos de sólo lectura se permiten.
+#                   database        true = no ejecuta migraciones, seeds ni
+#                                   escrituras; las lanza una persona. Los
+#                                   SELECT de inspección se permiten.
+#                   commitLanguage  Idioma de los mensajes de commit y de las
+#                                   descripciones de Pull Request.
+#                 Desactivarlos es una decisión del equipo: hazlo en una PR
+#                 para que quede revisada y auditada.
 # ---------------------------------------------------------------------------
 ${body}`
 }

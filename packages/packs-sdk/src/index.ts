@@ -3,6 +3,7 @@ export type {
   AiAssistant,
   DeployTarget,
   OutputLanguage,
+  AgentBoundaries,
   Profile,
   RepoContext,
   DetectionResult,

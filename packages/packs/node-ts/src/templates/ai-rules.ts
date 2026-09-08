@@ -2,6 +2,69 @@ import type { Profile } from '@governance/packs-sdk'
 import type { RepoScan } from '@governance/scanner'
 
 /**
+ * Sección de límites operativos.
+ *
+ * Es la única parte de las reglas que no habla de cómo escribir código sino de
+ * qué NO debe ejecutar el asistente. Se genera aparte porque el equipo puede
+ * desactivarla desde el perfil, y porque es la sección que más se consulta.
+ */
+function boundariesSection(profile: Profile): string {
+  const { git, database, commitLanguage } = profile.agentBoundaries
+  const idioma = commitLanguage === 'en' ? 'inglés' : 'español'
+
+  const gitBlock = git
+    ? `### Comandos de git que modifican el estado
+
+Prohibido ejecutarlos: \`commit\`, \`push\`, \`pull\`, \`merge\`, \`rebase\`,
+\`checkout\`, \`switch\`, \`reset\`, \`revert\`, \`cherry-pick\`, \`stash\`,
+\`tag\`, \`clean\` y la gestión de remotos.
+
+Los ejecuta **a mano la persona que esté trabajando**. Deja los cambios en el
+árbol de trabajo, enumera los ficheros que has tocado y entrega el mensaje de
+commit listo para copiar.
+
+Sí puedes usar los de sólo lectura: \`status\`, \`log\`, \`diff\`, \`show\`,
+\`blame\`, \`branch --list\`.
+
+*Por qué:* quien firma el commit responde de lo que entra en el historial. Un
+push automático introduce código sin revisar en un repositorio compartido, y
+revertirlo pasa a ser un problema de todo el equipo.
+
+`
+    : ''
+
+  const dbBlock = database
+    ? `### Comandos de base de datos que escriben
+
+Prohibido ejecutarlos: migraciones (\`migrate\`, \`db:push\`, \`db:seed\`,
+\`upgrade\`), \`INSERT\`, \`UPDATE\`, \`DELETE\`, \`DROP\`, \`TRUNCATE\`,
+\`ALTER\`, restauraciones de copias de seguridad y cualquier CLI de base de
+datos que altere datos o esquema.
+
+Los ejecuta **a mano la persona que esté trabajando**. Escribe el fichero de
+migración o la consulta y explica cómo lanzarla, pero no la lances.
+
+Sí puedes hacer \`SELECT\` de inspección y consultar el esquema.
+
+*Por qué:* una migración no tiene botón de deshacer. El coste de equivocarse no
+es un fichero mal escrito, son datos perdidos.
+
+`
+    : ''
+
+  return `## 7. Lo que NO debes ejecutar
+
+${gitBlock}${dbBlock}### Idioma de los mensajes de commit y de Pull Request
+
+Aunque el proyecto se documente en otro idioma, **los mensajes de commit y las
+descripciones de Pull Request se redactan siempre en ${idioma}**, siguiendo
+Conventional Commits. Entrégalos como texto para que los use la persona que
+haga el commit.
+
+`
+}
+
+/**
  * Reglas de contexto para asistentes de IA.
  *
  * Se genera un único cuerpo de reglas y se publica en los ficheros que espera
@@ -98,7 +161,7 @@ ${strict ? '- Corregir un bug empieza por escribir la prueba que lo reproduce.\n
 - Si has generado el código con un asistente, revísalo tú antes de pedir revisión
   a otra persona. La responsabilidad del código es de quien abre la PR.
 
-## 7. Lo que NUNCA debes hacer
+${boundariesSection(profile)}## 8. Lo que NUNCA debes hacer
 
 - Modificar ficheros dentro de marcadores \`governance:begin\` / \`governance:end\`:
   se regeneran automáticamente y perderás tus cambios.
@@ -129,6 +192,7 @@ ${stack?.typescript ? '- Prohibido `any`; usa `unknown` y estrecha el tipo. Tipo
 - Maneja los errores de forma explícita; nada de \`catch\` vacíos.
 - Mantén las funciones por debajo de ${strict ? '50' : '80'} líneas.
 - No modifiques CI/CD, \`.env\` ni lockfiles salvo petición explícita.
+${profile.agentBoundaries.git ? '- No ejecutes comandos git que modifiquen el estado (commit, push, merge, reset): los lanza la persona que trabaja.\n' : ''}${profile.agentBoundaries.database ? '- No ejecutes migraciones ni sentencias que escriban en la base de datos: las lanza la persona que trabaja.\n' : ''}- Redacta los mensajes de commit y de PR en ${profile.agentBoundaries.commitLanguage === 'en' ? 'inglés' : 'español'}.
 
 Las reglas completas están en \`.cursorrules\`.
 `

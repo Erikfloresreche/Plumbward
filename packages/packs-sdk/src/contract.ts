@@ -18,6 +18,34 @@ export type DeployTarget = 'vercel' | 'aws' | 'docker' | 'render' | 'none'
 export type OutputLanguage = 'es' | 'en'
 
 /**
+ * Límites operativos que se imponen a los asistentes de IA que trabajen en el
+ * repositorio.
+ *
+ * Existen porque hay acciones cuyo coste de equivocarse no lo paga el fichero,
+ * lo paga el equipo: un push mete código sin revisar en un repositorio
+ * compartido, y una migración no tiene botón de deshacer. La decisión de quién
+ * ejecuta esas acciones es del equipo, así que es configurable y queda
+ * auditada en `.governance/config.yml`.
+ */
+export interface AgentBoundaries {
+  /**
+   * Prohíbe al asistente ejecutar comandos git que modifiquen el estado
+   * (commit, push, merge, rebase, reset...). Los de sólo lectura se permiten.
+   */
+  readonly git: boolean
+  /**
+   * Prohíbe al asistente ejecutar migraciones, seeds o cualquier sentencia que
+   * escriba en la base de datos o altere su esquema. Los SELECT se permiten.
+   */
+  readonly database: boolean
+  /**
+   * Idioma en el que el asistente debe redactar los mensajes de commit y las
+   * descripciones de Pull Request, con independencia del idioma del proyecto.
+   */
+  readonly commitLanguage: OutputLanguage
+}
+
+/**
  * Perfil de gobernanza. Es el contenido de `.governance/config.yml`: la fuente
  * de verdad, versionada en el repo del cliente y revisable en la PR.
  *
@@ -38,6 +66,8 @@ export interface Profile {
   readonly aiAssistants: readonly AiAssistant[]
   /** Idioma de los comentarios y textos generados. */
   readonly language: OutputLanguage
+  /** Qué se le prohíbe ejecutar a un asistente de IA en este repositorio. */
+  readonly agentBoundaries: AgentBoundaries
 }
 
 export interface RepoContext {
@@ -94,5 +124,9 @@ export function recommendedProfile(scan: RepoScan): Profile {
     dockerCompose: false,
     aiAssistants: ['cursor', 'claude', 'copilot'],
     language: 'es',
+    // Por defecto el asistente no ejecuta nada irreversible, y escribe los
+    // mensajes de commit en inglés: es la convención dominante en los
+    // historiales de git, incluso en equipos que documentan en otro idioma.
+    agentBoundaries: { git: true, database: true, commitLanguage: 'en' },
   }
 }

@@ -104,13 +104,21 @@ Reglas:
 
 ### 3.3 Commits
 
-Conventional Commits, en español, referenciando la tarea:
+**Los ejecuta siempre una persona, nunca un asistente de IA.** Un asistente deja
+los cambios en el árbol de trabajo y entrega el mensaje redactado; quien firma el
+commit es quien responde de lo que entra en el historial. Lo mismo aplica a
+`push`, `merge`, `rebase` y `reset`, y a cualquier comando que escriba en una
+base de datos. Está recogido en `CLAUDE.md`.
+
+Conventional Commits **en inglés**, referenciando la tarea. El código y la
+documentación del proyecto están en español; el historial de git no, porque es
+la convención dominante y porque sobrevive a un cambio de equipo:
 
 ```
-feat(pack-python): detecta Poetry y uv y genera su pipeline
+feat(pack-python): detect Poetry and uv and generate their pipeline
 
-Implementa F2-4. Añade el pack de Python con soporte para ruff, mypy y
-pytest, escogiendo el gestor de dependencias según los ficheros presentes.
+Implements F2-4. Adds the Python pack with ruff, mypy and pytest support,
+selecting the dependency manager from the files present in the repository.
 ```
 
 `commitlint` lo verifica en el hook `commit-msg` (tarea F0-4).
@@ -119,16 +127,19 @@ pytest, escogiendo el gestor de dependencias según los ficheros presentes.
 
 Plantilla obligatoria (se genera en F0-5):
 
+Las descripciones de Pull Request se redactan **en inglés**, igual que los
+commits:
+
 ```markdown
-## Tarea
-F2-4 — Pack de Python
+## Task
+F2-4 — Python pack
 
-## Qué cambia y por qué
+## What changes and why
 
-## Criterios de aceptación
-- [ ] (copiados de docs/PLAN_DE_EJECUCION.md)
+## Acceptance criteria
+- [ ] (copied from docs/PLAN_DE_EJECUCION.md)
 
-## Cómo se ha verificado
+## How this was verified
 ```
 
 ---
@@ -147,6 +158,8 @@ Aplica a **todas** las tareas, además de sus criterios propios:
 - [ ] Tests nuevos para el comportamiento nuevo. Los bugs se corrigen con un
       test que falle antes del arreglo.
 - [ ] La casilla de la tarea en este documento queda marcada en la misma PR.
+- [ ] Ningún asistente ha ejecutado comandos git que modifiquen el estado ni
+      escrituras en base de datos: los lanza una persona (ver `CLAUDE.md`).
 
 ---
 
@@ -620,6 +633,43 @@ la permanencia.
 - Alguien externo al proyecto escribe un pack mínimo siguiendo sólo la guía.
 
 ---
+### [ ] F2-9 — Llevar los límites operativos del asistente al pack base
+**Rama:** `refactor/f2-limites-al-pack-base` · **Depende de:** F2-2
+
+**Estado:** implementado **sólo** en el pack de Node/TypeScript (sección 7 de las
+reglas generadas, más las instrucciones de Copilot), con el contrato
+`AgentBoundaries` ya en el `Profile`. Falta generalizarlo.
+
+**Por qué el pack base es su sitio:** que un asistente no ejecute `git push` ni
+una migración no tiene nada que ver con el lenguaje del proyecto. Dejarlo en
+`node-ts` significa que un cliente de Laravel o Django no lo recibe, que es
+justo donde una migración mal lanzada hace más daño.
+
+**Trabajo:**
+1. Mover `boundariesSection` del pack de Node al pack base.
+2. Publicarla en todos los ficheros de contexto de IA que genere el pack base
+   (`AGENTS.md`, `CLAUDE.md`, `.cursorrules`, `copilot-instructions.md`), sin
+   duplicarla en los packs de stack.
+3. Ampliar la lista de comandos prohibidos con los propios de cada ecosistema
+   detectado: `php artisan migrate`, `python manage.py migrate`, `alembic
+   upgrade`, `prisma migrate deploy`, `rails db:migrate`, `goose up`.
+4. Traducir la sección a los catálogos i18n de la Fase 1.
+5. Comprobación de salud en `doctor`: avisar si los ficheros de reglas de IA se
+   han editado a mano y han perdido la sección.
+
+**Criterios de aceptación:**
+- Un repositorio de cualquier stack recibe los límites, con los comandos de
+  migración propios de su ecosistema nombrados explícitamente.
+- Desactivar `agentBoundaries.git` en el perfil los elimina de todos los
+  ficheros generados a la vez, y la numeración de secciones sigue siendo válida.
+- La sección aparece igual en español y en inglés.
+
+---
+
+---
+
+---
+
 ## FASE 3 — Gobernanza real: modos de aplicación y flujo de trabajo
 
 **Objetivo:** que la herramienta sirva en repositorios grandes y con legado, no
@@ -759,6 +809,9 @@ reglas nuevas sin perder ni una sola personalización del cliente.
    - Nivel de estrictez, mostrando cuántos errores generaría cada opción **sobre
      su repo real** — el escáner ya tiene los datos para calcularlo.
    - Asistentes de IA en uso.
+   - **Límites operativos del asistente** (`agentBoundaries`): si puede ejecutar
+     git y migraciones, y en qué idioma redacta los mensajes de commit. Por
+     defecto los tres activos; desactivarlos debe requerir una acción consciente.
    - Docker Compose y DevContainer.
    - Idioma.
 3. El wizard **no ejecuta nada**: sólo produce el `Profile` y lo escribe en
