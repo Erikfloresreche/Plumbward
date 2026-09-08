@@ -6,7 +6,8 @@
 > misma Pull Request que la implementa.
 
 **Última actualización:** 2026-09-08
-**Estado global:** Fase 0 no iniciada. Base técnica de Fases previas ya construida (ver §2).
+**Estado global:** Fase 0 en curso — F0-1 completada. Quedan F0-2 a F0-8.
+**Producto:** AegisCode · https://github.com/Erikfloresreche/AegisCode
 
 ---
 
@@ -159,7 +160,7 @@ documentado y publicable. Bloquea todo lo demás.
 
 ---
 
-### [ ] F0-1 — Poner el proyecto bajo control de versiones
+### [x] F0-1 — Poner el proyecto bajo control de versiones
 **Rama:** `chore/f0-git-bootstrap` · **Depende de:** nada · **Bloquea:** absolutamente todo
 
 **Por qué primero:** hoy todo el trabajo existe sólo en el disco de una máquina.
@@ -176,9 +177,15 @@ Cualquier error irreversible lo pierde entero.
 6. Crear el repositorio remoto (privado) y hacer push de ambas ramas.
 
 **Criterios de aceptación:**
-- `git log` muestra el commit inicial con todo el árbol de `packages/`.
-- `git status` limpio tras un `pnpm install && pnpm build` (nada generado se cuela).
-- `main` y `develop` existen en el remoto.
+- [x] `git log` muestra el commit inicial con todo el árbol de `packages/`.
+- [x] `git status` limpio tras un `pnpm install && pnpm build` (nada generado se cuela).
+- [x] `main` y `develop` existen en el remoto.
+
+**Cerrada el 2026-09-08.** Commit `63eedc6`, 63 ficheros, 440 KB. Además de lo
+previsto: se movió a la raíz un `.code-workspace` de VSCode que estaba guardado
+por error dentro de `packages/scanner/src/`, y se añadió un README mínimo (el
+definitivo es F0-5). La identidad de git se configuró **local al repositorio**,
+no global.
 
 ---
 
@@ -304,6 +311,34 @@ tiene que poder leer qué cambió en cada una.
 **Criterios de aceptación:**
 - CI falla si la cobertura de `core` baja del 90%.
 - Los umbrales reflejan la cobertura real actual, no un número aspiracional.
+
+---
+
+### [ ] F0-8 — Renombrar el scope de los paquetes a AegisCode
+**Rama:** `refactor/f0-scope-aegiscode` · **Depende de:** F0-1 · **Bloquea:** Fase 2
+
+**Por qué antes de la Fase 2:** hoy hay seis paquetes bajo `@governance/*`, un
+scope provisional que casi con seguridad está ocupado en NPM. Cada pack nuevo
+multiplica los imports que habría que reescribir después, y el README ya
+promete `npx aegiscode` mientras el binario se llama `governance`.
+
+**Trabajo:**
+1. Comprobar la disponibilidad del scope en NPM y **registrarlo antes de tocar
+   nada**. Si no está libre, decidir la alternativa en ese momento.
+2. Renombrar los seis paquetes a `@aegiscode/*` y actualizar las dependencias
+   `workspace:*` de todos los `package.json`.
+3. Renombrar el binario de `governance` a `aegiscode`, manteniendo `governance`
+   como alias mientras no haya usuarios externos.
+4. Decidir si el directorio de estado en el repositorio del cliente pasa de
+   `.governance/` a `.aegiscode/`. **Recomendación: mantener `.governance/`** —
+   describe la función, no la marca, y así una migración de marca futura no
+   obliga a tocar los repositorios ya configurados.
+5. Actualizar README, plan y textos de la CLI.
+
+**Criterios de aceptación:**
+- `pnpm build && pnpm test` en verde tras el renombrado.
+- Ni una referencia a `@governance/` fuera del historial de git.
+- El scope de NPM queda registrado a nombre de la empresa.
 
 ---
 
@@ -989,7 +1024,7 @@ enseñar a quien decide la compra.
 
 | # | Riesgo | Impacto | Mitigación |
 |---|---|---|---|
-| R1 | El scope `@governance` en NPM está ocupado | Renombrar seis paquetes y todos los imports | Registrar el scope definitivo **antes de la Fase 2** |
+| R1 | Los paquetes siguen bajo el scope provisional `@governance/*`, que casi seguro está ocupado en NPM | Renombrar seis paquetes y todos sus imports; cuanto más tarde, más caro | Tarea **F0-8**, a ejecutar antes de la Fase 2 |
 | R2 | El modelo de licencia es de código visible: es copiable | Pérdida de ingresos | Se vende la actualización continua y el soporte, no el binario. Decisión consciente (ADR 0002) |
 | R3 | Cada pack nuevo es superficie de mantenimiento permanente | El coste crece con el catálogo | El kit de conformidad (F2-3) y el catálogo abierto a terceros (F2-8) |
 | R4 | La promesa de "5 minutos" puede no cumplirse en repos grandes | Credibilidad comercial | Medirlo en F6-2 y ajustar el producto o el mensaje, nunca ocultarlo |
@@ -1002,7 +1037,7 @@ enseñar a quien decide la compra.
    propietario? Condiciona F5-3. Recomendación: núcleo y SDK abiertos, packs
    avanzados y actualizaciones bajo licencia — maximiza la adopción, que es el
    canal de venta.
-2. **Nombre y scope del producto** (antes de la Fase 2, por R1).
+2. ~~**Nombre del producto**~~ — cerrado el 2026-09-08: **AegisCode**. Queda registrar el scope de NPM (F0-8).
 3. **Telemetría**: la recomendación es **ninguna por defecto**, opt-in explícito.
    Vendemos confianza; instrumentar el CLI la contradice.
 
