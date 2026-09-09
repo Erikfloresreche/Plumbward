@@ -194,11 +194,14 @@ Cualquier error irreversible lo pierde entero.
 - [x] `git status` limpio tras un `pnpm install && pnpm build` (nada generado se cuela).
 - [x] `main` y `develop` existen en el remoto.
 
-**Cerrada el 2026-09-08.** Commit `63eedc6`, 63 ficheros, 440 KB. Además de lo
+**Cerrada el 2026-09-08.** Commit inicial de 63 ficheros y 440 KB. Además de lo
 previsto: se movió a la raíz un `.code-workspace` de VSCode que estaba guardado
 por error dentro de `packages/scanner/src/`, y se añadió un README mínimo (el
 definitivo es F0-5). La identidad de git se configuró **local al repositorio**,
-no global.
+no global: `Erik Flores Reche <erikfloresreche@gmail.com>`, el correo asociado a
+la cuenta personal de GitHub que aloja el repositorio. GitHub atribuye los
+commits por dirección de correo, no por nombre, así que usar otra dirección los
+vincula a otra cuenta.
 
 ---
 
