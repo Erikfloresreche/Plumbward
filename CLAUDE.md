@@ -3,8 +3,8 @@
 CLI de gobernanza DevSecOps que analiza un repositorio y le instala CI, linters,
 hooks, escaneo de secretos y reglas de contexto para asistentes de IA.
 
-El plan de ejecución completo, con las 34 tareas y sus criterios de aceptación,
-está en [docs/PLAN_DE_EJECUCION.md](docs/PLAN_DE_EJECUCION.md). **Léelo antes de
+El plan de ejecución completo, con todas las tareas y sus criterios de
+aceptación, está en [docs/PLAN_DE_EJECUCION.md](docs/PLAN_DE_EJECUCION.md). **Léelo antes de
 empezar cualquier tarea** y marca su casilla al terminarla.
 
 ---
@@ -58,6 +58,39 @@ feat(pack-python): detect Poetry and uv and generate their pipeline
 Implements F2-4. Adds the Python pack with ruff, mypy and pytest support,
 selecting the dependency manager from the files present in the repository.
 ```
+
+### Al terminar una tarea, entrega siempre estos dos textos
+
+No basta con decir que la tarea está hecha. Se entregan, listos para copiar:
+
+1. **El mensaje de commit**, en inglés, en Conventional Commits, citando el
+   identificador de la tarea en el cuerpo.
+2. **La descripción de la Pull Request**, en inglés, siguiendo
+   `.github/PULL_REQUEST_TEMPLATE.md`: tarea, qué cambia y por qué, criterios de
+   aceptación copiados del plan, y cómo se ha verificado.
+
+Y a continuación se pregunta al desarrollador, **sin darlo por hecho**:
+
+> ¿Quieres que revise yo la Pull Request, o se ocupa otra persona del equipo?
+
+### Revisar una Pull Request propia: sólo en contexto nuevo
+
+Si el desarrollador pide la revisión porque no hay nadie más disponible y la PR
+se quedaría bloqueada, se hace **abriendo un contexto nuevo, sin el historial de
+la conversación que produjo el código**.
+
+**Por qué:** revisar tu propio trabajo con el contexto que lo generó reproduce
+exactamente los mismos puntos ciegos. Se dan por buenas las mismas suposiciones
+y se pasan por alto los mismos casos. Un contexto limpio sólo tiene delante el
+diff, y lo juzga por lo que dice, no por lo que se pretendía que dijera.
+
+La revisión busca fallos de corrección, incumplimientos del Definition of Done,
+choques con los invariantes de arquitectura e incoherencias con el plan.
+**Entrega hallazgos; no aprueba ni integra.** El merge lo hace siempre una
+persona.
+
+Esto es una válvula de escape para no bloquear el trabajo, no un sustituto de la
+revisión humana. Cuando hay otra persona disponible, revisa esa persona.
 
 ---
 
