@@ -5,8 +5,8 @@
 > Cada tarea se cierra actualizando su casilla en este fichero, dentro de la
 > misma Pull Request que la implementa.
 
-**Última actualización:** 2026-09-08
-**Estado global:** Fase 0 en curso — F0-1 completada. Quedan F0-2 a F0-8.
+**Última actualización:** 2026-09-09
+**Estado global:** Fase 0 en curso — F0-1 y F0-5 completadas. Quedan F0-2, F0-3, F0-4, F0-6, F0-7 y F0-8.
 **Producto:** AegisCode · https://github.com/Erikfloresreche/AegisCode
 
 ---
@@ -271,7 +271,7 @@ donde detectar que una regla molesta más de lo que aporta.
 
 ---
 
-### [ ] F0-5 — Documentación base del proyecto
+### [x] F0-5 — Documentación base del proyecto
 **Rama:** `docs/f0-documentacion-base` · **Depende de:** F0-1
 
 **Por qué:** sin README no hay demo, ni onboarding, ni conversación de venta.
@@ -290,8 +290,21 @@ donde detectar que una regla molesta más de lo que aporta.
 7. `.github/PULL_REQUEST_TEMPLATE.md` con la plantilla de §3.4.
 
 **Criterios de aceptación:**
-- El README permite a alguien sin contexto ejecutar la herramienta en 2 minutos.
-- Las dos ADR explican la decisión, la alternativa descartada y el coste asumido.
+- [x] El README permite a alguien sin contexto ejecutar la herramienta en 2 minutos.
+- [x] Las ADR explican la decisión, la alternativa descartada y el coste asumido.
+
+**Cerrada el 2026-09-09.** Entregado: `README.md` reescrito para un CTO,
+`LICENSE` (BUSL-1.1), `CONTRIBUTING.md`, `SECURITY.md`,
+[ARQUITECTURA.md](ARQUITECTURA.md) con el porqué de cada fichero del monorepo, y
+`.github/PULL_REQUEST_TEMPLATE.md`.
+
+Se escribieron **tres** ADR en lugar de dos: la licencia del código resultó ser
+una decisión distinta de la del licenciamiento técnico y merecía la suya
+([0003](adr/0003-licencia-busl.md)).
+
+**Pendiente que deja abierto:** el texto de `LICENSE` está reproducido de la
+plantilla estándar y **debe contrastarse contra https://mariadb.com/bsl11/**
+antes de hacer público el repositorio.
 
 ---
 
@@ -666,10 +679,6 @@ justo donde una migración mal lanzada hace más daño.
 - Desactivar `agentBoundaries.git` en el perfil los elimina de todos los
   ficheros generados a la vez, y la numeración de secciones sigue siendo válida.
 - La sección aparece igual en español y en inglés.
-
----
-
----
 
 ---
 
@@ -1089,10 +1098,10 @@ enseñar a quien decide la compra.
 
 **Decisiones abiertas, a cerrar en su fase:**
 
-1. **Licencia del código** (F0-5): ¿núcleo abierto con packs de pago, o todo
-   propietario? Condiciona F5-3. Recomendación: núcleo y SDK abiertos, packs
-   avanzados y actualizaciones bajo licencia — maximiza la adopción, que es el
-   canal de venta.
+1. ~~**Licencia del código**~~ — cerrada el 2026-09-09: **BUSL-1.1**, con
+   `scan` y `report` de uso libre y paso automático a Apache-2.0 a los cuatro
+   años. Razonamiento y alternativas descartadas en
+   [ADR 0003](adr/0003-licencia-busl.md).
 2. ~~**Nombre del producto**~~ — cerrado el 2026-09-08: **AegisCode**. Queda registrar el scope de NPM (F0-8).
 3. **Telemetría**: la recomendación es **ninguna por defecto**, opt-in explícito.
    Vendemos confianza; instrumentar el CLI la contradice.
