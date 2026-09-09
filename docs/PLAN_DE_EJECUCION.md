@@ -123,6 +123,13 @@ selecting the dependency manager from the files present in the repository.
 
 `commitlint` lo verifica en el hook `commit-msg` (tarea F0-4).
 
+**Al cerrar cada tarea**, el asistente entrega el mensaje de commit y la
+descripción de la PR ya redactados, y pregunta quién revisará la PR. Si no hay
+nadie disponible y la PR se bloquearía, puede revisarla él **en contexto nuevo**
+—nunca con el historial que produjo el código, porque reproduciría los mismos
+puntos ciegos—, entregando hallazgos sin aprobar ni integrar. Detalle en
+`CLAUDE.md`.
+
 ### 3.4 Cuerpo de la PR
 
 Plantilla obligatoria (se genera en F0-5):
@@ -160,6 +167,8 @@ Aplica a **todas** las tareas, además de sus criterios propios:
 - [ ] La casilla de la tarea en este documento queda marcada en la misma PR.
 - [ ] Ningún asistente ha ejecutado comandos git que modifiquen el estado ni
       escrituras en base de datos: los lanza una persona (ver `CLAUDE.md`).
+- [ ] Se han entregado el mensaje de commit y la descripción de la PR en inglés,
+      y se ha preguntado quién revisa.
 
 ---
 
@@ -794,6 +803,43 @@ práctica en producto.
 - Tras aplicar, el repo del cliente tiene documentado su flujo y las
   protecciones listas para activar.
 - Nada toca la configuración remota del repositorio sin confirmación explícita.
+
+---
+
+### [ ] F3-6 — Flujo de entrega y revisión asistida en las reglas generadas
+**Rama:** `feat/f3-flujo-de-entrega` · **Depende de:** F3-5
+
+**Por qué:** el cuello de botella que el producto promete resolver no es escribir
+el código, es **revisarlo**. Un equipo pequeño, o uno en el que sólo queda una
+persona un viernes por la tarde, acumula PRs sin revisar y acaba mergeando sin
+mirar. Esta tarea convierte en producto el flujo que ya usamos internamente
+(§3.3): el asistente del cliente entrega los textos y, si hace falta, revisa.
+
+**Trabajo:**
+1. El pack base añade a las reglas de IA generadas una sección de **flujo de
+   entrega**: al cerrar una unidad de trabajo, el asistente entrega el mensaje de
+   commit y la descripción de la PR, en el idioma que indique
+   `agentBoundaries.commitLanguage`, con el formato de la plantilla de PR que
+   genere el propio pack.
+2. Regla explícita de **revisión en contexto nuevo**: si el desarrollador pide
+   que el asistente revise la PR, debe hacerlo sin el historial que produjo el
+   código. Es el punto que hace que la revisión valga algo; sin él, el asistente
+   se limita a confirmar sus propias suposiciones.
+3. Regla de **preguntar antes**: nunca asumir que revisa el asistente. Se ofrece;
+   decide el equipo.
+4. La revisión **entrega hallazgos, no aprueba ni integra**. El merge lo hace una
+   persona, siempre. Debe quedar escrito en las reglas generadas para que no se
+   erosione con el uso.
+5. Nueva opción de perfil `assistedReview` (por defecto activa) para que un
+   equipo con revisión humana garantizada pueda desactivar el ofrecimiento.
+
+**Criterios de aceptación:**
+- Un repositorio configurado recibe el flujo de entrega en sus ficheros de reglas
+  de IA, coherente con la plantilla de PR y el flujo de ramas que se le generan.
+- Desactivar `assistedReview` elimina la parte de revisión pero mantiene la
+  entrega de los mensajes.
+- La sección deja explícito que la revisión asistida es una válvula contra el
+  bloqueo, no un sustituto de la revisión humana.
 
 ---
 

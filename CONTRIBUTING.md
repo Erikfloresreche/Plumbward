@@ -65,6 +65,24 @@ de datos**. Deja los cambios en el árbol de trabajo y una persona los commitea.
 
 Quien firma el commit responde de lo que entra en el historial.
 
+Al cerrar una tarea, el asistente entrega el **mensaje de commit** y la
+**descripción de la Pull Request**, ambos en inglés y listos para copiar, y
+pregunta quién va a revisar la PR.
+
+### Revisión cuando no hay nadie disponible
+
+Si la PR se quedaría bloqueada porque no hay otra persona que pueda revisarla, un
+asistente puede hacer la revisión, pero **siempre en un contexto nuevo, sin el
+historial de la conversación que produjo el código**.
+
+Revisar el propio trabajo con el contexto que lo generó reproduce los mismos
+puntos ciegos: se dan por buenas las mismas suposiciones. Un contexto limpio sólo
+ve el diff y lo juzga por lo que dice.
+
+Esa revisión **entrega hallazgos; no aprueba ni integra**. El merge lo hace una
+persona. Y es una válvula para no bloquear el trabajo, no un sustituto de la
+revisión humana: si hay alguien disponible, revisa esa persona.
+
 ## Definition of Done
 
 Una tarea no está terminada hasta que cumple todo esto, además de sus criterios
