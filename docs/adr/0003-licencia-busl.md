@@ -21,9 +21,14 @@ condicionada por una tensión real del producto:
 - **Change Date:** 2030-09-09 (o el cuarto aniversario de cada versión, lo que
   ocurra antes).
 - **Change License:** Apache-2.0.
-- **Additional Use Grant:** los comandos de sólo lectura (`scan`, `report`) son
-  de uso libre en producción, sin límite de repositorios. Los que modifican un
-  repositorio requieren licencia comercial por repositorio.
+- **Additional Use Grant:** todo comando que **no modifique** el repositorio
+  destino es de uso libre en producción y sin límite de repositorios. A día de
+  hoy son `scan`, `plan` y `doctor`. El resto queda bajo los términos por
+  defecto de la licencia, que exigen adquirir una licencia comercial.
+
+  El grant se redacta por **propiedad** ("no modifica el repositorio") y no por
+  lista cerrada, para que no caduque cada vez que añadamos un comando. La
+  enumeración es ilustrativa y va fechada.
 
 ## Alternativas descartadas
 
@@ -59,9 +64,30 @@ pedir demasiado.
 - Es una licencia menos conocida que MIT o Apache, y eso genera preguntas en el
   proceso de compra. Conviene tener preparada la explicación en una frase.
 
-## Pendiente
+## Verificación del texto
 
-El texto de `LICENSE` debe **contrastarse contra el original** en
-https://mariadb.com/bsl11/ antes de hacer público el repositorio, y conviene una
-revisión legal antes de facturar la primera licencia. La BUSL obliga a no
-modificar el texto salvo en los parámetros.
+Contrastado el 2026-09-09 contra dos fuentes canónicas: la prosa publicada en
+https://mariadb.com/bsl11/ y, sobre todo, el fichero `LICENSE25.TXT` de MaxScale
+en el repositorio de MariaDB, que es la **forma de plantilla para adoptantes** —
+bloque de parámetros más cuatro covenants numerados— y por tanto el artefacto
+con el que hay que comparar.
+
+Se corrigieron dos cosas: la palabra `Section` por `License` en el párrafo de
+marcas, y la restauración del bloque `Notice` completo, que faltaba entero. Ese
+bloque contiene la declaración de que la BUSL **no es una licencia de código
+abierto**, que es precisamente el coste que esta ADR dice asumir; omitirla habría
+sido incoherente.
+
+**Dos trampas documentadas, para que nadie las "corrija" de vuelta:**
+
+1. La atribución de copyright de un fichero de adoptante es
+   `(c) 2020 MariaDB Corporation Ab`, **no** el `(c) 2024 MariaDB plc` que hoy
+   muestra la web. Son artefactos distintos. Nuestro fichero es correcto.
+2. La web de MariaDB renderiza los covenants como **dos** en lugar de cuatro,
+   soldando el `(b) insert the text "None"` del segundo con el tercero y el
+   cuarto. Es un fallo de maquetación de la web. Nuestros cuatro covenants son
+   correctos.
+
+**Sigue pendiente:** una revisión legal antes de facturar la primera licencia.
+Queda por decidir si los dos enlaces a las FAQ de MariaDB, incluidos aquí
+verbatim por fidelidad, se mantienen o se retiran: muchos adoptantes los quitan.
