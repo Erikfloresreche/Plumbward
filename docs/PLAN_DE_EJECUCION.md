@@ -6,7 +6,7 @@
 > misma Pull Request que la implementa.
 
 **Última actualización:** 2026-09-09
-**Estado global:** Fase 0 en curso — F0-1 y F0-5 completadas. Quedan F0-2, F0-3, F0-4, F0-6, F0-7 y F0-8.
+**Estado global:** Fase 0 en curso — F0-1 y F0-5 completadas. Quedan F0-2, F0-3, F0-4 y F0-6 a F0-11.
 **Producto:** AegisCode · https://github.com/Erikfloresreche/AegisCode
 
 ---
@@ -311,9 +311,19 @@ Se escribieron **tres** ADR en lugar de dos: la licencia del código resultó se
 una decisión distinta de la del licenciamiento técnico y merecía la suya
 ([0003](adr/0003-licencia-busl.md)).
 
-**Pendiente que deja abierto:** el texto de `LICENSE` está reproducido de la
-plantilla estándar y **debe contrastarse contra https://mariadb.com/bsl11/**
-antes de hacer público el repositorio.
+**Revisión en contexto nuevo (2026-09-09).** La PR se sometió al flujo de F3-6 y
+la revisión encontró 12 hallazgos reales, tres de ellos afirmaciones falsas sobre
+el propio código que la primera redacción daba por buenas. Corregido todo en la
+misma PR. Lo que destapó del código son las tareas nuevas **F0-9, F0-10, F0-11 y
+F2-11**.
+
+El hallazgo más grave: el README indicaba `npx aegiscode`, un paquete real de
+**otro autor** publicado en npm. Se corrigió y se documentó el conflicto de
+nombre en F0-8.
+
+**Pendiente que deja abierto:** el texto de `LICENSE` **debe contrastarse contra
+https://mariadb.com/bsl11/** antes de hacer público el repositorio y revisarse
+legalmente antes de facturar.
 
 ---
 
@@ -361,8 +371,12 @@ multiplica los imports que habría que reescribir después, y el README ya
 promete `npx aegiscode` mientras el binario se llama `governance`.
 
 **Trabajo:**
-1. Comprobar la disponibilidad del scope en NPM y **registrarlo antes de tocar
-   nada**. Si no está libre, decidir la alternativa en ese momento.
+1. **Registrar la organización `aegiscode` en npm antes de tocar nada.**
+   Comprobado el 2026-09-09: el paquete sin scope `aegiscode` está **ocupado**
+   por una herramienta de otro autor (v5.2.33, "AEGIS CLI — AI-powered coding
+   assistant"), igual que `aegiscode-cli`. No hay paquetes publicados bajo
+   `@aegiscode/`, pero eso no garantiza que la organización esté libre.
+   Alternativas comprobadas y libres sin scope: `aegis-code`, `aegis-governance`.
 2. Renombrar los seis paquetes a `@aegiscode/*` y actualizar las dependencias
    `workspace:*` de todos los `package.json`.
 3. Renombrar el binario de `governance` a `aegiscode`, manteniendo `governance`
@@ -377,6 +391,83 @@ promete `npx aegiscode` mientras el binario se llama `governance`.
 - `pnpm build && pnpm test` en verde tras el renombrado.
 - Ni una referencia a `@governance/` fuera del historial de git.
 - El scope de NPM queda registrado a nombre de la empresa.
+
+---
+
+### [ ] F0-9 — Guarda de exhaustividad en el simulador y el renderizador
+**Rama:** `fix/f0-exhaustividad-simulate` · **Depende de:** F0-1
+
+**Origen:** revisión de F0-5. El documento de arquitectura afirmaba que añadir un
+tipo de operación nuevo obliga al compilador a tratarlo en todas partes. Sólo es
+cierto en `executeOperation` y en `plan.ts`.
+
+**Por qué importa:** el `switch` de
+[simulate.ts](../packages/core/src/simulate.ts) no tiene `default` ni
+aserción `never`. Un séptimo tipo de operación compilaría limpio y sería
+**ignorado en silencio por `plan` pero ejecutado por `apply`**. Es exactamente la
+divergencia que toda la arquitectura existe para impedir, y hoy nada la detecta.
+
+**Trabajo:**
+1. Añadir `default: { const _exhaustivo: never = operation; ... }` al switch de
+   `simulatePlan`.
+2. Revisar `render.ts`, que hoy no discrimina por `kind` de forma exhaustiva.
+3. Test que añada un tipo de operación falso y verifique que el typecheck falla.
+
+**Criterios de aceptación:**
+- Añadir un miembro a la unión `Operation` rompe `pnpm typecheck` señalando cada
+  sitio que hay que actualizar.
+
+---
+
+### [ ] F0-10 — Contención de rutas resistente a enlaces simbólicos
+**Rama:** `fix/f0-symlink-containment` · **Depende de:** F0-1
+
+**Origen:** revisión de F0-5.
+
+**Por qué importa:** `resolveInRepo()` en [fs.ts](../packages/core/src/fs.ts)
+compara rutas de forma **léxica**, sin `realpath`. Un enlace simbólico dentro del
+repositorio que apunte fuera (`enlace -> /home/usuario/.ssh`) hace que
+`enlace/authorized_keys` supere la validación, y `writeFileEnsuringDir` escriba a
+través de él. `SECURITY.md` presenta esta función como la barrera principal.
+
+**Trabajo:**
+1. Resolver enlaces con `realpath` en el directorio padre existente más cercano
+   antes de comparar, sin romper el caso legítimo de crear ficheros nuevos.
+2. Decidir la política ante un symlink que apunta fuera: rechazar y reportarlo
+   como conflicto, nunca seguirlo en silencio.
+3. Tests con un symlink a un directorio externo y con uno interno legítimo.
+4. Actualizar `SECURITY.md` y `ARQUITECTURA.md` cuando el hueco esté cerrado.
+
+**Criterios de aceptación:**
+- Escribir a través de un symlink que sale del repositorio se rechaza.
+- Los symlinks internos legítimos siguen funcionando.
+
+---
+
+### [ ] F0-11 — Reversibilidad de los efectos de la instalación
+**Rama:** `feat/f0-rollback-instalacion` · **Depende de:** F0-1
+
+**Origen:** revisión de F0-5.
+
+**Por qué importa:** el producto promete que `rollback` deja el repositorio
+idéntico. Hoy sólo es cierto con `--no-install`: las operaciones `execCommand`
+devuelven `snapshots: []`, así que el lockfile que reescribe `pnpm add` y el
+contenido de `node_modules` quedan fuera del journal. El test E2E y el guion de
+prueba de la documentación **usan `--no-install`**, que es como el hueco pasó
+desapercibido.
+
+**Trabajo:**
+1. Fotografiar los ficheros de manifiesto y de bloqueo (`package.json`,
+   `pnpm-lock.yaml`, `composer.lock`, `poetry.lock`...) antes de ejecutar un
+   comando de instalación, y registrarlos en el journal.
+2. Decidir qué hacer con `node_modules`: probablemente no restaurarlo, pero sí
+   **decirlo con claridad** en la salida de `rollback` en lugar de callarlo.
+3. Test E2E con instalación real que verifique el ciclo completo.
+4. Al cerrar la tarea, retirar la advertencia del README y de `ARQUITECTURA.md`.
+
+**Criterios de aceptación:**
+- `apply` con instalación seguido de `rollback` deja el lockfile como estaba.
+- `rollback` informa explícitamente de lo que no puede deshacer.
 
 ---
 
@@ -658,6 +749,38 @@ la permanencia.
 - Alguien externo al proyecto escribe un pack mínimo siguiendo sólo la guía.
 
 ---
+### [ ] F2-11 — Frontera real para packs de terceros
+**Rama:** `feat/f2-aislamiento-packs` · **Depende de:** F2-8
+
+**Origen:** revisión de F0-5.
+
+**Por qué importa:** la documentación afirmaba que un pack "no tiene acceso al
+sistema de ficheros". Es falso: un pack es un objeto cargado en el mismo proceso
+de Node y puede importar `node:fs` y escribir donde quiera. `checkPackConformance`
+sólo inspecciona las **operaciones devueltas**; no puede observar efectos
+secundarios.
+
+Mientras el CLI sólo cargue packs incluidos en su propio paquete, el riesgo es
+teórico. En el momento en que se abra el catálogo —que es la palanca de escalado
+del negocio (F2-8)— instalar un pack pasa a ser ejecutar código arbitrario en la
+máquina del cliente. Esta tarea es **bloqueante para aceptar packs externos**.
+
+**Trabajo:**
+1. Decidir el mecanismo: ejecutar los packs en un `worker_thread` con permisos
+   recortados, en un proceso hijo con el modelo de permisos de Node
+   (`--experimental-permission`), o firmar y auditar los packs del catálogo.
+   Escribir una ADR con la elección.
+2. Implementarlo y añadir al kit de conformidad una prueba que detecte un pack
+   que intente escribir directamente.
+3. Hasta entonces, dejar explícito en la documentación y en la salida del CLI
+   que sólo se cargan packs de confianza.
+
+**Criterios de aceptación:**
+- Un pack que intenta escribir por su cuenta es detectado o impedido.
+- La ADR justifica el mecanismo elegido y lo que deja fuera.
+
+---
+
 ### [ ] F2-9 — Llevar los límites operativos del asistente al pack base
 **Rama:** `refactor/f2-limites-al-pack-base` · **Depende de:** F2-2
 
@@ -1135,7 +1258,8 @@ enseñar a quien decide la compra.
 
 | # | Riesgo | Impacto | Mitigación |
 |---|---|---|---|
-| R1 | Los paquetes siguen bajo el scope provisional `@governance/*`, que casi seguro está ocupado en NPM | Renombrar seis paquetes y todos sus imports; cuanto más tarde, más caro | Tarea **F0-8**, a ejecutar antes de la Fase 2 |
+| R1 | **Materializado.** `aegiscode` y `aegiscode-cli` están ocupados en npm por una herramienta de terceros de la misma categoría | Confusión de usuarios, y seis paquetes que renombrar | Publicar bajo el scope `@aegiscode/` y registrar la organización ya. Tarea **F0-8** |
+| R7 | Documentar garantías que el código no cumple del todo | Pérdida de credibilidad justo en el punto que vendemos | La revisión en contexto nuevo (F3-6) lo detectó en F0-5; tareas F0-9, F0-10, F0-11 y F2-11 |
 | R2 | El modelo de licencia es de código visible: es copiable | Pérdida de ingresos | Se vende la actualización continua y el soporte, no el binario. Decisión consciente (ADR 0002) |
 | R3 | Cada pack nuevo es superficie de mantenimiento permanente | El coste crece con el catálogo | El kit de conformidad (F2-3) y el catálogo abierto a terceros (F2-8) |
 | R4 | La promesa de "5 minutos" puede no cumplirse en repos grandes | Credibilidad comercial | Medirlo en F6-2 y ajustar el producto o el mensaje, nunca ocultarlo |

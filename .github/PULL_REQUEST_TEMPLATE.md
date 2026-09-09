@@ -20,6 +20,9 @@
 
 ## Definition of Done
 
+<!-- Abridged. The canonical list lives in section 4 of
+     docs/PLAN_DE_EJECUCION.md; if they differ, the plan wins. -->
+
 - [ ] `pnpm build`, `pnpm typecheck` and `pnpm test` pass
 - [ ] Tests cover the new behaviour
 - [ ] Generated files carry explanatory comments in the configured language

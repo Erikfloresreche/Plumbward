@@ -6,13 +6,15 @@ Analiza cualquier repositorio y le instala un entorno DevSecOps completo
 adaptado a su stack y a su tamaño: integración continua, linters, hooks de
 pre-commit, escaneo de secretos y reglas de contexto para asistentes de IA.
 
-```bash
-npx aegiscode scan     # Diagnóstico gratuito. No escribe absolutamente nada.
-```
-
-> **Estado:** en desarrollo activo, antes de la versión 1.0. El plan completo
-> está en [docs/PLAN_DE_EJECUCION.md](docs/PLAN_DE_EJECUCION.md).
-> Hoy sólo hay pack de Node.js/TypeScript; el resto llega en la Fase 2.
+> **Estado: en desarrollo activo, antes de la versión 1.0.** Todavía **no está
+> publicado en npm**: se usa clonando el repositorio (ver
+> [Desarrollo](#desarrollo)). Hoy sólo existe el pack de Node.js/TypeScript; el
+> resto llega en la Fase 2. El plan completo está en
+> [docs/PLAN_DE_EJECUCION.md](docs/PLAN_DE_EJECUCION.md).
+>
+> ⚠️ El paquete `aegiscode` que existe hoy en npm **no es este proyecto**: es una
+> herramienta de otro autor. Cuando publiquemos será bajo el scope
+> `@aegiscode/`.
 
 ---
 
@@ -32,16 +34,20 @@ contexto— cuesta entre 8 y 16 horas por repositorio. Casi nadie las dedica.
 ## Cómo funciona
 
 ```bash
-npx aegiscode scan       # Diagnostica y puntúa la madurez de 0 a 100
-npx aegiscode plan       # Muestra el diff exacto de lo que cambiaría
-npx aegiscode apply      # Aplica en una rama aislada, con journal
-npx aegiscode rollback   # Deshace la última ejecución por completo
-npx aegiscode doctor     # Comprueba que la configuración sigue sana
+governance scan       # Diagnostica y puntúa la madurez de 0 a 100
+governance plan       # Muestra el diff exacto de lo que cambiaría
+governance apply      # Aplica los cambios, con journal para poder deshacerlos
+governance rollback   # Deshace la última ejecución
+governance doctor     # Comprueba que la configuración sigue sana
 ```
 
 Un ciclo típico son tres comandos: `scan` para ver dónde estás, `plan` para ver
 qué cambiaría, `apply` para hacerlo. Y si algo no encaja, `rollback` deja el
-repositorio exactamente como estaba.
+repositorio como estaba.
+
+Si estás en `main`, `master`, `production` o `prod`, `apply` crea antes una rama
+dedicada (`chore/setup-ai-governance`) y trabaja allí. En cualquier otra rama
+trabaja sobre la que ya tengas activa y te lo dice.
 
 ## Tres garantías
 
@@ -50,10 +56,15 @@ cuenta: todos declaran su intención emitiendo operaciones que se agregan en un
 plan auditable. `plan` calcula y muestra el resultado exacto —no una
 estimación—, y sólo `apply` materializa.
 
-**Todo es reversible.** Antes de tocar un fichero se guarda su contenido
-anterior en un journal. `rollback` lo restaura hasta el último byte, y el
-criterio es verificable: `git status --porcelain` queda vacío. Si `apply` falla
-a mitad, se revierte solo: no existe el estado "medio configurado".
+**Los ficheros son reversibles.** Antes de tocar un fichero se guarda su
+contenido anterior en un journal. `rollback` lo restaura hasta el último byte, y
+el criterio es verificable: tras un `apply --no-install`, `git status
+--porcelain` queda vacío. Si `apply` falla a mitad, los ficheros se revierten
+solos: no existe el estado "medio configurado".
+
+La instalación de dependencias es la excepción conocida: lo que hace tu gestor
+de paquetes en el lockfile y en `node_modules` no pasa por el journal y
+`rollback` no lo deshace. Está registrado como pendiente (F0-11).
 
 **Tus ediciones se respetan.** Los ficheros generados llevan un hash en su
 cabecera; los fragmentos insertados en ficheros tuyos van entre marcadores. Al
@@ -110,7 +121,9 @@ asistente de IA en este repositorio, sus límites operativos están en
 cualquiera —es parte de la propuesta de valor—, pero no puede revenderse ni
 ofrecerse como servicio competidor.
 
-Los comandos de sólo lectura (`scan`, `report`) son de uso libre en producción,
-sin límite de repositorios. Los que modifican un repositorio requieren licencia
-comercial por repositorio. Cada versión pasa automáticamente a Apache-2.0 cuatro
-años después de publicarse.
+Los comandos que no modifican tu repositorio (`scan`, `plan`, `doctor`) son de
+uso libre en producción y sin límite de repositorios. Los que sí lo modifican
+(`apply`, `rollback`) requieren licencia comercial por repositorio.
+
+Cada versión pasa a Apache-2.0 en la fecha de conversión indicada en el
+`LICENSE`, o a los cuatro años de publicarse, lo que ocurra antes.

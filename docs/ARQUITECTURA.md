@@ -53,6 +53,7 @@ su intención* devolviendo objetos:
   kind: 'createFile',
   path: '.gitleaks.toml',
   content: '…',
+  managed: true,
   reason: 'Configura la detección de secretos antes de que lleguen al historial.',
 }
 ```
@@ -70,9 +71,9 @@ esto no hay venta enterprise: ninguna empresa deja que un binario descargado con
 **`apply` puede revertirse.** Como cada operación se ejecuta una a una y se sabe
 qué fichero toca, puede fotografiarse su estado anterior antes de tocarlo.
 
-**Los packs no pueden hacer daño.** Un pack no tiene acceso al sistema de
-ficheros. Sólo puede *pedir* cosas; quien decide es el núcleo. Esto es lo que
-hará viable abrir el catálogo a terceros.
+**Los packs declaran, no actúan.** Un pack sólo devuelve operaciones; quien
+decide y escribe es el núcleo. Es una convención, no todavía una frontera
+técnica: ver §4.5 y la tarea F2-11 antes de aceptar packs de terceros.
 
 **El resultado es determinista.** Mismo repositorio + misma configuración =
 mismo plan, siempre. Es lo que permite ejecutarlo en CI y confiar en el
@@ -87,10 +88,20 @@ resultado.
 Existen exactamente **seis** tipos de operación: `createFile`, `patchJson`,
 `patchYaml`, `ensureBlock`, `addDependency` y `execCommand`.
 
-Que sea una unión cerrada de TypeScript significa que añadir un séptimo tipo
-**obliga al compilador a exigir su tratamiento** en el simulador, el ejecutor, el
-rollback y el renderizador. Es imposible añadir una capacidad nueva y olvidarse
-de hacerla reversible.
+Que sea una unión cerrada permite que el compilador exija tratar los casos
+nuevos, pero **hoy esa garantía sólo es real en parte del código**:
+
+| Dónde | ¿El compilador obliga? |
+|---|---|
+| `executeOperation` en `apply.ts` | Sí: cada rama retorna, sin `return` final |
+| `targetKey` y `describeOperation` en `plan.ts` | Sí |
+| `simulatePlan` en `simulate.ts` | **No**: el `switch` no tiene guarda, y un tipo nuevo se ignoraría en silencio |
+| `render.ts` | **No**: no discrimina por `kind` de forma exhaustiva |
+| `revertEntries` | No aplica: reproduce snapshots, no razona por tipo |
+
+El hueco de `simulate.ts` es el peligroso: un tipo nuevo no aparecería en `plan`
+pero sí se ejecutaría en `apply`, que es exactamente la divergencia que todo este
+diseño existe para evitar. Está registrado como tarea **F0-9**.
 
 El campo `reason` es **obligatorio** en todas. No es documentación: es lo que se
 imprime en el plan. La suite de conformidad rechaza cualquier operación con un
@@ -113,7 +124,13 @@ de `.governance/journal.json`, junto con si el fichero existía o no.
 
 `rollback` no tiene que adivinar: recorre el journal al revés, restaura los
 contenidos y borra los ficheros que no existían. El criterio de éxito es
-literal: `git status --porcelain` debe quedar vacío después.
+literal: tras un `apply --no-install`, `git status --porcelain` debe quedar
+vacío.
+
+**Hueco conocido:** las operaciones `execCommand` no registran snapshots. Lo que
+el gestor de paquetes escriba en el lockfile y en `node_modules` durante la
+instalación queda fuera del journal, y `rollback` no lo deshace. Tarea **F0-11**.
+Por eso tanto el test E2E como el guion de prueba de §7 usan `--no-install`.
 
 Y lo más importante: **si `apply` falla a mitad, se revierte solo**. No existe el
 estado "medio configurado", que es el peor sitio donde dejar el repositorio de un
@@ -121,7 +138,12 @@ cliente.
 
 ### 4.4 Bloques gestionados y cabeceras con hash — [ast/src/blocks.ts](../packages/ast/src/blocks.ts)
 
-Este mecanismo es lo que hace técnicamente posible el modelo de suscripción.
+Este mecanismo es lo que hará técnicamente posible el modelo de suscripción.
+
+> **El comando `upgrade` todavía no existe** — es la tarea F4-2. Lo que sigue
+> describe el mecanismo ya construido sobre el que se apoyará, no un
+> comportamiento actual.
+
 Hay dos casos:
 
 **Ficheros enteramente nuestros** (`.gitleaks.toml`, `eslint.config.js`). Llevan
@@ -134,15 +156,23 @@ cabecera con hash del contenido generado:
 # y te avisará del conflicto en lugar de sobrescribir tus cambios.
 ```
 
-`upgrade` recalcula el hash del fichero actual. Si coincide, el cliente no lo
-tocó y se regenera con las reglas nuevas. Si no coincide, el cliente lo
-personalizó: **se respeta y se avisa**, jamás se pisa.
+`upgrade` deberá recalcular el hash y compararlo. Si coincide, el cliente no
+tocó el fichero y se regenera con las reglas nuevas; si no coincide, lo
+personalizó y **se respeta y se avisa**, jamás se pisa.
+
+**Cuidado al implementarlo:** `withManagedHeader` calcula el hash sobre el
+contenido generado **antes** de anteponer la cabecera. El valor guardado en
+`hash=` no es, por tanto, el hash del fichero tal como queda en disco. La
+comparación tiene que hacerse contra el cuerpo sin cabecera, no contra el
+fichero entero.
 
 **Ficheros del cliente** (`.gitignore`, `tsconfig.json`). Sólo se inserta un
 fragmento entre marcadores:
 
 ```
 # >>> governance:begin gitignore-artifacts
+# Bloque gestionado automáticamente. No edites dentro de los marcadores:
+# `governance upgrade` regenerará su contenido.
 .governance/journal.json
 # <<< governance:end gitignore-artifacts
 ```
@@ -153,9 +183,19 @@ línea fuera de ellos no se toca nunca.
 ### 4.5 Contención de rutas — [core/src/fs.ts](../packages/core/src/fs.ts)
 
 `resolveInRepo()` rechaza rutas absolutas y cualquier cosa que se escape con
-`../`. No es paranoia: el catálogo de packs se abrirá a terceros, y ningún pack
-debe poder escribir en `~/.ssh/authorized_keys` con una ruta maliciosa. Hay un
-test E2E que lo verifica.
+`../`. Hay un test E2E que verifica ese caso.
+
+**Lo que hoy NO cubre:** la comprobación es puramente léxica (`path.resolve` y
+`path.relative`, sin `realpath`). Si el repositorio contiene un enlace simbólico
+a un directorio de fuera, una ruta que pase por él supera la validación y la
+escritura sale del repositorio. Tarea **F0-10**.
+
+Y hay un límite más importante que conviene no malinterpretar: **esto no es un
+sandbox**. Un pack es un objeto cargado en el mismo proceso de Node y nada le
+impide importar `node:fs` y escribir por su cuenta. Que no lo haga es una
+**convención verificada en revisión y en la suite de conformidad**, que sólo
+inspecciona las operaciones devueltas, no los efectos secundarios. Antes de
+aceptar packs de terceros hace falta una frontera real (tarea F2-11).
 
 ---
 
@@ -165,17 +205,34 @@ Se parte en seis paquetes para **forzar que las dependencias vayan en una sola
 dirección**:
 
 ```
-        ast  ─────────────┐
-         │                │
-         ▼                ▼
-       core ────────> packs-sdk <──── scanner
-                          │              │
-                          ▼              │
-                    packs/node-ts        │
-                          │              │
-                          ▼              ▼
-                         cli ────────────┘
+                    ast
+                     ▲
+                     │
+                   core
+                     ▲
+                     │
+                  scanner
+                     ▲
+                     │
+                 packs-sdk
+                     ▲
+                     │
+               packs/node-ts
+                     ▲
+                     │
+                    cli
 ```
+
+Las aristas exactas, tal como las declaran los `package.json`:
+
+| Paquete | Depende de |
+|---|---|
+| `ast` | — (es una hoja) |
+| `core` | `ast` |
+| `scanner` | `core` |
+| `packs-sdk` | `core`, `scanner` |
+| `packs/node-ts` | `core`, `packs-sdk`, `scanner` |
+| `cli` | `ast`, `core`, `scanner`, `packs-sdk`, `pack-node-ts` |
 
 `ast` no sabe que existe `core`. `core` no sabe que existen los packs. Los packs
 no saben que existe la CLI. Si mañana hace falta una interfaz web o una GitHub
@@ -300,7 +357,7 @@ y un arranque de `npx` más rápido.
 | **tsup** | Empaqueta a un ejecutable único. Crítico: `npx` se descarga entero en cada demo |
 | **vitest** | Rápido, con ESM y TypeScript nativos |
 | **cac** | Enrutador de comandos mínimo, sin el árbol de dependencias de alternativas más conocidas |
-| **@clack/prompts** | Para el wizard (F4-1) |
+| **@clack/prompts** | Confirmación interactiva de `apply`; será la base del wizard (F4-1) |
 | **execa** | Ejecuta procesos sin pasar por shell, lo que evita inyección de comandos |
 | **picocolors** | Color en terminal en 2 KB |
 | **comment-json** y **yaml** | Las dos únicas que preservan comentarios al reescribir |
@@ -341,16 +398,19 @@ generaría.
 ### Nivel 3 — Ciclo completo en un repositorio de usar y tirar
 
 ```bash
+# Desde la raíz del repositorio clonado:
+AEGIS=$(pwd)/packages/cli/dist/index.js
+
 mkdir -p /tmp/prueba-aegis && cd /tmp/prueba-aegis
 git init -b main && npm init -y
 echo "console.log('hola')" > index.js
 git add -A && git commit -m "initial"
 
-node ~/governance/packages/cli/dist/index.js plan --diff
-node ~/governance/packages/cli/dist/index.js apply --no-install
+node "$AEGIS" plan --diff
+node "$AEGIS" apply --no-install
 git status --short
-node ~/governance/packages/cli/dist/index.js doctor
-node ~/governance/packages/cli/dist/index.js rollback
+node "$AEGIS" doctor
+node "$AEGIS" rollback
 git status --porcelain   # debe quedar VACÍO
 ```
 

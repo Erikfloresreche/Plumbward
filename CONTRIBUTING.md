@@ -85,8 +85,10 @@ revisión humana: si hay alguien disponible, revisa esa persona.
 
 ## Definition of Done
 
-Una tarea no está terminada hasta que cumple todo esto, además de sus criterios
-propios:
+**La lista canónica y completa está en el §4 de
+[docs/PLAN_DE_EJECUCION.md](docs/PLAN_DE_EJECUCION.md).** Si esta copia y aquélla
+difieren, manda el plan. En resumen, una tarea no está terminada hasta que
+cumple todo esto, además de sus criterios propios:
 
 - `pnpm build`, `pnpm typecheck` y `pnpm test` en verde.
 - Cero `any` implícitos. Cero `@ts-expect-error` sin comentario que lo justifique.
@@ -96,6 +98,10 @@ propios:
 - Tests para el comportamiento nuevo. Un bug se corrige empezando por el test
   que lo reproduce.
 - La casilla de la tarea marcada en el plan, en la misma PR.
+- Ningún asistente ha ejecutado comandos git que modifiquen el estado ni
+  escrituras en base de datos.
+- Se han entregado el mensaje de commit y la descripción de la PR en inglés, y
+  se ha preguntado quién revisa.
 
 ## Escribir un pack
 

@@ -3,8 +3,8 @@
 CLI de gobernanza DevSecOps que analiza un repositorio y le instala CI, linters,
 hooks, escaneo de secretos y reglas de contexto para asistentes de IA.
 
-El plan de ejecución completo, con las 34 tareas y sus criterios de aceptación,
-está en [docs/PLAN_DE_EJECUCION.md](docs/PLAN_DE_EJECUCION.md). **Léelo antes de
+El plan de ejecución completo, con todas las tareas y sus criterios de
+aceptación, está en [docs/PLAN_DE_EJECUCION.md](docs/PLAN_DE_EJECUCION.md). **Léelo antes de
 empezar cualquier tarea** y marca su casilla al terminarla.
 
 ---
