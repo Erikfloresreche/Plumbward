@@ -1,25 +1,28 @@
 {
-  "name": "@governance/cli",
+  "name": "@plumbward/cli",
   "version": "0.1.0",
   "type": "module",
   "bin": {
-    "governance": "./dist/index.js"
+    "plumbward": "./dist/index.js"
   },
   "main": "./dist/index.js",
   "files": [
     "dist"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsup",
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
     "@clack/prompts": "^0.9.0",
-    "@governance/ast": "workspace:*",
-    "@governance/core": "workspace:*",
-    "@governance/pack-node-ts": "workspace:*",
-    "@governance/packs-sdk": "workspace:*",
-    "@governance/scanner": "workspace:*",
+    "@plumbward/ast": "workspace:*",
+    "@plumbward/core": "workspace:*",
+    "@plumbward/pack-node-ts": "workspace:*",
+    "@plumbward/packs-sdk": "workspace:*",
+    "@plumbward/scanner": "workspace:*",
     "cac": "^6.7.14",
     "execa": "^9.5.2",
     "picocolors": "^1.1.1"

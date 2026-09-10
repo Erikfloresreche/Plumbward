@@ -1,5 +1,5 @@
 {
-  "name": "@governance/pack-node-ts",
+  "name": "@plumbward/pack-node-ts",
   "version": "0.1.0",
   "type": "module",
   "main": "./dist/index.js",
@@ -10,14 +10,19 @@
       "import": "./dist/index.js"
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsup src/index.ts --format esm --dts --clean",
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
-    "@governance/core": "workspace:*",
-    "@governance/packs-sdk": "workspace:*",
-    "@governance/scanner": "workspace:*"
+    "@plumbward/core": "workspace:*",
+    "@plumbward/packs-sdk": "workspace:*",
+    "@plumbward/scanner": "workspace:*"
   }
 }

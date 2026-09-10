@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { recommendedProfile } from '@governance/packs-sdk'
-import type { Profile } from '@governance/packs-sdk'
-import type { RepoScan } from '@governance/scanner'
+import { recommendedProfile } from '@plumbward/packs-sdk'
+import type { Profile } from '@plumbward/packs-sdk'
+import type { RepoScan } from '@plumbward/scanner'
 import { aiRules, copilotInstructions } from './ai-rules.js'
 
 /**

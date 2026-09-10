@@ -28,7 +28,7 @@ describe('ensureBlock', () => {
     expect(second.replaced).toBe(true)
     expect(second.text).toContain('version-2')
     expect(second.text).not.toContain('version-1')
-    expect(second.text.match(/governance:begin/g)).toHaveLength(1)
+    expect(second.text.match(/plumbward:begin/g)).toHaveLength(1)
   })
 
   it('conserva intacto lo que el cliente escriba fuera de los marcadores', () => {

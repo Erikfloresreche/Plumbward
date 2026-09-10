@@ -1,5 +1,5 @@
-import type { Profile } from '@governance/packs-sdk'
-import type { RepoScan } from '@governance/scanner'
+import type { Profile } from '@plumbward/packs-sdk'
+import type { RepoScan } from '@plumbward/scanner'
 
 /**
  * Sección de límites operativos.
@@ -163,7 +163,7 @@ ${strict ? '- Corregir un bug empieza por escribir la prueba que lo reproduce.\n
 
 ${boundariesSection(profile)}## 8. Lo que NUNCA debes hacer
 
-- Modificar ficheros dentro de marcadores \`governance:begin\` / \`governance:end\`:
+- Modificar ficheros dentro de marcadores \`plumbward:begin\` / \`plumbward:end\`:
   se regeneran automáticamente y perderás tus cambios.
 - Tocar ficheros de CI/CD, \`.env\`, lockfiles o configuración de despliegue sin
   que te lo hayan pedido explícitamente.

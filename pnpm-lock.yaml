@@ -38,19 +38,19 @@ importers:
       '@clack/prompts':
         specifier: ^0.9.0
         version: 0.9.1
-      '@governance/ast':
+      '@plumbward/ast':
         specifier: workspace:*
         version: link:../ast
-      '@governance/core':
+      '@plumbward/core':
         specifier: workspace:*
         version: link:../core
-      '@governance/pack-node-ts':
+      '@plumbward/pack-node-ts':
         specifier: workspace:*
         version: link:../packs/node-ts
-      '@governance/packs-sdk':
+      '@plumbward/packs-sdk':
         specifier: workspace:*
         version: link:../packs-sdk
-      '@governance/scanner':
+      '@plumbward/scanner':
         specifier: workspace:*
         version: link:../scanner
       cac:
@@ -65,34 +65,34 @@ importers:
 
   packages/core:
     dependencies:
-      '@governance/ast':
+      '@plumbward/ast':
         specifier: workspace:*
         version: link:../ast
 
   packages/packs-sdk:
     dependencies:
-      '@governance/core':
+      '@plumbward/core':
         specifier: workspace:*
         version: link:../core
-      '@governance/scanner':
+      '@plumbward/scanner':
         specifier: workspace:*
         version: link:../scanner
 
   packages/packs/node-ts:
     dependencies:
-      '@governance/core':
+      '@plumbward/core':
         specifier: workspace:*
         version: link:../../core
-      '@governance/packs-sdk':
+      '@plumbward/packs-sdk':
         specifier: workspace:*
         version: link:../../packs-sdk
-      '@governance/scanner':
+      '@plumbward/scanner':
         specifier: workspace:*
         version: link:../../scanner
 
   packages/scanner:
     dependencies:
-      '@governance/core':
+      '@plumbward/core':
         specifier: workspace:*
         version: link:../core
       execa:

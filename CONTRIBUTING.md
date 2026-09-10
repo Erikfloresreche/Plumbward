@@ -1,4 +1,4 @@
-# Cómo contribuir a AegisCode
+# Cómo contribuir a Plumbward
 
 ## Antes de nada
 
@@ -17,8 +17,8 @@ contribución que los rompa se rechaza aunque funcione:
 Requiere Node.js >= 18 y pnpm.
 
 ```bash
-git clone https://github.com/Erikfloresreche/AegisCode.git
-cd AegisCode
+git clone https://github.com/Erikfloresreche/Plumbward.git
+cd Plumbward
 pnpm install
 pnpm build
 pnpm test

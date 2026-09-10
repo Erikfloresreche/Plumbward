@@ -1,4 +1,4 @@
-import { ensureBlock as ensureBlockInText, patchJson, patchYaml } from '@governance/ast'
+import { ensureBlock as ensureBlockInText, patchJson, patchYaml } from '@plumbward/ast'
 import type { AddDependencyOp, ChangePlan, ExecCommandOp, Operation } from './types.js'
 import { readFileIfExists, resolveInRepo } from './fs.js'
 import { withManagedHeader } from './apply.js'

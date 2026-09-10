@@ -10,11 +10,11 @@ const r = (p: string): string => fileURLToPath(new URL(p, import.meta.url))
 export default defineConfig({
   resolve: {
     alias: {
-      '@governance/core': r('./packages/core/src/index.ts'),
-      '@governance/ast': r('./packages/ast/src/index.ts'),
-      '@governance/scanner': r('./packages/scanner/src/index.ts'),
-      '@governance/packs-sdk': r('./packages/packs-sdk/src/index.ts'),
-      '@governance/pack-node-ts': r('./packages/packs/node-ts/src/index.ts'),
+      '@plumbward/core': r('./packages/core/src/index.ts'),
+      '@plumbward/ast': r('./packages/ast/src/index.ts'),
+      '@plumbward/scanner': r('./packages/scanner/src/index.ts'),
+      '@plumbward/packs-sdk': r('./packages/packs-sdk/src/index.ts'),
+      '@plumbward/pack-node-ts': r('./packages/packs/node-ts/src/index.ts'),
     },
   },
   test: {

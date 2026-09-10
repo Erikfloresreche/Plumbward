@@ -2,8 +2,8 @@
 
 ## Reportar una vulnerabilidad
 
-Si encuentras una vulnerabilidad en AegisCode, **no abras una issue pública**.
-Escribe a **erikfloresreche@gmail.com** con el asunto `[SECURITY] AegisCode`.
+Si encuentras una vulnerabilidad en Plumbward, **no abras una issue pública**.
+Escribe a **erikfloresreche@gmail.com** con el asunto `[SECURITY] Plumbward`.
 
 Incluye, en la medida de lo posible:
 
@@ -18,7 +18,7 @@ publicación y te acreditaremos en el aviso salvo que prefieras lo contrario.
 
 ## Por qué esta herramienta merece atención especial
 
-AegisCode **escribe en el repositorio de sus usuarios** y **ejecuta comandos** en
+Plumbward **escribe en el repositorio de sus usuarios** y **ejecuta comandos** en
 su máquina. Eso la convierte en un objetivo interesante. Las áreas donde un
 fallo sería más grave:
 
@@ -45,7 +45,7 @@ fallo sería más grave:
 Entra en el alcance el código de este repositorio y los paquetes publicados
 desde él.
 
-Queda fuera: las herramientas de terceros que AegisCode configura (ESLint,
+Queda fuera: las herramientas de terceros que Plumbward configura (ESLint,
 Gitleaks, Husky y demás) —repórtalas a sus mantenedores—, y las
 vulnerabilidades que requieran que el atacante ya tenga acceso de escritura al
 repositorio o a la máquina de la víctima.

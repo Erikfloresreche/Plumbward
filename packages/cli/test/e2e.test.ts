@@ -4,17 +4,17 @@ import { mkdtemp, rm, writeFile, mkdir, readFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { applyPlan, rollbackLastApply, simulatePlan } from '@governance/core'
-import type { ChangePlan, Operation } from '@governance/core'
-import { scanRepository } from '@governance/scanner'
-import { PackRegistry, checkPackConformance, file, recommendedProfile } from '@governance/packs-sdk'
-import { nodeTsPack } from '@governance/pack-node-ts'
+import { applyPlan, rollbackLastApply, simulatePlan } from '@plumbward/core'
+import type { ChangePlan, Operation } from '@plumbward/core'
+import { scanRepository } from '@plumbward/scanner'
+import { PackRegistry, checkPackConformance, file, recommendedProfile } from '@plumbward/packs-sdk'
+import { nodeTsPack } from '@plumbward/pack-node-ts'
 
 const VERSION = '0.1.0-test'
 
 /** Crea un repositorio git realista sobre el que ejecutar el ciclo completo. */
 async function crearRepoDePrueba(): Promise<string> {
-  const root = await mkdtemp(join(tmpdir(), 'governance-e2e-'))
+  const root = await mkdtemp(join(tmpdir(), 'plumbward-e2e-'))
 
   await writeFile(
     join(root, 'package.json'),

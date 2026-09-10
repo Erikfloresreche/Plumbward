@@ -1,5 +1,5 @@
-import type { PackageManager } from '@governance/core'
-import type { Profile } from '@governance/packs-sdk'
+import type { PackageManager } from '@plumbward/core'
+import type { Profile } from '@plumbward/packs-sdk'
 
 function exec(manager: PackageManager): string {
   switch (manager) {

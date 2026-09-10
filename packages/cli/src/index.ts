@@ -5,7 +5,7 @@ import { CLI_VERSION } from './context.js'
 import { runApply, runDoctor, runPlan, runRollback, runScan } from './commands.js'
 import { error } from './render.js'
 
-const cli = cac('governance')
+const cli = cac('plumbward')
 
 function target(dir: string | undefined): string {
   return resolve(dir ?? process.cwd())
@@ -18,10 +18,10 @@ async function guard(action: () => Promise<number>): Promise<void> {
   } catch (cause) {
     const detail = cause instanceof Error ? cause.message : String(cause)
     console.error(`\n${error(detail)}`)
-    if (process.env['GOVERNANCE_DEBUG'] === '1' && cause instanceof Error) {
+    if (process.env['PLUMBWARD_DEBUG'] === '1' && cause instanceof Error) {
       console.error(pc.dim(cause.stack ?? ''))
     } else {
-      console.error(pc.dim('  Vuelve a ejecutarlo con GOVERNANCE_DEBUG=1 para ver la traza.'))
+      console.error(pc.dim('  Vuelve a ejecutarlo con PLUMBWARD_DEBUG=1 para ver la traza.'))
     }
     process.exitCode = 1
   }

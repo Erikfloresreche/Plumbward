@@ -1,5 +1,5 @@
-import { operationPath } from '@governance/core'
-import type { Operation } from '@governance/core'
+import { operationPath } from '@plumbward/core'
+import type { Operation } from '@plumbward/core'
 import type { RepoContext, StackPack } from './contract.js'
 
 /**

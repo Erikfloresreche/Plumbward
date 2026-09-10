@@ -6,13 +6,10 @@
 > misma Pull Request que la implementa.
 
 **Última actualización:** 2026-09-09
-**Estado global:** Fase 0 en curso — F0-1 y F0-5 completadas. Quedan F0-2, F0-3, F0-4 y F0-6 a F0-11.
+**Estado global:** Fase 0 en curso — F0-1, F0-5 y F0-8 completadas. Quedan F0-2, F0-3, F0-4, F0-6, F0-7 y F0-9 a F0-11.
 **Producto:** Plumbward · https://github.com/Erikfloresreche/Plumbward
 **Modelo de negocio:** suscripción anual por repositorio — ver
 [MODELO_DE_NEGOCIO.md](MODELO_DE_NEGOCIO.md)
-
-> El renombrado de `@governance/*` a `@plumbward/*` es la tarea **F0-8**; hasta
-> que se ejecute, el código sigue usando el scope antiguo.
 
 ---
 
@@ -37,12 +34,12 @@ correctos, 24 tests en verde**.
 
 | Paquete | Responsabilidad | Cobertura |
 |---|---|---|
-| `@governance/core` | Motor transaccional: `Operation[]` → `ChangePlan` → `apply` con journal, simulación y rollback | Completo |
-| `@governance/ast` | Edición no destructiva de JSON y YAML + bloques delimitados por marcadores | Completo, con tests |
-| `@governance/scanner` | Estado git, fingerprint, SLOC, detección de stack, informe de madurez 0-100 | Completo para Node y Go |
-| `@governance/packs-sdk` | Contrato `StackPack`, DSL de operaciones, registro y suite de conformidad | Completo |
-| `@governance/pack-node-ts` | Único pack real: CI, ESLint, Prettier, Husky, Gitleaks, devcontainer, reglas de IA | Completo |
-| `@governance/cli` | Comandos `scan`, `plan`, `apply`, `rollback`, `doctor` | Funciona de punta a punta |
+| `@plumbward/core` | Motor transaccional: `Operation[]` → `ChangePlan` → `apply` con journal, simulación y rollback | Completo |
+| `@plumbward/ast` | Edición no destructiva de JSON y YAML + bloques delimitados por marcadores | Completo, con tests |
+| `@plumbward/scanner` | Estado git, fingerprint, SLOC, detección de stack, informe de madurez 0-100 | Completo para Node y Go |
+| `@plumbward/packs-sdk` | Contrato `StackPack`, DSL de operaciones, registro y suite de conformidad | Completo |
+| `@plumbward/pack-node-ts` | Único pack real: CI, ESLint, Prettier, Husky, Gitleaks, devcontainer, reglas de IA | Completo |
+| `@plumbward/cli` | Comandos `scan`, `plan`, `apply`, `rollback`, `doctor` | Funciona de punta a punta |
 
 ### 2.2 Los tres invariantes de arquitectura
 
@@ -240,12 +237,12 @@ y las cabeceras de fichero gestionado mentirán sobre qué versión generó qué
 1. Inyectar la versión en build time con `define` en
    [tsup.config.ts](../packages/cli/tsup.config.ts), leyendo `package.json`.
 2. Sustituir la constante por la variable inyectada, con fallback legible en dev.
-3. Test que compara la versión que reporta `governance --version` con la del
+3. Test que compara la versión que reporta `plumbward --version` con la del
    `package.json` del CLI.
 
 **Criterios de aceptación:**
 - Cambiar la versión en `package.json` y reconstruir cambia la salida de
-  `governance --version` sin tocar código.
+  `plumbward --version` sin tocar código.
 - El test falla si alguien vuelve a hardcodearla.
 
 ---
@@ -301,7 +298,7 @@ donde detectar que una regla molesta más de lo que aporta.
 
 **Trabajo:**
 1. `README.md` raíz: el problema en tres frases, la demo en un bloque
-   (`npx @governance/cli scan`), qué instala, los tres invariantes, y el enlace a
+   (`npx @plumbward/cli scan`), qué instala, los tres invariantes, y el enlace a
    este plan. Escrito para un CTO, no para un contribuidor.
 2. `LICENSE` — decidir y documentar el modelo (ver §Riesgos: afecta a Fase 5).
 3. `CONTRIBUTING.md` — flujo de ramas de §3, cómo correr los tests, cómo escribir un pack.
@@ -331,9 +328,10 @@ el propio código que la primera redacción daba por buenas. Corregido todo en l
 misma PR. Lo que destapó del código son las tareas nuevas **F0-9, F0-10, F0-11 y
 F2-11**.
 
-El hallazgo más grave: el README indicaba `npx aegiscode`, un paquete real de
-**otro autor** publicado en npm. Se corrigió y se documentó el conflicto de
-nombre en F0-8.
+El hallazgo más grave: el README indicaba `npx aegiscode`, que entonces era el
+nombre del producto y **un paquete real de otro autor** publicado en npm. Se
+corrigió, y el conflicto de nombre acabó provocando el renombrado a Plumbward
+en F0-8.
 
 **Pendiente que deja abierto:** el texto de `LICENSE` **debe contrastarse contra
 https://mariadb.com/bsl11/** antes de hacer público el repositorio y revisarse
@@ -366,7 +364,7 @@ actualizaciones: tiene que poder leer qué cambió en cada una.
 
 **Trabajo:**
 1. Activar `coverage` en [vitest.config.ts](../vitest.config.ts) con proveedor `v8`.
-2. Umbrales: **90% en `@governance/core`** (es el que puede corromper el repo de
+2. Umbrales: **90% en `@plumbward/core`** (es el que puede corromper el repo de
    un cliente), 80% en el resto, sin umbral en las plantillas de texto.
 3. Publicar el informe como artefacto de la PR.
 
@@ -376,34 +374,35 @@ actualizaciones: tiene que poder leer qué cambió en cada una.
 
 ---
 
-### [ ] F0-8 — Renombrar el scope de los paquetes a AegisCode
-**Rama:** `refactor/f0-scope-aegiscode` · **Depende de:** F0-1 · **Bloquea:** Fase 2
+### [x] F0-8 — Renombrar el scope de los paquetes a Plumbward
+**Rama:** `refactor/f0-scope-plumbward` · **Depende de:** F0-1 · **Bloquea:** Fase 2
 
-**Por qué antes de la Fase 2:** hoy hay seis paquetes bajo `@governance/*`, un
-scope provisional que casi con seguridad está ocupado en NPM. Cada pack nuevo
-multiplica los imports que habría que reescribir después, y el README ya
-promete `npx aegiscode` mientras el binario se llama `governance`.
+**Por qué antes de la Fase 2:** los seis paquetes nacieron bajo `@governance/*`,
+un scope provisional. Cada pack nuevo multiplica los imports que habría que
+reescribir después, así que el momento más barato para renombrar es antes de que
+existan cinco packs.
 
 **Trabajo:**
-1. **Registrar la organización `aegiscode` en npm antes de tocar nada.**
-   Comprobado el 2026-09-09: el paquete sin scope `aegiscode` está **ocupado**
-   por una herramienta de otro autor (v5.2.33, "AEGIS CLI — AI-powered coding
-   assistant"), igual que `aegiscode-cli`. No hay paquetes publicados bajo
-   `@aegiscode/`, pero eso no garantiza que la organización esté libre.
-   Alternativas comprobadas y libres sin scope: `aegis-code`, `aegis-governance`.
-2. Renombrar los seis paquetes a `@aegiscode/*` y actualizar las dependencias
+1. **Registrar la organización en npm antes de tocar nada.**
+   Comprobado el 2026-09-09: el nombre que se barajaba entonces, `aegiscode`,
+   estaba **ocupado** —igual que `aegiscode-cli` y `aegiscode-gui`— y, lo más
+   grave, existía `@save3asy/aegiscode`, publicado tres semanas antes y descrito
+   como *"AI Code Governance & Architecture Guardrails"*: un competidor
+   homónimo en nuestra categoría exacta. Eso obligó a cambiar de nombre.
+   `plumbward` se comprobó libre en npm y en los dominios `.com`, `.dev` e
+   `.io`. La organización `plumbward` quedó registrada el 2026-09-09.
+2. Renombrar los seis paquetes a `@plumbward/*` y actualizar las dependencias
    `workspace:*` de todos los `package.json`.
-3. Renombrar el binario de `governance` a `aegiscode`, manteniendo `governance`
-   como alias mientras no haya usuarios externos.
+3. Renombrar el binario de `governance` a `plumbward`.
 4. Decidir si el directorio de estado en el repositorio del cliente pasa de
-   `.governance/` a `.aegiscode/`. **Recomendación: mantener `.governance/`** —
+   `.governance/` a `.plumbward/`. **Recomendación: mantener `.governance/`** —
    describe la función, no la marca, y así una migración de marca futura no
    obliga a tocar los repositorios ya configurados.
 5. Actualizar README, plan y textos de la CLI.
 
 **Criterios de aceptación:**
 - `pnpm build && pnpm test` en verde tras el renombrado.
-- Ni una referencia a `@governance/` fuera del historial de git.
+- Ni una referencia a `@plumbward/` fuera del historial de git.
 - El scope de NPM queda registrado a nombre de la empresa.
 
 ---
@@ -497,7 +496,7 @@ pospone, y es exactamente el tipo de deuda que el producto dice combatir.
 
 ---
 
-### [ ] F1-1 — Paquete `@governance/i18n`
+### [ ] F1-1 — Paquete `@plumbward/i18n`
 **Rama:** `feat/f1-paquete-i18n` · **Depende de:** Fase 0 completa
 
 **Trabajo:**
@@ -523,7 +522,7 @@ pospone, y es exactamente el tipo de deuda que el producto dice combatir.
    (CI, reglas de IA, tooling, docs) al catálogo.
 2. Traducir al inglés.
 3. Traducir también los `reason` de cada operación: son lo que el usuario lee en
-   `governance plan`, la pantalla más importante del producto.
+   `plumbward plan`, la pantalla más importante del producto.
 
 **Criterios de aceptación:**
 - Ni un literal en español fuera del catálogo (regla de lint que lo verifique si
@@ -540,10 +539,10 @@ pospone, y es exactamente el tipo de deuda que el producto dice combatir.
    [commands.ts](../packages/cli/src/commands.ts) al catálogo.
 2. Resolución del idioma, por orden de precedencia:
    `--lang` → `.governance/config.yml` → `$LANG` del sistema → `es`.
-3. `governance scan` debe poder elegir idioma **antes** de que exista config.
+3. `plumbward scan` debe poder elegir idioma **antes** de que exista config.
 
 **Criterios de aceptación:**
-- `governance scan --lang en` en un repo sin configurar sale íntegro en inglés.
+- `plumbward scan --lang en` en un repo sin configurar sale íntegro en inglés.
 
 ---
 
@@ -599,7 +598,7 @@ el repositorio.
 **Por qué importa:** hoy, un repo que no sea Node recibe un conflicto bloqueante
 y cero valor. Eso es una demo fallida delante de un cliente. Con esta fase, el
 mercado direccionable pasa de "agencias JavaScript" a "cualquier equipo".
-**Criterio de salida:** `governance apply` produce valor real en repos de Node,
+**Criterio de salida:** `plumbward apply` produce valor real en repos de Node,
 Python, PHP/Laravel, Go y en uno de un stack no soportado.
 
 ---
@@ -656,7 +655,7 @@ del mundo. Es lo que convierte un "no soportado" en una venta.
    bloqueante "no se ha reconocido ningún stack": deja de poder ocurrir.
 
 **Criterios de aceptación:**
-- `governance apply` sobre un repo de un lenguaje sin pack (p. ej. Elixir)
+- `plumbward apply` sobre un repo de un lenguaje sin pack (p. ej. Elixir)
   instala escaneo de secretos, CODEOWNERS y reglas de IA, y no falla.
 - El pack `base` nunca duplica lo que ya aporta un pack específico (lo verifica
   el `PlanBuilder`, que debe reportar conflicto si ocurre).
@@ -672,7 +671,7 @@ forma distinta y la calidad diverge. Y cuando abramos el catálogo a terceros
 mal escrito destroce el repositorio de un cliente.
 
 **Trabajo:**
-1. Paquete `@governance/pack-testkit`.
+1. Paquete `@plumbward/pack-testkit`.
 2. `describePackConformance(pack, escenarios)`: batería estándar que ejecuta
    `checkPackConformance` sobre varios repos sintéticos y comprueba además:
    - **Idempotencia**: aplicar dos veces no produce cambios la segunda.
@@ -702,7 +701,7 @@ mal escrito destroce el repositorio de un cliente.
 3. Reglas de IA específicas: tipado, gestión de entornos virtuales, estructura
    de proyecto, y el patrón del framework detectado (FastAPI vs Django).
 4. Parcheo no destructivo de `pyproject.toml` — requiere **soporte TOML en
-   `@governance/ast`**, que hoy sólo tiene JSON y YAML. Es la parte cara de esta
+   `@plumbward/ast`**, que hoy sólo tiene JSON y YAML. Es la parte cara de esta
    tarea: presupuestarla aparte y usar un parser que preserve comentarios.
 
 **Criterios de aceptación:**
@@ -722,7 +721,7 @@ justamente el comprador del paquete de 4.000 €.
 1. Detección de Laravel (`artisan`, `composer.json`) frente a Symfony frente a PHP puro.
 2. Aporta: PHPStan o Psalm con nivel según `strictness`, Laravel Pint o
    PHP-CS-Fixer, PHPUnit o Pest, `composer audit`, workflows con matriz de PHP.
-3. Parcheo no destructivo de `composer.json` (es JSON: reutiliza `@governance/ast`).
+3. Parcheo no destructivo de `composer.json` (es JSON: reutiliza `@plumbward/ast`).
 4. Reglas de IA específicas de Laravel: dónde va la lógica de negocio, uso de
    Eloquent, form requests, evitar consultas N+1 — los errores exactos que
    comete un asistente de IA en Laravel.
@@ -907,7 +906,7 @@ deja la CI en verde desde el primer día, y aun así impide que empeore.
    en [types.ts](../packages/core/src/types.ts), sin implementación detrás).
 2. Contenido: por fichero y por regla, el número de infracciones **aceptadas**
    en el momento de instalar, más metadatos (fecha, versión, comando que lo generó).
-3. Comando `governance baseline --update`, que exige que el árbol esté limpio
+3. Comando `plumbward baseline --update`, que exige que el árbol esté limpio
    y explica en la salida qué se está aceptando y qué implica.
 4. El baseline es **legible y revisable en una PR**: nada de blobs binarios.
 
@@ -965,7 +964,7 @@ que hace que la licencia se renueve: el valor se acumula mes a mes de forma medi
    sube**, aunque los valores absolutos sigan siendo altos.
 2. Cuando una PR reduce la deuda, el baseline se actualiza automáticamente a la
    baja: el trinquete nunca retrocede.
-3. `governance report` muestra la evolución de la puntuación de madurez y de la
+3. `plumbward report` muestra la evolución de la puntuación de madurez y de la
    deuda en el tiempo.
 
 **Criterios de aceptación:**
@@ -1101,7 +1100,7 @@ reglas nuevas sin perder ni una sola personalización del cliente.
 
 ---
 
-### [ ] F4-1 — Wizard interactivo `governance init`
+### [ ] F4-1 — Wizard interactivo `plumbward init`
 **Rama:** `feat/f4-wizard-init` · **Depende de:** Fase 3 completa
 
 **Trabajo:**
@@ -1130,7 +1129,7 @@ reglas nuevas sin perder ni una sola personalización del cliente.
 
 ---
 
-### [ ] F4-2 — `governance upgrade` con detección de personalizaciones
+### [ ] F4-2 — `plumbward upgrade` con detección de personalizaciones
 **Rama:** `feat/f4-upgrade-drift` · **Depende de:** F4-1
 
 **Por qué:** es el corazón del modelo de suscripción, y el mecanismo ya está
@@ -1142,7 +1141,7 @@ los bloques delimitados (`ensureBlock`) existen precisamente para esto.
    contenido actual para clasificar: **intacto** (se regenera), **modificado por
    el cliente** (se respeta y se avisa) o **borrado** (se pregunta).
 2. En ficheros con bloques delimitados, actualizar sólo el interior del bloque.
-3. `governance upgrade --dry-run` que muestre el diff exacto, igual que `plan`.
+3. `plumbward upgrade --dry-run` que muestre el diff exacto, igual que `plan`.
 4. Informe claro de qué se actualizó, qué se respetó y qué requiere decisión humana.
 5. Migraciones entre versiones del formato de `config.yml`.
 
@@ -1169,7 +1168,7 @@ los bloques delimitados (`ensureBlock`) existen precisamente para esto.
 
 ---
 
-### [ ] F4-4 — Informe comercial `governance report`
+### [ ] F4-4 — Informe comercial `plumbward report`
 **Rama:** `feat/f4-informe-comercial` · **Depende de:** F4-3
 
 **Por qué:** el que decide la compra no es quien ejecuta el CLI, y no va a leer
@@ -1177,7 +1176,7 @@ una salida de terminal. Este informe es la herramienta de venta: se genera
 gratis, se comparte por correo y crea la necesidad que el producto resuelve.
 
 **Trabajo:**
-1. `governance report --html` produce un informe autocontenido: puntuación de
+1. `plumbward report --html` produce un informe autocontenido: puntuación de
    madurez, señales ausentes con su impacto, estimación de horas de trabajo
    DevOps que la herramienta ahorra, y comparación antes/después.
 2. `--json` para integraciones.
@@ -1303,7 +1302,7 @@ revisión de proveedor de un departamento de seguridad corporativo.
 
 ---
 
-### [ ] F5-1 — Paquete `@governance/licensing`
+### [ ] F5-1 — Paquete `@plumbward/licensing`
 **Rama:** `feat/f5-licensing-sdk` · **Depende de:** Fase 4 completa
 
 **Trabajo:**
@@ -1407,7 +1406,7 @@ revisión de proveedor de un departamento de seguridad corporativo.
 
 **Objetivo:** que exista un producto comprable.
 **Estimación:** 2-3 sesiones.
-**Criterio de salida:** un cliente ejecuta `npx @tu-empresa/governance scan`, ve
+**Criterio de salida:** un cliente ejecuta `npx @tu-empresa/plumbward scan`, ve
 el valor, paga y aplica.
 
 ---
@@ -1416,9 +1415,8 @@ el valor, paga y aplica.
 **Rama:** `build/f6-publicacion-npm` · **Depende de:** Fase 5 completa
 
 **Trabajo:**
-1. Decidir el nombre definitivo del scope y registrarlo (hoy es `@governance/*`,
-   que casi con seguridad está ocupado). **Hacerlo pronto, no aquí**: condiciona
-   nombres en todo el código.
+1. Scope y organización ya resueltos en F0-8: `@plumbward/*`, organización
+   registrada en npm el 2026-09-09.
 2. Empaquetado: un único ejecutable por `tsup`, arranque rápido, `bin` correcto.
 3. Verificar `npx` en macOS, Linux y Windows, y con Node 18, 20 y 22.
 4. Publicación automática desde `main` con changesets y provenance.
@@ -1426,7 +1424,7 @@ el valor, paga y aplica.
    lenta arruina la primera impresión.
 
 **Criterios de aceptación:**
-- `npx @tu-empresa/governance scan` funciona en las tres plataformas.
+- `npx @tu-empresa/plumbward scan` funciona en las tres plataformas.
 - Arranque por debajo de 2 segundos.
 
 ---
@@ -1509,7 +1507,7 @@ enseñar a quien decide la compra.
 
 | # | Riesgo | Impacto | Mitigación |
 |---|---|---|---|
-| R1 | **Materializado.** `aegiscode` y `aegiscode-cli` están ocupados en npm por una herramienta de terceros de la misma categoría | Confusión de usuarios, y seis paquetes que renombrar | Publicar bajo el scope `@aegiscode/` y registrar la organización ya. Tarea **F0-8** |
+| ~~R1~~ | **Cerrado el 2026-09-10.** El nombre que se barajaba, `aegiscode`, estaba ocupado en npm, incluido `@save3asy/aegiscode`: un competidor homónimo en nuestra misma categoría | — | Renombrado a Plumbward, organización registrada en npm y dominios adquiridos. Tarea F0-8 completada |
 | R7 | Documentar garantías que el código no cumple del todo | Pérdida de credibilidad justo en el punto que vendemos | La revisión en contexto nuevo (F3-6) lo detectó en F0-5; tareas F0-9, F0-10, F0-11 y F2-11 |
 | R2 | El modelo de licencia es de código visible: es copiable | Pérdida de ingresos | Se vende la actualización continua y el soporte, no el binario. Decisión consciente (ADR 0002) |
 | R3 | Cada pack nuevo es superficie de mantenimiento permanente | El coste crece con el catálogo | El kit de conformidad (F2-3) y el catálogo abierto a terceros (F2-8) |
@@ -1523,7 +1521,7 @@ enseñar a quien decide la compra.
    `scan` y `report` de uso libre y paso automático a Apache-2.0 a los cuatro
    años. Razonamiento y alternativas descartadas en
    [ADR 0003](adr/0003-licencia-busl.md).
-2. ~~**Nombre del producto**~~ — cerrado el 2026-09-08: **AegisCode**. Queda registrar el scope de NPM (F0-8).
+2. ~~**Nombre del producto**~~ — se cerró como "AegisCode" el 2026-09-08 y se reabrió al descubrir que el nicho estaba ocupado por un competidor homónimo. Cerrado definitivamente el 2026-09-09: **Plumbward**, con la organización de npm y los dominios ya registrados.
 3. **Telemetría**: la recomendación es **ninguna por defecto**, opt-in explícito.
    Vendemos confianza; instrumentar el CLI la contradice.
 
@@ -1535,7 +1533,7 @@ enseñar a quien decide la compra.
 |---|---|
 | Stacks con pack propio | 5 al terminar la Fase 2 |
 | Repositorios en los que la herramienta no hace nada | 0 tras F2-2 |
-| Cobertura de `@governance/core` | ≥ 90% |
+| Cobertura de `@plumbward/core` | ≥ 90% |
 | Tiempo de `scan` en un repo de 100k SLOC | < 10 s |
 | Tiempo del ciclo completo en un repo medio | < 5 min (verificado, no estimado) |
 | Incidentes de corrupción de repositorio de cliente | 0 |

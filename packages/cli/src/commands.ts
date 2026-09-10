@@ -8,10 +8,10 @@ import {
   isBlocked,
   rollbackLastApply,
   simulatePlan,
-} from '@governance/core'
-import type { ChangePlan, CommandRunner, Operation } from '@governance/core'
-import { branchExists } from '@governance/scanner'
-import { file } from '@governance/packs-sdk'
+} from '@plumbward/core'
+import type { ChangePlan, CommandRunner, Operation } from '@plumbward/core'
+import { branchExists } from '@plumbward/scanner'
+import { file } from '@plumbward/packs-sdk'
 import { CLI_VERSION, buildContext, buildRegistry, profileToYaml } from './context.js'
 import { error, renderHealthChecks, renderPlan, renderScan, success, warn } from './render.js'
 
@@ -35,7 +35,7 @@ export async function runScan(cwd: string): Promise<number> {
   const { scan } = await buildContext(cwd)
   console.log(renderScan(scan))
   console.log(
-    `\n${pc.dim('Ejecuta `governance plan` para ver qué se configuraría, sin tocar nada.')}`,
+    `\n${pc.dim('Ejecuta `plumbward plan` para ver qué se configuraría, sin tocar nada.')}`,
   )
   return 0
 }
@@ -89,7 +89,7 @@ export async function runPlan(cwd: string, options: { diff: boolean }): Promise<
   }
 
   console.log(
-    `\n${pc.dim('Nada se ha modificado. Ejecuta `governance apply` para aplicar este plan.')}`,
+    `\n${pc.dim('Nada se ha modificado. Ejecuta `plumbward apply` para aplicar este plan.')}`,
   )
   return 0
 }
@@ -209,7 +209,7 @@ export async function runApply(cwd: string, options: ApplyOptions): Promise<numb
       `  ${options.install ? '2' : '3'}. Revisa el diff con \`git diff\` y abre una Pull Request.`,
     )
     console.log(
-      `  ${options.install ? '3' : '4'}. Si algo no encaja: \`governance rollback\` lo deja todo como estaba.`,
+      `  ${options.install ? '3' : '4'}. Si algo no encaja: \`plumbward rollback\` lo deja todo como estaba.`,
     )
 
     return 0
@@ -219,7 +219,7 @@ export async function runApply(cwd: string, options: ApplyOptions): Promise<numb
       console.log(
         cause.rolledBack
           ? pc.dim('  Los cambios se han revertido automáticamente: el repositorio está intacto.')
-          : pc.red('  ATENCIÓN: no se pudo revertir del todo. Ejecuta `governance rollback`.'),
+          : pc.red('  ATENCIÓN: no se pudo revertir del todo. Ejecuta `plumbward rollback`.'),
       )
       return 1
     }

@@ -1,6 +1,6 @@
 import { mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises'
 import { dirname, isAbsolute, relative, resolve, sep } from 'node:path'
-import type { CommentStyle } from '@governance/ast'
+import type { CommentStyle } from '@plumbward/ast'
 
 /**
  * Resuelve una ruta relativa dentro del repositorio impidiendo escapar de él.
