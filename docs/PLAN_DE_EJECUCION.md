@@ -7,7 +7,12 @@
 
 **Última actualización:** 2026-09-09
 **Estado global:** Fase 0 en curso — F0-1 y F0-5 completadas. Quedan F0-2, F0-3, F0-4 y F0-6 a F0-11.
-**Producto:** AegisCode · https://github.com/Erikfloresreche/AegisCode
+**Producto:** Plumbward · https://github.com/Erikfloresreche/Plumbward
+**Modelo de negocio:** suscripción anual por repositorio — ver
+[MODELO_DE_NEGOCIO.md](MODELO_DE_NEGOCIO.md)
+
+> El renombrado de `@governance/*` a `@plumbward/*` es la tarea **F0-8**; hasta
+> que se ejecute, el código sigue usando el scope antiguo.
 
 ---
 
@@ -58,6 +63,7 @@ Están implementados y **no se revierten sin una ADR que lo justifique**:
 | Reglas descargadas en runtime desde una API | Todo local en el paquete NPM | Un equipo de seguridad corporativo veta la ejecución de lógica remota descargada. Bloquea la venta enterprise. |
 | Inyectar `@tu-empresa/ci-guard` que rompe los pipelines del cliente | No se inyecta nada que pueda hacer fallar CI ajena | Es un sabotaje contractual desde el punto de vista del cliente; destruye la confianza que el producto vende. |
 | `init` monolítico | `scan` → `plan` → `apply` → `rollback` | Permite regalar `scan` como gancho comercial y hace la herramienta auditable en la PR. |
+| Pago único de 1.500-2.500 € con 12 meses de actualizaciones | Suscripción anual por repositorio | Con licencia perpetua, el mes 13 la herramienta sigue funcionando y nadie renueva. Obligaría a degradar lo instalado, que contradice la ADR 0002. Ver [ADR 0004](adr/0004-suscripcion-anual.md). |
 
 ### 2.4 Huecos conocidos que este plan cierra
 
@@ -331,8 +337,8 @@ legalmente antes de facturar.
 **Rama:** `build/f0-changesets` · **Depende de:** F0-3
 
 **Por qué:** son seis paquetes con dependencias `workspace:*`. Versionarlos a
-mano acaba en incoherencias, y el cliente compra "12 meses de actualizaciones":
-tiene que poder leer qué cambió en cada una.
+mano acaba en incoherencias, y el cliente paga una suscripción anual por recibir
+actualizaciones: tiene que poder leer qué cambió en cada una.
 
 **Trabajo:**
 1. Instalar y configurar `@changesets/cli`.
@@ -549,6 +555,34 @@ pospone, y es exactamente el tipo de deuda que el producto dice combatir.
 - Si alguien añade una operación condicionada por idioma, el test falla.
 
 ---
+### [ ] F1-5 — Procedencia: cada regla cita su fuente
+**Rama:** `feat/f1-procedencia-de-reglas` · **Depende de:** F1-1
+
+**Por qué en esta fase:** es la misma lección que la i18n. Hoy hay un pack;
+después de la Fase 2 habrá cinco, y añadir un campo obligatorio al contrato con
+cinco packs escritos cuesta cinco veces más.
+
+**Por qué importa comercialmente:** desactiva la objeción *"¿por qué debería
+fiarme de vuestros estándares?"*. La respuesta pasa a ser: **ninguna regla es
+opinión nuestra, cada una cita la documentación oficial y la versión en que se
+apoya**. Y le da al asistente de IA una fuente verificable en lugar de una
+afirmación, que es la diferencia entre que aplique la regla y que se la invente.
+
+**Trabajo:**
+1. Añadir al contrato de `packs-sdk` una estructura de procedencia: URL de la
+   documentación oficial, versión de la herramienta y fecha de comprobación.
+2. Hacerla obligatoria para las reglas de seguridad y de estilo generadas;
+   opcional donde sea una convención propia, y en ese caso **decirlo
+   explícitamente** en el fichero generado.
+3. La suite de conformidad rechaza una regla de seguridad sin procedencia.
+4. `doctor` avisa cuando una fuente lleva más de un año sin revisarse.
+
+**Criterios de aceptación:**
+- Los ficheros de reglas generados citan su fuente junto a cada regla.
+- Un pack con una regla de seguridad sin procedencia no pasa la conformidad.
+
+---
+
 ## FASE 2 — Cobertura de stacks
 
 **Objetivo:** que la herramienta **nunca** se quede sin hacer nada, sea cual sea
@@ -749,6 +783,34 @@ la permanencia.
 - Alguien externo al proyecto escribe un pack mínimo siguiendo sólo la guía.
 
 ---
+### [ ] F2-12 — Instalar las herramientas de agente que cada stack necesita
+**Rama:** `feat/f2-skills-de-agente` · **Depende de:** F2-2
+
+**Por qué:** hoy generamos ficheros de reglas. Pero un equipo que trabaja con
+Claude Code, Cursor o Copilot necesita más que un `.cursorrules`: necesita las
+*skills* y la configuración de agente adecuadas a su stack. **Nadie está
+empaquetando esto**, y es de lo más diferenciador que podemos ofrecer.
+
+**Trabajo:**
+1. Detectar qué asistentes usa el equipo (ya está en `Profile.aiAssistants`) y
+   qué herramientas de agente admite cada uno.
+2. Instalar, según el stack detectado:
+   - Skills de Claude Code en el directorio que corresponda.
+   - Reglas de Cursor en `.cursor/rules/`, troceadas por dominio en lugar de un
+     único fichero monolítico.
+   - `AGENTS.md` genérico para el resto de asistentes.
+   - Configuración de servidores MCP que tengan sentido para ese stack, **sin
+     instalar ninguno automáticamente**: se proponen y decide el equipo.
+3. Que todo lo generado pase por el mismo mecanismo de bloques gestionados, para
+   que `upgrade` pueda actualizarlo sin pisar lo que el equipo añada.
+
+**Criterios de aceptación:**
+- Un repositorio de Node/TS recibe skills y reglas coherentes entre los tres
+  asistentes, sin instrucciones contradictorias entre ficheros.
+- Nada se conecta a un servicio externo sin confirmación explícita.
+
+---
+
 ### [ ] F2-11 — Frontera real para packs de terceros
 **Rama:** `feat/f2-aislamiento-packs` · **Depende de:** F2-8
 
@@ -966,13 +1028,65 @@ mirar. Esta tarea convierte en producto el flujo que ya usamos internamente
 
 ---
 
+### [ ] F3-7 — Leyes de testing acopladas al cambio
+**Rama:** `feat/f3-leyes-de-testing` · **Depende de:** F3-3
+
+**Por qué:** es la queja número uno sobre el código generado con IA — llega sin
+pruebas— y es **mecánicamente comprobable**, que es lo que la convierte en
+control y no en consejo.
+
+**Trabajo:**
+1. Comparar el diff de la Pull Request con los símbolos exportados que toca:
+   - Función exportada **nueva** sin prueba que la cubra → falla.
+   - Función exportada **modificada** cuya prueba no se ha tocado → avisa.
+   - Función exportada **eliminada** con pruebas huérfanas → falla.
+2. Respetar el modo: en `non-disruptive` sólo avisa, nunca bloquea.
+3. Vía de escape explícita y auditable: una anotación que exima un símbolo
+   concreto, **con motivo obligatorio**, visible en la revisión.
+4. Que el mensaje de error diga qué fichero de prueba falta y dónde crearlo.
+
+**Criterios de aceptación:**
+- Una PR que añade una función exportada sin prueba se bloquea con un mensaje
+  accionable.
+- La exención requiere escribir un motivo y queda visible en la PR.
+
+---
+
+### [ ] F3-8 — Postura de seguridad, más allá de los secretos
+**Rama:** `feat/f3-postura-de-seguridad` · **Depende de:** F3-3
+
+**Por qué:** Gitleaks detecta tokens filtrados. No detecta **puertas abiertas**,
+que es la otra mitad del problema y la que un asistente de IA introduce con más
+facilidad porque copia ejemplos de documentación pensados para desarrollo local.
+
+**Trabajo:**
+1. Controles para configuraciones inseguras por defecto, con la fuente oficial
+   que respalda cada uno (F1-5): `CORS: *`, modo depuración activo en producción,
+   puertos expuestos innecesariamente, autenticación permisiva, cookies sin
+   `Secure` ni `HttpOnly`, TLS desactivado.
+2. Detección de variables de entorno usadas en el código pero ausentes de
+   `.env.example`, y al revés.
+3. Detección de credenciales por defecto en ficheros de contenedor y de
+   `docker-compose`.
+4. Cada hallazgo explica **por qué es un problema** y cómo se corrige. Un aviso
+   que no enseña se acaba silenciando.
+
+**Criterios de aceptación:**
+- Los controles funcionan sobre los stacks con pack propio.
+- Cada control cita su fuente oficial.
+- Cero falsos positivos sobre los repositorios de prueba de F6-2; un control
+  ruidoso se desactiva antes que tolerarlo.
+
+---
+
 ## FASE 4 — Ciclo de vida del producto instalado
 
 **Objetivo:** que la herramienta sirva el día 200, no sólo el día 1.
 **Estimación:** 3-4 sesiones.
-**Por qué importa:** el cliente paga "12 meses de actualizaciones de reglas".
-Sin `upgrade`, eso es una promesa que el producto no puede cumplir, y la
-renovación no ocurre.
+**Por qué importa:** el cliente paga una **suscripción anual**, y lo único que
+justifica renovarla es el valor nuevo que llega cada versión
+([ADR 0004](adr/0004-suscripcion-anual.md)). Sin `upgrade` y sin el motor
+de recurrencia de F4-5 a F4-8, no hay segundo año.
 **Criterio de salida:** un repo configurado hace seis meses se actualiza a las
 reglas nuevas sin perder ni una sola personalización del cliente.
 
@@ -1067,6 +1181,106 @@ gratis, se comparte por correo y crea la necesidad que el producto resuelve.
 
 ---
 
+### [ ] F4-5 — Detectar que hay una versión nueva, sin telemetría
+**Rama:** `feat/f4-deteccion-de-version` · **Depende de:** F4-2
+
+**Por qué:** es la primera pieza del motor de recurrencia
+([MODELO_DE_NEGOCIO.md §6](MODELO_DE_NEGOCIO.md)). Si el cliente no se
+entera de que hay algo nuevo, la suscripción no se renueva.
+
+**Trabajo:**
+1. Consultar el registro público de npm para saber si hay versión más reciente.
+   **Nunca una API nuestra**: no queremos saber quién ejecuta qué.
+2. Caché local con tiempo de vida razonable, para no consultar en cada ejecución.
+3. Aviso discreto al final de `scan` y `doctor`, jamás bloqueante.
+4. `--no-update-check` y variable de entorno equivalente, para entornos aislados
+   y para CI.
+
+**Criterios de aceptación:**
+- Sin red, el CLI funciona igual y no se retrasa ni un segundo.
+- No se envía ningún dato identificable a ningún servidor.
+
+---
+
+### [ ] F4-6 — Changelog dirigido: sólo lo que aplica a este repositorio
+**Rama:** `feat/f4-changelog-dirigido` · **Depende de:** F4-5
+
+**Por qué:** esta es la pieza que no hace nadie. Un changelog genérico se ignora.
+Uno que dice *"de los 14 cambios de esta versión, estos 3 te afectan porque usas
+Next.js y no tienes contenedores"* se lee entero.
+
+**Trabajo:**
+1. Que cada entrada del changelog declare a qué stacks, modos y capacidades
+   aplica. Es un cambio en el formato de release, no sólo en el CLI.
+2. Cruzar el changelog con el escaneo del repositorio y mostrar **sólo** lo
+   relevante, con el resto colapsado.
+3. Enlazar cada entrada con el cambio concreto que produciría en su repositorio,
+   para poder ir directo a `upgrade --dry-run`.
+
+**Criterios de aceptación:**
+- Dos repositorios de stacks distintos ven changelogs distintos de la misma
+  versión.
+- Una entrada sin metadatos de aplicabilidad no pasa la CI del release.
+
+---
+
+### [ ] F4-7 — Catálogo de capacidades y oferta continua
+**Rama:** `feat/f4-catalogo-de-capacidades` · **Depende de:** F4-6
+
+**Por qué:** es lo que convierte la herramienta de "configurador que se ejecuta
+una vez" en "servicio que mejora tu repositorio cada trimestre". Sin esto, la
+suscripción no tiene defensa.
+
+**Trabajo:**
+1. Un catálogo declarativo de capacidades, cada una con sus requisitos: qué
+   stack necesita, qué debe existir ya en el repositorio, qué modo la permite.
+2. Tras un `upgrade`, volver a escanear y comparar contra el catálogo para
+   encontrar lo que el repositorio **ahora** admite y no tiene.
+3. Presentarlo como oferta, nunca como acción: *"ahora sabemos dockerizar
+   proyectos como el tuyo. ¿Lo hacemos?"*.
+4. Recordar lo rechazado para no volver a proponerlo en cada ejecución. Una
+   herramienta que insiste se desinstala.
+
+**Criterios de aceptación:**
+- Añadir una capacidad al catálogo hace que los repositorios que la admiten la
+  vean ofrecida, sin tocar código del CLI.
+- Rechazar una oferta la silencia hasta que el usuario la pida.
+
+---
+
+### [ ] F4-8 — Flujos guiados, empezando por dockerizar Node/TS
+**Rama:** `feat/f4-flujos-guiados` · **Depende de:** F4-7
+
+**Por qué:** hay capacidades que no se pueden generar a ciegas. Dockerizar exige
+saber qué servicios hay, qué puertos, si existe base de datos y cómo se
+construye el proyecto. Un asistente que pregunte lo mínimo y genere el resto es
+un ahorro de horas muy visible — y muy demostrable en una venta.
+
+**Riesgo, y por eso empezamos por uno solo:** si prometemos "yo te dockerizo el
+proyecto", pasamos a ser dueños de todos los modos de fallo de todos los stacks.
+Es el riesgo N2 del modelo de negocio. **Node/TypeScript primero, y no se amplía
+hasta que funcione sin soporte manual.**
+
+**Trabajo:**
+1. Motor de flujos guiados sobre `@clack/prompts`, reutilizable por otras
+   capacidades.
+2. Primer flujo: dockerización de Node/TS. Detectar gestor de paquetes, script
+   de build, puertos, servicios externos y variables de entorno; preguntar sólo
+   lo que no se pueda deducir.
+3. Generar `Dockerfile` multi-etapa, `.dockerignore`, `docker-compose.yml` para
+   desarrollo, y documentación en el idioma del perfil.
+4. **El resultado sigue siendo un `ChangePlan`**: revisable con `plan`, aplicable
+   con `apply`, reversible con `rollback`. Ni un atajo.
+5. Verificar que la imagen construye antes de dar la capacidad por completada.
+
+**Criterios de aceptación:**
+- Sobre un proyecto Next.js y sobre uno de Express, la imagen generada construye
+  y arranca.
+- Cancelar a mitad del flujo no deja nada escrito.
+- El flujo no pregunta nada que el escáner pudiera haber deducido.
+
+---
+
 ## FASE 5 — Licenciamiento local-first
 
 **Objetivo:** cobrar, sin romper la confianza que hace vendible el producto.
@@ -1149,6 +1363,34 @@ revisión de proveedor de un departamento de seguridad corporativo.
 
 **Criterios de aceptación:**
 - Con la API apagada, todos los comandos funcionan con una licencia válida en caché.
+
+---
+
+### [ ] F5-5 — Suscripción anual y tramos por volumen
+**Rama:** `feat/f5-suscripcion-anual` · **Depende de:** F5-3
+
+**Origen:** decisión de negocio del 2026-09-09,
+[ADR 0004](adr/0004-suscripcion-anual.md). Sustituye al modelo de pago
+único con doce meses de actualizaciones.
+
+**Trabajo:**
+1. La licencia firmada lleva **fecha de expiración**, verificable en local contra
+   la clave pública embebida.
+2. Revalidación contra la API **sólo en `upgrade`**. Nunca en `scan`, `plan`,
+   `apply`, `doctor` ni `rollback`.
+3. Tramos por volumen de repositorios para agencias, con vinculación y
+   desvinculación autogestionada desde el panel.
+4. Avisos de caducidad con antelación suficiente y por canales que el cliente
+   vea: salida del CLI y correo.
+5. **Una suscripción caducada deja de traer reglas nuevas y nada más.** No
+   degrada, no bloquea, no desinstala. El cliente conserva para siempre lo que
+   tenía el último día que pagó.
+
+**Criterios de aceptación:**
+- Un repositorio con la suscripción vencida sigue funcionando por completo con
+  la configuración que ya tenía.
+- Sin red, un repositorio con licencia vigente en caché no se ve afectado.
+- El paso de un tramo a otro no obliga a reconfigurar ningún repositorio.
 
 ---
 
