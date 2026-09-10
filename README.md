@@ -12,9 +12,7 @@ pre-commit, escaneo de secretos y reglas de contexto para asistentes de IA.
 > resto llega en la Fase 2. El plan completo está en
 > [docs/PLAN_DE_EJECUCION.md](docs/PLAN_DE_EJECUCION.md).
 >
-> ⚠️ El paquete `plumbward` que existe hoy en npm **no es este proyecto**: es una
-> herramienta de otro autor. Cuando publiquemos será bajo el scope
-> `@plumbward/`.
+> Cuando publiquemos será bajo el scope `@plumbward/`.
 
 ---
 

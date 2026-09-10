@@ -11,9 +11,6 @@
 **Modelo de negocio:** suscripción anual por repositorio — ver
 [MODELO_DE_NEGOCIO.md](MODELO_DE_NEGOCIO.md)
 
-> El renombrado de `@plumbward/*` a `@plumbward/*` es la tarea **F0-8**; hasta
-> que se ejecute, el código sigue usando el scope antiguo.
-
 ---
 
 ## 1. Cómo se usa este documento
@@ -240,12 +237,12 @@ y las cabeceras de fichero gestionado mentirán sobre qué versión generó qué
 1. Inyectar la versión en build time con `define` en
    [tsup.config.ts](../packages/cli/tsup.config.ts), leyendo `package.json`.
 2. Sustituir la constante por la variable inyectada, con fallback legible en dev.
-3. Test que compara la versión que reporta `governance --version` con la del
+3. Test que compara la versión que reporta `plumbward --version` con la del
    `package.json` del CLI.
 
 **Criterios de aceptación:**
 - Cambiar la versión en `package.json` y reconstruir cambia la salida de
-  `governance --version` sin tocar código.
+  `plumbward --version` sin tocar código.
 - El test falla si alguien vuelve a hardcodearla.
 
 ---
@@ -331,9 +328,10 @@ el propio código que la primera redacción daba por buenas. Corregido todo en l
 misma PR. Lo que destapó del código son las tareas nuevas **F0-9, F0-10, F0-11 y
 F2-11**.
 
-El hallazgo más grave: el README indicaba `npx plumbward`, un paquete real de
-**otro autor** publicado en npm. Se corrigió y se documentó el conflicto de
-nombre en F0-8.
+El hallazgo más grave: el README indicaba `npx aegiscode`, que entonces era el
+nombre del producto y **un paquete real de otro autor** publicado en npm. Se
+corrigió, y el conflicto de nombre acabó provocando el renombrado a Plumbward
+en F0-8.
 
 **Pendiente que deja abierto:** el texto de `LICENSE` **debe contrastarse contra
 https://mariadb.com/bsl11/** antes de hacer público el repositorio y revisarse
@@ -379,18 +377,20 @@ actualizaciones: tiene que poder leer qué cambió en cada una.
 ### [x] F0-8 — Renombrar el scope de los paquetes a Plumbward
 **Rama:** `refactor/f0-scope-plumbward` · **Depende de:** F0-1 · **Bloquea:** Fase 2
 
-**Por qué antes de la Fase 2:** hoy hay seis paquetes bajo `@plumbward/*`, un
-scope provisional que casi con seguridad está ocupado en NPM. Cada pack nuevo
-multiplica los imports que habría que reescribir después, y el README ya
-promete `npx plumbward` mientras el binario se llama `governance`.
+**Por qué antes de la Fase 2:** los seis paquetes nacieron bajo `@governance/*`,
+un scope provisional. Cada pack nuevo multiplica los imports que habría que
+reescribir después, así que el momento más barato para renombrar es antes de que
+existan cinco packs.
 
 **Trabajo:**
-1. **Registrar la organización `plumbward` en npm antes de tocar nada.**
-   Comprobado el 2026-09-09: el paquete sin scope `plumbward` está **ocupado**
-   por una herramienta de otro autor (v5.2.33, "AEGIS CLI — AI-powered coding
-   assistant"), igual que `plumbward-cli`. No hay paquetes publicados bajo
-   `@plumbward/`, pero eso no garantiza que la organización esté libre.
-   Alternativas comprobadas y libres sin scope: `aegis-code`, `aegis-governance`.
+1. **Registrar la organización en npm antes de tocar nada.**
+   Comprobado el 2026-09-09: el nombre que se barajaba entonces, `aegiscode`,
+   estaba **ocupado** —igual que `aegiscode-cli` y `aegiscode-gui`— y, lo más
+   grave, existía `@save3asy/aegiscode`, publicado tres semanas antes y descrito
+   como *"AI Code Governance & Architecture Guardrails"*: un competidor
+   homónimo en nuestra categoría exacta. Eso obligó a cambiar de nombre.
+   `plumbward` se comprobó libre en npm y en los dominios `.com`, `.dev` e
+   `.io`. La organización `plumbward` quedó registrada el 2026-09-09.
 2. Renombrar los seis paquetes a `@plumbward/*` y actualizar las dependencias
    `workspace:*` de todos los `package.json`.
 3. Renombrar el binario de `governance` a `plumbward`.
@@ -1415,9 +1415,8 @@ el valor, paga y aplica.
 **Rama:** `build/f6-publicacion-npm` · **Depende de:** Fase 5 completa
 
 **Trabajo:**
-1. Decidir el nombre definitivo del scope y registrarlo (hoy es `@plumbward/*`,
-   que casi con seguridad está ocupado). **Hacerlo pronto, no aquí**: condiciona
-   nombres en todo el código.
+1. Scope y organización ya resueltos en F0-8: `@plumbward/*`, organización
+   registrada en npm el 2026-09-09.
 2. Empaquetado: un único ejecutable por `tsup`, arranque rápido, `bin` correcto.
 3. Verificar `npx` en macOS, Linux y Windows, y con Node 18, 20 y 22.
 4. Publicación automática desde `main` con changesets y provenance.
@@ -1508,7 +1507,7 @@ enseñar a quien decide la compra.
 
 | # | Riesgo | Impacto | Mitigación |
 |---|---|---|---|
-| R1 | **Materializado.** `plumbward` y `plumbward-cli` están ocupados en npm por una herramienta de terceros de la misma categoría | Confusión de usuarios, y seis paquetes que renombrar | Publicar bajo el scope `@plumbward/` y registrar la organización ya. Tarea **F0-8** |
+| ~~R1~~ | **Cerrado el 2026-09-10.** El nombre que se barajaba, `aegiscode`, estaba ocupado en npm, incluido `@save3asy/aegiscode`: un competidor homónimo en nuestra misma categoría | — | Renombrado a Plumbward, organización registrada en npm y dominios adquiridos. Tarea F0-8 completada |
 | R7 | Documentar garantías que el código no cumple del todo | Pérdida de credibilidad justo en el punto que vendemos | La revisión en contexto nuevo (F3-6) lo detectó en F0-5; tareas F0-9, F0-10, F0-11 y F2-11 |
 | R2 | El modelo de licencia es de código visible: es copiable | Pérdida de ingresos | Se vende la actualización continua y el soporte, no el binario. Decisión consciente (ADR 0002) |
 | R3 | Cada pack nuevo es superficie de mantenimiento permanente | El coste crece con el catálogo | El kit de conformidad (F2-3) y el catálogo abierto a terceros (F2-8) |
@@ -1522,7 +1521,7 @@ enseñar a quien decide la compra.
    `scan` y `report` de uso libre y paso automático a Apache-2.0 a los cuatro
    años. Razonamiento y alternativas descartadas en
    [ADR 0003](adr/0003-licencia-busl.md).
-2. ~~**Nombre del producto**~~ — cerrado el 2026-09-08: **Plumbward**. Queda registrar el scope de NPM (F0-8).
+2. ~~**Nombre del producto**~~ — se cerró como "AegisCode" el 2026-09-08 y se reabrió al descubrir que el nicho estaba ocupado por un competidor homónimo. Cerrado definitivamente el 2026-09-09: **Plumbward**, con la organización de npm y los dominios ya registrados.
 3. **Telemetría**: la recomendación es **ninguna por defecto**, opt-in explícito.
    Vendemos confianza; instrumentar el CLI la contradice.
 

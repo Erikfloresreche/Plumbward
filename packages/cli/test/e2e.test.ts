@@ -14,7 +14,7 @@ const VERSION = '0.1.0-test'
 
 /** Crea un repositorio git realista sobre el que ejecutar el ciclo completo. */
 async function crearRepoDePrueba(): Promise<string> {
-  const root = await mkdtemp(join(tmpdir(), 'governance-e2e-'))
+  const root = await mkdtemp(join(tmpdir(), 'plumbward-e2e-'))
 
   await writeFile(
     join(root, 'package.json'),

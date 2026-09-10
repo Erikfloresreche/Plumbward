@@ -399,18 +399,18 @@ generaría.
 
 ```bash
 # Desde la raíz del repositorio clonado:
-AEGIS=$(pwd)/packages/cli/dist/index.js
+PLUMBWARD=$(pwd)/packages/cli/dist/index.js
 
-mkdir -p /tmp/prueba-aegis && cd /tmp/prueba-aegis
+mkdir -p /tmp/prueba-plumbward && cd /tmp/prueba-plumbward
 git init -b main && npm init -y
 echo "console.log('hola')" > index.js
 git add -A && git commit -m "initial"
 
-node "$AEGIS" plan --diff
-node "$AEGIS" apply --no-install
+node "$PLUMBWARD" plan --diff
+node "$PLUMBWARD" apply --no-install
 git status --short
-node "$AEGIS" doctor
-node "$AEGIS" rollback
+node "$PLUMBWARD" doctor
+node "$PLUMBWARD" rollback
 git status --porcelain   # debe quedar VACÍO
 ```
 
