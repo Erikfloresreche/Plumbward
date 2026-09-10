@@ -1,5 +1,5 @@
-import type { Profile } from '@governance/packs-sdk'
-import type { RepoScan } from '@governance/scanner'
+import type { Profile } from '@plumbward/packs-sdk'
+import type { RepoScan } from '@plumbward/scanner'
 
 /**
  * Documento de bienvenida a la gobernanza del repositorio.
@@ -106,7 +106,7 @@ make check   # ejecuta lo mismo que el pipeline, en local
 
 **Un commit me ha fallado y no entiendo el mensaje.**
 Ejecuta \`make check\`: verás el mismo error con más contexto. Si sigue sin quedar
-claro, ejecuta \`npx @governance/cli doctor\`, que diagnostica y propone el arreglo.
+claro, ejecuta \`npx @plumbward/cli doctor\`, que diagnostica y propone el arreglo.
 
 **El escáner dice que hay un secreto y no lo hay.**
 Es un falso positivo. Añade una excepción en \`.gitleaks.toml\`, en la sección
@@ -116,10 +116,10 @@ Es un falso positivo. Añade una excepción en \`.gitleaks.toml\`, en la secció
 Sí. La configuración está en \`.governance/config.yml\` y está versionada como
 cualquier otro fichero: se propone el cambio en una PR y se discute. Lo que no
 debéis editar a mano es el contenido entre los marcadores
-\`governance:begin\` / \`governance:end\`, porque se regenera al actualizar.
+\`plumbward:begin\` / \`plumbward:end\`, porque se regenera al actualizar.
 
 **¿Y si esto nos estorba?**
-\`npx @governance/cli rollback\` deja el repositorio exactamente como estaba antes
+\`npx @plumbward/cli rollback\` deja el repositorio exactamente como estaba antes
 de la instalación. No hay nada que desinstalar a mano.
 
 ---

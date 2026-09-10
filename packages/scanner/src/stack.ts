@@ -1,5 +1,5 @@
-import { readFileIfExists } from '@governance/core'
-import type { PackageManager } from '@governance/core'
+import { readFileIfExists } from '@plumbward/core'
+import type { PackageManager } from '@plumbward/core'
 import { join } from 'node:path'
 import type { StackDetection } from './types.js'
 

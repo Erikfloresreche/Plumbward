@@ -1,5 +1,5 @@
-import { PlanBuilder } from '@governance/core'
-import type { ChangePlan } from '@governance/core'
+import { PlanBuilder } from '@plumbward/core'
+import type { ChangePlan } from '@plumbward/core'
 import type { DetectionResult, HealthCheck, RepoContext, StackPack } from './contract.js'
 
 export interface SelectedPack {
@@ -52,7 +52,7 @@ export class PackRegistry {
       builder.conflict({
         path: context.scan.repoRoot,
         reason:
-          'No se ha reconocido ningún stack soportado. Ejecuta `governance scan` para ver qué se detectó.',
+          'No se ha reconocido ningún stack soportado. Ejecuta `plumbward scan` para ver qué se detectó.',
         severity: 'block',
       })
       return builder.build()

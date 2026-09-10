@@ -5,7 +5,7 @@ import { CLI_VERSION } from './context.js'
 import { runApply, runDoctor, runPlan, runRollback, runScan } from './commands.js'
 import { error } from './render.js'
 
-const cli = cac('governance')
+const cli = cac('plumbward')
 
 function target(dir: string | undefined): string {
   return resolve(dir ?? process.cwd())

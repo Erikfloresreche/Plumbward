@@ -1,12 +1,12 @@
-import type { Operation, PackageManager } from '@governance/core'
-import { block, cmd, dep, file, json } from '@governance/packs-sdk'
+import type { Operation, PackageManager } from '@plumbward/core'
+import { block, cmd, dep, file, json } from '@plumbward/packs-sdk'
 import type {
   DetectionResult,
   HealthCheck,
   Profile,
   RepoContext,
   StackPack,
-} from '@governance/packs-sdk'
+} from '@plumbward/packs-sdk'
 import { ciDevWorkflow, ciProdWorkflow, ciStagingWorkflow } from './templates/ci.js'
 import { aiRules, copilotInstructions } from './templates/ai-rules.js'
 import {
@@ -78,7 +78,7 @@ function packageScripts(typescript: boolean): Record<string, string> {
       : 'echo "Sin TypeScript: no hay comprobación de tipos que ejecutar."',
     test: 'vitest run --passWithNoTests',
     build: 'echo "Configura aquí el build real del proyecto."',
-    'governance:check': 'npx @governance/cli doctor',
+    'plumbward:check': 'npx @plumbward/cli doctor',
   }
 }
 
@@ -268,7 +268,7 @@ export const nodeTsPack: StackPack = {
     operations.push(
       block(
         '.gitignore',
-        'governance',
+        'gitignore-artifacts',
         [
           '# Estado local de la herramienta de gobernanza.',
           '# El journal permite revertir la última ejecución y no debe compartirse.',
@@ -318,21 +318,21 @@ export const nodeTsPack: StackPack = {
         detail: files.has('.github/workflows/ci-dev.yml')
           ? 'Configurado.'
           : 'Falta el workflow de validación.',
-        fixHint: 'Ejecuta `governance apply` para generarlo.',
+        fixHint: 'Ejecuta `plumbward apply` para generarlo.',
       },
       {
         id: 'hooks',
         label: 'Hooks de pre-commit',
         ok: files.has('.husky/pre-commit'),
         detail: files.has('.husky/pre-commit') ? 'Instalados.' : 'No hay hook de pre-commit.',
-        fixHint: 'Ejecuta `governance apply` y después el script `prepare`.',
+        fixHint: 'Ejecuta `plumbward apply` y después el script `prepare`.',
       },
       {
         id: 'secrets',
         label: 'Configuración de escaneo de secretos',
         ok: files.has('.gitleaks.toml'),
         detail: files.has('.gitleaks.toml') ? 'Configurado.' : 'Falta .gitleaks.toml.',
-        fixHint: 'Ejecuta `governance apply`.',
+        fixHint: 'Ejecuta `plumbward apply`.',
       },
       {
         id: 'ai-rules',
@@ -342,7 +342,7 @@ export const nodeTsPack: StackPack = {
           files.has('.cursorrules') || files.has('CLAUDE.md') || files.has('AGENTS.md')
             ? 'Presentes.'
             : 'El repositorio no declara reglas para asistentes de IA.',
-        fixHint: 'Ejecuta `governance apply`.',
+        fixHint: 'Ejecuta `plumbward apply`.',
       },
     ]
 

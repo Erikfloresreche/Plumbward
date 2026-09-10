@@ -1,8 +1,8 @@
 import pc from 'picocolors'
-import type { ChangePlan, SimulationResult } from '@governance/core'
-import { synthesiseInstallCommands } from '@governance/core'
-import type { RepoScan } from '@governance/scanner'
-import type { HealthCheck } from '@governance/packs-sdk'
+import type { ChangePlan, SimulationResult } from '@plumbward/core'
+import { synthesiseInstallCommands } from '@plumbward/core'
+import type { RepoScan } from '@plumbward/scanner'
+import type { HealthCheck } from '@plumbward/packs-sdk'
 import { collapseContext, lineDiff } from './diff.js'
 
 const BULLET = '·'

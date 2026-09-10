@@ -1,4 +1,4 @@
-# Arquitectura de AegisCode
+# Arquitectura de Plumbward
 
 Documento de referencia: qué hace el producto, cómo está construido y **por qué
 cada pieza está donde está**. Si vas a tocar el código, léelo antes.
@@ -16,7 +16,7 @@ convierten en cuello de botella y los estándares del proyecto se diluyen. La
 solución conocida —configurar CI, linters, hooks y escaneo de secretos— cuesta
 entre 8 y 16 horas por repositorio, y casi nadie las dedica.
 
-AegisCode automatiza ese trabajo. Pero lo que define el producto no es *qué*
+Plumbward automatiza ese trabajo. Pero lo que define el producto no es *qué*
 instala, sino **cómo lo instala sin que puedas perder nada**. Todo el diseño
 parte de una sola idea:
 
@@ -150,9 +150,9 @@ Hay dos casos:
 cabecera con hash del contenido generado:
 
 ```
-# governance:managed v=0.1.0 hash=a3f2c81b0d94
+# plumbward:managed v=0.1.0 hash=a3f2c81b0d94
 # Fichero generado por la CLI de gobernanza.
-# Si lo editas a mano, `governance upgrade` dejará de actualizarlo
+# Si lo editas a mano, `plumbward upgrade` dejará de actualizarlo
 # y te avisará del conflicto en lugar de sobrescribir tus cambios.
 ```
 
@@ -170,11 +170,11 @@ fichero entero.
 fragmento entre marcadores:
 
 ```
-# >>> governance:begin gitignore-artifacts
+# >>> plumbward:begin gitignore-artifacts
 # Bloque gestionado automáticamente. No edites dentro de los marcadores:
-# `governance upgrade` regenerará su contenido.
+# `plumbward upgrade` regenerará su contenido.
 .governance/journal.json
-# <<< governance:end gitignore-artifacts
+# <<< plumbward:end gitignore-artifacts
 ```
 
 `upgrade` reescribe únicamente lo que hay **entre** los marcadores. Una sola
@@ -238,7 +238,7 @@ Las aristas exactas, tal como las declaran los `package.json`:
 no saben que existe la CLI. Si mañana hace falta una interfaz web o una GitHub
 Action, se reutiliza todo menos `cli`.
 
-### `@governance/ast` — edición no destructiva
+### `@plumbward/ast` — edición no destructiva
 
 El problema: leer un `package.json` con `JSON.parse`, añadirle un script y
 escribirlo con `JSON.stringify` **destruye el formato y los comentarios del
@@ -252,7 +252,7 @@ inaceptable.
 | [pointer.ts](../packages/ast/src/pointer.ts) | Punteros RFC-6901 (`/scripts/lint`) para señalar dónde parchear sin conocer la estructura |
 | [blocks.ts](../packages/ast/src/blocks.ts) | Bloques con marcadores y cabeceras gestionadas (§4.4) |
 
-### `@governance/core` — el motor transaccional
+### `@plumbward/core` — el motor transaccional
 
 | Fichero | Por qué existe |
 |---|---|
@@ -277,7 +277,7 @@ reporta como conflicto. Si quieren escribir lo mismo, lo deduplica en silencio.
 Esto es lo que permitirá que un repositorio Django + Next.js reciba dos packs sin
 que se pisen.
 
-### `@governance/scanner` — diagnóstico de sólo lectura
+### `@plumbward/scanner` — diagnóstico de sólo lectura
 
 | Fichero | Por qué existe |
 |---|---|
@@ -300,7 +300,7 @@ implantar cada señal, sino **cuánto dolor evita**. Por eso el escaneo de secre
 pesa 14 y el DevContainer pesa 4. Cada señal ausente lleva un `hint` que es el
 argumento de venta.
 
-### `@governance/packs-sdk` — el contrato de extensión
+### `@plumbward/packs-sdk` — el contrato de extensión
 
 Es el eje de escalado del negocio: añadir soporte para Laravel debe ser publicar
 un paquete, no modificar el núcleo.
@@ -317,7 +317,7 @@ compara los resultados**. Si difieren, el pack no es determinista y `plan` estar
 mintiendo sobre lo que `apply` va a hacer. Todo el modelo de confianza se cae por
 ahí, y por eso es una regla de conformidad y no un consejo.
 
-### `@governance/pack-node-ts` — el único pack real hoy
+### `@plumbward/pack-node-ts` — el único pack real hoy
 
 [index.ts](../packages/packs/node-ts/src/index.ts) implementa el contrato; las
 plantillas están separadas por tema en `templates/`.
@@ -326,7 +326,7 @@ Las plantillas son **funciones del escaneo y del perfil**, no ficheros estático
 El ESLint generado difiere si el proyecto usa TypeScript, y la dureza de las
 reglas cambia según `strictness`.
 
-### `@governance/cli` — la interfaz
+### `@plumbward/cli` — la interfaz
 
 | Fichero | Por qué existe |
 |---|---|

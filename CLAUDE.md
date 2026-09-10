@@ -1,4 +1,4 @@
-# AegisCode — Instrucciones para asistentes de IA
+# Plumbward — Instrucciones para asistentes de IA
 
 CLI de gobernanza DevSecOps que analiza un repositorio y le instala CI, linters,
 hooks, escaneo de secretos y reglas de contexto para asistentes de IA.

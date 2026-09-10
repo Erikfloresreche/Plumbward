@@ -3,7 +3,7 @@ import {
   managedHeader,
   patchJson,
   patchYaml,
-} from '@governance/ast'
+} from '@plumbward/ast'
 import type {
   ApplyResult,
   ChangePlan,
@@ -74,7 +74,7 @@ export class ApplyFailedError extends Error {
  * Garantías:
  *  - Antes de tocar cualquier fichero se guarda su contenido previo en el journal.
  *  - El journal se persiste tras CADA operación, así que un corte de luz deja un
- *    estado recuperable con `governance rollback`.
+ *    estado recuperable con `plumbward rollback`.
  *  - Si algo falla a mitad, se revierte automáticamente (requisito de
  *    "resiliencia operativa" de la especificación).
  */

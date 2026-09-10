@@ -1,4 +1,4 @@
-# AegisCode
+# Plumbward
 
 **Gobernanza de IA y DevSecOps para equipos que programan con asistentes.**
 
@@ -12,9 +12,9 @@ pre-commit, escaneo de secretos y reglas de contexto para asistentes de IA.
 > resto llega en la Fase 2. El plan completo está en
 > [docs/PLAN_DE_EJECUCION.md](docs/PLAN_DE_EJECUCION.md).
 >
-> ⚠️ El paquete `aegiscode` que existe hoy en npm **no es este proyecto**: es una
+> ⚠️ El paquete `plumbward` que existe hoy en npm **no es este proyecto**: es una
 > herramienta de otro autor. Cuando publiquemos será bajo el scope
-> `@aegiscode/`.
+> `@plumbward/`.
 
 ---
 
@@ -34,11 +34,11 @@ contexto— cuesta entre 8 y 16 horas por repositorio. Casi nadie las dedica.
 ## Cómo funciona
 
 ```bash
-governance scan       # Diagnostica y puntúa la madurez de 0 a 100
-governance plan       # Muestra el diff exacto de lo que cambiaría
-governance apply      # Aplica los cambios, con journal para poder deshacerlos
-governance rollback   # Deshace la última ejecución
-governance doctor     # Comprueba que la configuración sigue sana
+plumbward scan       # Diagnostica y puntúa la madurez de 0 a 100
+plumbward plan       # Muestra el diff exacto de lo que cambiaría
+plumbward apply      # Aplica los cambios, con journal para poder deshacerlos
+plumbward rollback   # Deshace la última ejecución
+plumbward doctor     # Comprueba que la configuración sigue sana
 ```
 
 Un ciclo típico son tres comandos: `scan` para ver dónde estás, `plan` para ver

@@ -1,5 +1,5 @@
 /**
- * Bloques gestionados: el mecanismo que permite `governance upgrade` sin
+ * Bloques gestionados: el mecanismo que permite `plumbward upgrade` sin
  * destruir el trabajo del cliente.
  *
  * Todo lo que la herramienta inyecta dentro de un fichero ajeno queda entre
@@ -9,8 +9,8 @@
 
 export type CommentStyle = 'hash' | 'slash' | 'html' | 'semicolon'
 
-export const BEGIN_TOKEN = 'governance:begin'
-export const END_TOKEN = 'governance:end'
+export const BEGIN_TOKEN = 'plumbward:begin'
+export const END_TOKEN = 'plumbward:end'
 
 interface Delimiters {
   readonly prefix: string
@@ -62,7 +62,7 @@ export function ensureBlock(
     style,
     'Bloque gestionado automáticamente. No edites dentro de los marcadores:',
   )
-  const warning2 = commentLine(style, '`governance upgrade` regenerará su contenido.')
+  const warning2 = commentLine(style, '`plumbward upgrade` regenerará su contenido.')
 
   const body = [begin, warning, warning2, content.trimEnd(), end].join('\n')
 
@@ -105,9 +105,9 @@ export function managedHeader(
   contentHash: string,
 ): string {
   return [
-    commentLine(style, `governance:managed v=${version} hash=${contentHash}`),
+    commentLine(style, `plumbward:managed v=${version} hash=${contentHash}`),
     commentLine(style, 'Fichero generado por la CLI de gobernanza.'),
-    commentLine(style, 'Si lo editas a mano, `governance upgrade` dejará de actualizarlo'),
+    commentLine(style, 'Si lo editas a mano, `plumbward upgrade` dejará de actualizarlo'),
     commentLine(style, 'y te avisará del conflicto en lugar de sobrescribir tus cambios.'),
   ].join('\n')
 }
@@ -116,7 +116,7 @@ export function managedHeader(
 export function parseManagedHeader(
   text: string,
 ): { version: string; hash: string } | undefined {
-  const match = /governance:managed v=([^\s]+) hash=([0-9a-f]+)/.exec(text)
+  const match = /plumbward:managed v=([^\s]+) hash=([0-9a-f]+)/.exec(text)
   if (!match?.[1] || !match[2]) return undefined
   return { version: match[1], hash: match[2] }
 }

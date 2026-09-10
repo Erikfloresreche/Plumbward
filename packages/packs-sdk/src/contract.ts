@@ -1,5 +1,5 @@
-import type { Operation } from '@governance/core'
-import type { GovernanceMode, RepoScan } from '@governance/scanner'
+import type { Operation } from '@plumbward/core'
+import type { GovernanceMode, RepoScan } from '@plumbward/scanner'
 
 /**
  * Contrato público de un StackPack.
@@ -88,7 +88,7 @@ export interface HealthCheck {
   readonly label: string
   readonly ok: boolean
   readonly detail: string
-  /** Qué hacer para arreglarlo. Alimenta `governance doctor`. */
+  /** Qué hacer para arreglarlo. Alimenta `plumbward doctor`. */
   readonly fixHint?: string
 }
 
@@ -103,7 +103,7 @@ export interface StackPack {
   /** Operaciones que el pack quiere aportar al plan. NUNCA escribe en disco. */
   contribute(context: RepoContext): Promise<Operation[]> | Operation[]
 
-  /** Comprobaciones de salud para `governance doctor`. */
+  /** Comprobaciones de salud para `plumbward doctor`. */
   validate(context: RepoContext): Promise<HealthCheck[]> | HealthCheck[]
 }
 

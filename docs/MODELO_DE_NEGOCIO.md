@@ -194,7 +194,7 @@ produce el informe que justifica renovar:
 
 El mercado se está formando ahora mismo, lo cual es bueno y urgente a la vez.
 
-**`@save3asy/aegiscode`** — publicado el 23 de agosto de 2026, descrito como *"AI
+**`@save3asy/plumbward`** — publicado el 23 de agosto de 2026, descrito como *"AI
 Code Governance & Architecture Guardrails"*. Prácticamente nuestra propuesta de
 valor. Tres semanas de ventaja sobre nosotros.
 

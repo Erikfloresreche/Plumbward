@@ -1,4 +1,4 @@
-import type { PackageManager } from '@governance/core'
+import type { PackageManager } from '@plumbward/core'
 
 /** Clasificación por tamaño según la especificación (SLOC). */
 export type SizeClass = 'small' | 'medium' | 'large'

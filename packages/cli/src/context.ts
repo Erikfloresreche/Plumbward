@@ -1,10 +1,10 @@
-import { parseYamlToJson, stringifyYaml } from '@governance/ast'
-import { CONFIG_FILE, readFileIfExists, resolveInRepo } from '@governance/core'
-import { scanRepository } from '@governance/scanner'
-import type { RepoScan } from '@governance/scanner'
-import { PackRegistry, recommendedProfile } from '@governance/packs-sdk'
-import type { Profile, RepoContext } from '@governance/packs-sdk'
-import { nodeTsPack } from '@governance/pack-node-ts'
+import { parseYamlToJson, stringifyYaml } from '@plumbward/ast'
+import { CONFIG_FILE, readFileIfExists, resolveInRepo } from '@plumbward/core'
+import { scanRepository } from '@plumbward/scanner'
+import type { RepoScan } from '@plumbward/scanner'
+import { PackRegistry, recommendedProfile } from '@plumbward/packs-sdk'
+import type { Profile, RepoContext } from '@plumbward/packs-sdk'
+import { nodeTsPack } from '@plumbward/pack-node-ts'
 
 export const CLI_VERSION = '0.1.0'
 
@@ -72,7 +72,7 @@ export function profileToYaml(profile: Profile): string {
 #
 # Este fichero es la FUENTE DE VERDAD: la CLI es una función determinista de su
 # contenido. Cámbialo mediante una Pull Request y vuelve a ejecutar
-# \`governance plan\` para ver exactamente qué implicaría el cambio.
+# \`plumbward plan\` para ver exactamente qué implicaría el cambio.
 #
 # Campos:
 #   strictness    "strict" o "moderate". Ajusta la dureza de linter y umbrales.

@@ -8,7 +8,7 @@ import type {
   PatchJsonOp,
   PatchStrategy,
   PatchYamlOp,
-} from '@governance/core'
+} from '@plumbward/core'
 
 /**
  * Azúcar sintáctico para escribir packs.

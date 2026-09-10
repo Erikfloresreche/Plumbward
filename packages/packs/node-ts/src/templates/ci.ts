@@ -1,6 +1,6 @@
-import type { PackageManager } from '@governance/core'
-import type { Profile } from '@governance/packs-sdk'
-import type { GovernanceMode } from '@governance/scanner'
+import type { PackageManager } from '@plumbward/core'
+import type { Profile } from '@plumbward/packs-sdk'
+import type { GovernanceMode } from '@plumbward/scanner'
 
 /** Comando de instalación reproducible para cada gestor. */
 function installCommand(manager: PackageManager): string {

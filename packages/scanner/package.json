@@ -1,5 +1,5 @@
 {
-  "name": "@governance/scanner",
+  "name": "@plumbward/scanner",
   "version": "0.1.0",
   "type": "module",
   "main": "./dist/index.js",
@@ -10,13 +10,18 @@
       "import": "./dist/index.js"
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsup src/index.ts --format esm --dts --clean",
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
-    "@governance/core": "workspace:*",
+    "@plumbward/core": "workspace:*",
     "execa": "^9.5.2"
   }
 }
