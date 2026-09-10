@@ -129,8 +129,9 @@ selecting the dependency manager from the files present in the repository.
 
 `commitlint` lo verifica en el hook `commit-msg` (tarea F0-4).
 
-**Al cerrar cada tarea**, el asistente entrega el mensaje de commit y la
-descripción de la PR ya redactados, y pregunta quién revisará la PR. Si no hay
+**Al cerrar cada tarea**, el asistente entrega ya redactados el mensaje de
+commit, el **título** de la PR y su descripción —los tres en inglés—, y pregunta
+quién revisará la PR. Si no hay
 nadie disponible y la PR se bloquearía, puede revisarla él **en contexto nuevo**
 —nunca con el historial que produjo el código, porque reproduciría los mismos
 puntos ciegos—, entregando hallazgos sin aprobar ni integrar. Detalle en
@@ -140,8 +141,15 @@ puntos ciegos—, entregando hallazgos sin aprobar ni integrar. Detalle en
 
 Plantilla obligatoria (se genera en F0-5):
 
-Las descripciones de Pull Request se redactan **en inglés**, igual que los
-commits:
+El **título** y la **descripción** de la Pull Request se redactan en inglés,
+igual que los commits. El título va en una línea, con el mismo formato de
+Conventional Commits y por debajo de 70 caracteres:
+
+```
+docs: switch to annual subscription and define the business model
+```
+
+La descripción sigue la plantilla:
 
 ```markdown
 ## Task
@@ -173,8 +181,8 @@ Aplica a **todas** las tareas, además de sus criterios propios:
 - [ ] La casilla de la tarea en este documento queda marcada en la misma PR.
 - [ ] Ningún asistente ha ejecutado comandos git que modifiquen el estado ni
       escrituras en base de datos: los lanza una persona (ver `CLAUDE.md`).
-- [ ] Se han entregado el mensaje de commit y la descripción de la PR en inglés,
-      y se ha preguntado quién revisa.
+- [ ] Se han entregado en inglés el mensaje de commit, el título de la PR y su
+      descripción, y se ha preguntado quién revisa.
 
 ---
 
@@ -1003,9 +1011,10 @@ mirar. Esta tarea convierte en producto el flujo que ya usamos internamente
 **Trabajo:**
 1. El pack base añade a las reglas de IA generadas una sección de **flujo de
    entrega**: al cerrar una unidad de trabajo, el asistente entrega el mensaje de
-   commit y la descripción de la PR, en el idioma que indique
+   commit, el **título** de la PR y su descripción, en el idioma que indique
    `agentBoundaries.commitLanguage`, con el formato de la plantilla de PR que
-   genere el propio pack.
+   genere el propio pack. El título en una línea y bajo 70 caracteres: es lo
+   único que se ve en la lista de PRs.
 2. Regla explícita de **revisión en contexto nuevo**: si el desarrollador pide
    que el asistente revise la PR, debe hacerlo sin el historial que produjo el
    código. Es el punto que hace que la revisión valga algo; sin él, el asistente

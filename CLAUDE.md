@@ -59,13 +59,17 @@ Implements F2-4. Adds the Python pack with ruff, mypy and pytest support,
 selecting the dependency manager from the files present in the repository.
 ```
 
-### Al terminar una tarea, entrega siempre estos dos textos
+### Al terminar una tarea, entrega siempre estos tres textos
 
 No basta con decir que la tarea está hecha. Se entregan, listos para copiar:
 
 1. **El mensaje de commit**, en inglés, en Conventional Commits, citando el
    identificador de la tarea en el cuerpo.
-2. **La descripción de la Pull Request**, en inglés, siguiendo
+2. **El título de la Pull Request**, en inglés y en una sola línea. Mismo
+   formato de Conventional Commits que el commit, por debajo de 70 caracteres.
+   Es lo único que se ve en la lista de PRs y en las notificaciones, así que
+   tiene que decir qué cambia sin que haya que abrirla.
+3. **La descripción de la Pull Request**, en inglés, siguiendo
    `.github/PULL_REQUEST_TEMPLATE.md`: tarea, qué cambia y por qué, criterios de
    aceptación copiados del plan, y cómo se ha verificado.
 

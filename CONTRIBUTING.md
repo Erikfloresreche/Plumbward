@@ -65,9 +65,13 @@ de datos**. Deja los cambios en el árbol de trabajo y una persona los commitea.
 
 Quien firma el commit responde de lo que entra en el historial.
 
-Al cerrar una tarea, el asistente entrega el **mensaje de commit** y la
-**descripción de la Pull Request**, ambos en inglés y listos para copiar, y
-pregunta quién va a revisar la PR.
+Al cerrar una tarea, el asistente entrega tres textos en inglés, listos para
+copiar —el **mensaje de commit**, el **título de la Pull Request** y su
+**descripción**— y pregunta quién va a revisar la PR.
+
+El título de la PR sigue el mismo formato de Conventional Commits que el commit,
+en una línea y por debajo de 70 caracteres. Es lo único visible en la lista de
+Pull Requests, así que debe decir qué cambia sin necesidad de abrirla.
 
 ### Revisión cuando no hay nadie disponible
 
