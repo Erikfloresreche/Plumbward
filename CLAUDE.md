@@ -21,12 +21,16 @@ repositorio. Léelo en este orden:
 | 3 | `docs/ARQUITECTURA.md` | Cómo funciona el código y **por qué** cada pieza está donde está |
 | 4 | `docs/MODELO_DE_NEGOCIO.md` | Qué vendemos, a quién, y qué no podemos prometer |
 | 5 | `docs/adr/` | Las decisiones grandes, con las alternativas descartadas |
+| 6 | `.claude/napkin.md` | Trucos del repo que ya costaron un error. Léelo entero: es corto a propósito |
+
+Del plan y de la arquitectura, lee sólo la tarea y las secciones que toca (§6).
 
 Comprueba el estado real antes de fiarte de lo escrito:
 
 ```bash
 git branch --show-current && git status --short
-pnpm build && pnpm typecheck && pnpm test && pnpm check:coherencia
+gh run list --branch "$(git branch --show-current)" --limit 3   # la CI ya dice si está verde
+pnpm check:coherencia
 ```
 
 Y **pregunta a la persona en qué está trabajando** antes de deducirlo: el plan
@@ -129,7 +133,7 @@ mecanizable, diciendo por qué**.
 
 Nunca "lo apunto aquí y ya".
 
-**Por qué:** este fichero ya ronda las 130 líneas. A las 400 nadie las aplica de
+**Por qué:** este fichero ya pasa de las 200 líneas. A las 400 nadie las aplica de
 forma fiable, ni una persona ni un asistente, porque cada regla nueva diluye a
 las demás. Un test que falla, falla siempre, y no depende de que alguien se
 acuerde. Es la misma tesis que vende el producto —las reglas se ignoran, los
@@ -187,4 +191,50 @@ pnpm install
 pnpm build       # turbo run build
 pnpm typecheck
 pnpm test        # vitest run
+pnpm vitest run <ruta>         # en local, sólo lo que tocas (§6)
 ```
+
+---
+
+## 6. Conservación de tokens y sesiones atómicas (obligatorio)
+
+Cada paso de una conversación reenvía la conversación entera. Una sesión larga
+no cuesta más por lo que se escribe, sino por todo lo que se arrastra.
+
+1. **Una tarea, una sesión.** No se acumulan tareas, ramas ni rondas de revisión
+   en un mismo chat. Al mergear una PR o cerrar un hito, se abre una sesión
+   nueva: la §0 y el plan bastan para retomar.
+2. **Lo pesado va a la CI.** Mutaciones, e2e y la batería completa corren en
+   GitHub Actions. En local, sólo los tests de lo que se toca: `pnpm vitest run <ruta>`.
+3. **Lecturas dirigidas.** Nunca un fichero grande ni el repositorio entero:
+   `grep -n` y rangos de líneas exactos. El plan pasa de 2.000 líneas.
+4. **En una PR abierta sólo se corrigen los bloqueantes.** Los seguimientos van
+   al plan como tarea nueva. Tras la primera revisión completa, las siguientes
+   se limitan al diff de las correcciones.
+
+**Por qué:** la sesión de la PR #7 (F0-14) gastó más del 80 % de la ventana de
+uso: cinco rondas de revisión en contexto nuevo, y cada seguimiento corregido
+dentro de la PR provocaba otra ronda.
+
+**No mecanizable:** ningún control puede ver cuánto dura una sesión ni qué se
+lee en ella. La defensa es esta sección y la pregunta de la §0.
+
+### Herramientas de agente
+
+- **napkin** (`blader/napkin`): runbook del repo en `.claude/napkin.md`. La skill
+  está en `.agents/skills/napkin/`, fijada en `skills-lock.json` y enlazada desde
+  `.claude/skills/napkin`, que es donde Claude Code la busca. Se añade una
+  entrada cuando algo no mecanizable ya ha costado un error; lo mecanizable va a
+  un control. Se cura sólo al añadir, aunque la skill pida hacerlo en cada
+  lectura. El repositorio es público: nada personal.
+  `pnpm check:coherencia` comprueba el hash de la skill, el enlace, y que el
+  runbook cumple sus reglas (fecha, "Do instead", máximo 10 por categoría).
+- **caveman**: plugin opcional de cada desarrollador, no se versiona. Comprime
+  sólo las respuestas del chat; commits, PRs, documentación, napkin y memoria
+  van en prosa normal. Recorta tokens de salida, que son una parte mínima del
+  gasto: no sustituye a la regla 1.
+- **Prohibido `caveman-setup` y cualquier gateway que enrute las peticiones del
+  asistente por un servicio externo.** Contradice la postura local-first y sin
+  telemetría ([ADR 0002](docs/adr/0002-licenciamiento-local-first.md)).
+- Una skill nueva es código de terceros con acceso al repositorio: se revisa
+  entera antes de instalarla, con `npx skills add`, para que quede en el lock.

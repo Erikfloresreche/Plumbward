@@ -6,7 +6,7 @@
 > misma Pull Request que la implementa.
 
 **Última actualización:** 2026-09-11
-**Estado global:** Fase 0 en curso — F0-1, F0-3, F0-5, F0-8, F0-13 y F0-14 completadas. Quedan F0-2, F0-4, F0-6, F0-7, F0-9 a F0-12, F0-15 y F0-16.
+**Estado global:** Fase 0 en curso — F0-1, F0-3, F0-5, F0-8, F0-13, F0-14 y F0-17 completadas. Quedan F0-2, F0-4, F0-6, F0-7, F0-9 a F0-12, F0-15 y F0-16.
 **Producto:** Plumbward · https://github.com/Erikfloresreche/Plumbward
 **Modelo de negocio:** suscripción anual por repositorio — ver
 [MODELO_DE_NEGOCIO.md](MODELO_DE_NEGOCIO.md)
@@ -1023,6 +1023,51 @@ y los comentarios de este proyecto siguen en español.
 
 ---
 
+### [x] F0-17 — Protocolo de conservación de tokens y herramientas de agente
+**Rama:** `chore/f0-agent-tooling` · **Depende de:** F0-14
+
+**Origen:** la sesión de la PR #7 (F0-14) gastó más del 80 % de la ventana de
+uso de cinco horas. Cada paso reenviaba la conversación entera (~130k tokens),
+hubo cinco rondas de revisión en contexto nuevo, y cada seguimiento corregido
+dentro de la PR provocaba otra ronda. Caveman sólo recorta la salida, menos del
+1 % del gasto: la palanca es abrir sesiones nuevas.
+
+**Trabajo:**
+1. Sección 6 de `CLAUDE.md`: una tarea, una sesión; lo pesado a la CI; lecturas
+   dirigidas; en una PR abierta sólo bloqueantes. La sección 0 deja de pedir la
+   batería completa en local y consulta la CI.
+2. Integrar napkin (`blader/napkin`): skill en `.agents/skills/napkin/` fijada en
+   `skills-lock.json`, enlace simbólico `.claude/skills/napkin` —Claude Code no
+   lee `.agents/`— y runbook versionado en `.claude/napkin.md`.
+3. Documentar caveman como plugin opcional de cada desarrollador, y prohibir su
+   gateway en la nube (`caveman-setup`) por la ADR 0002.
+4. **El control, no sólo la regla.** `check:coherencia` falla si una skill no
+   coincide con el hash del lock, si falta en el lock, si falta su enlace en
+   `.claude/skills/`, o si el runbook incumple sus reglas de curación.
+5. Llevar el protocolo al producto: ampliar F2-9 y F2-12.
+
+**Criterios de aceptación:**
+- [x] `CLAUDE.md` recoge el protocolo y cómo se usan napkin y caveman.
+- [x] Claude Code carga la skill napkin desde `.claude/skills/`. Verificado en
+  una sesión nueva: las skills se descubren al arrancar.
+- [x] `check:coherencia` falla al editar la skill, meter un enlace simbólico en
+  ella, borrar el enlace de `.claude/skills/`, añadir una skill sin lock, quitar
+  un "Do instead", quitar una fecha o pasar de 10 entradas en una categoría.
+  Probado con los mutantes.
+- [x] F2-9 y F2-12 incluyen el protocolo y las herramientas de agente.
+
+**No mecanizable:** la duración de una sesión y lo que se lee en ella. Ningún
+control del repositorio lo observa; la defensa es la sección 6 de `CLAUDE.md`.
+Tampoco lo es cuándo se cura el runbook: la skill pide curarlo en cada lectura y
+nuestra regla, sólo al añadir una entrada. Ningún control ve cuántas veces se
+reescribe; prevalece `CLAUDE.md`, que lo dice expresamente.
+
+**Limitación conocida:** el enlace simbólico no funciona en Windows con
+`core.symlinks=false`, donde git lo deja como un fichero de texto. Hoy nadie del
+equipo desarrolla en Windows; el control lo detectaría.
+
+---
+
 ## FASE 1 — Internacionalización del motor de plantillas
 
 **Objetivo:** que `Profile.language` funcione de verdad.
@@ -1349,11 +1394,25 @@ empaquetando esto**, y es de lo más diferenciador que podemos ofrecer.
      instalar ninguno automáticamente**: se proponen y decide el equipo.
 3. Que todo lo generado pase por el mismo mecanismo de bloques gestionados, para
    que `upgrade` pueda actualizarlo sin pisar lo que el equipo añada.
+4. **Proponer herramientas de agente de terceros** (origen: F0-17, donde las
+   usamos nosotros): napkin como runbook del repositorio y la parte local de
+   caveman para comprimir las respuestas. Se proponen, nunca se instalan sin
+   confirmación (ADR 0005), con versión y hash fijados en un lock y el enlace
+   que cada asistente necesita para cargarlas.
+5. **No recomendar ningún gateway en la nube** que enrute las peticiones del
+   asistente por un tercero, como `caveman-setup`: contradice la postura
+   local-first y sin telemetría (ADR 0002) y es un problema de cumplimiento para
+   el cliente.
+6. Una skill o plugin de terceros ejecuta con acceso al repositorio del cliente:
+   revisar sus hooks y scripts antes de incluirla en el catálogo.
+7. Portar a `doctor` los controles de F0-17: hash de cada skill contra su lock,
+   enlace presente, y runbook dentro de sus reglas de curación.
 
 **Criterios de aceptación:**
 - Un repositorio de Node/TS recibe skills y reglas coherentes entre los tres
   asistentes, sin instrucciones contradictorias entre ficheros.
 - Nada se conecta a un servicio externo sin confirmación explícita.
+- Una skill alterada respecto a su lock hace fallar `doctor`.
 
 ---
 
@@ -1437,6 +1496,12 @@ justo donde una migración mal lanzada hace más daño.
 4. Traducir la sección a los catálogos i18n de la Fase 1.
 5. Comprobación de salud en `doctor`: avisar si los ficheros de reglas de IA se
    han editado a mano y han perdido la sección.
+6. **Protocolo de conservación de tokens** (origen: F0-17), en la misma sección y
+   en todos los ficheros de reglas de IA: una tarea por sesión, lo pesado a la
+   CI, lecturas dirigidas con `grep` y rangos de líneas, y en una PR abierta
+   sólo bloqueantes. Es independiente del stack y del asistente: se escribe una
+   vez en la configuración central y se traduce a `CLAUDE.md`, `AGENTS.md`,
+   `.cursorrules` y `.github/copilot-instructions.md`.
 
 **Criterios de aceptación:**
 - Un repositorio de cualquier stack recibe los límites, con los comandos de
@@ -1444,6 +1509,8 @@ justo donde una migración mal lanzada hace más daño.
 - Desactivar `agentBoundaries.git` en el perfil los elimina de todos los
   ficheros generados a la vez, y la numeración de secciones sigue siendo válida.
 - La sección aparece igual en español y en inglés.
+- El protocolo de conservación de tokens aparece en todos los ficheros de
+  reglas de IA generados, con el mismo contenido.
 
 ---
 
