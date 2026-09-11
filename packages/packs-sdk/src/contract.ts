@@ -1,5 +1,6 @@
 import type { Operation } from '@plumbward/core'
 import type { GovernanceMode, RepoScan } from '@plumbward/scanner'
+import { isWorkBranch } from './branches.js'
 
 /**
  * Contrato público de un StackPack.
@@ -55,10 +56,25 @@ export interface AgentBoundaries {
 export interface Profile {
   readonly strictness: StrictnessLevel
   readonly mode: GovernanceMode
+  /**
+   * Papel de cada rama. Son dos preguntas distintas que una versión anterior
+   * mezclaba en un solo campo, y por eso se equivocaba (ADR 0005).
+   */
   readonly branches: {
-    readonly main: string
+    /**
+     * Rama a la que van las Pull Requests. Se deduce de `origin/HEAD` porque en
+     * GitHub eso es exactamente lo que significa la rama por defecto.
+     */
+    readonly integration: string | null
+    /**
+     * Rama desde la que se despliega a producción. **Nunca se deduce**: queda en
+     * `null` hasta que el equipo la configure. Sin ella no se genera el
+     * workflow de despliegue, porque desplegar desde una rama adivinada es la
+     * clase de error que no se puede deshacer.
+     */
+    readonly release: string | null
+    /** Rama de preproducción, si el equipo la usa. */
     readonly staging: string | null
-    readonly dev: string | null
   }
   readonly deployTarget: DeployTarget
   readonly devcontainer: boolean
@@ -108,6 +124,21 @@ export interface StackPack {
 }
 
 /** Perfil por defecto derivado del escaneo, para el modo no interactivo. */
+/**
+ * Rama de integración que se propone para el primer `config.yml`.
+ *
+ * Por orden: la rama por defecto del remoto; la rama actual si no es de
+ * trabajo; y una `main` o `master` existente. El respaldo existe porque un
+ * repositorio creado con `git init` + `push` no tiene `origin/HEAD`, y sin él la
+ * CI generada se quedaba sin ejecutarse al hacer push en la rama principal.
+ * Si falla, el daño es ejecutar la CI en una rama de más, no de menos.
+ */
+function proposeIntegrationBranch(scan: RepoScan): string | null {
+  if (scan.git.defaultBranch) return scan.git.defaultBranch
+  if (scan.git.branch && !isWorkBranch(scan.git.branch)) return scan.git.branch
+  return scan.git.branches.find((name) => name === 'main' || name === 'master') ?? null
+}
+
 export function recommendedProfile(scan: RepoScan): Profile {
   const strictness: StrictnessLevel = scan.sloc.mode === 'greenfield' ? 'strict' : 'moderate'
 
@@ -115,12 +146,11 @@ export function recommendedProfile(scan: RepoScan): Profile {
     strictness,
     mode: scan.sloc.mode,
     branches: {
-      // La rama por defecto detectada, si la hay. Es una sugerencia: acaba en
-      // `config.yml`, que el equipo revisa en una PR y puede corregir. El
-      // último recurso conserva el comportamiento anterior.
-      main: scan.git.defaultBranch ?? (scan.git.branch === 'master' ? 'master' : 'main'),
+      // Propuesta para el config.yml inicial. Una vez escrito, manda el
+      // fichero. La rama de despliegue no se propone nunca (ADR 0005).
+      integration: proposeIntegrationBranch(scan),
+      release: null,
       staging: null,
-      dev: null,
     },
     deployTarget: 'none',
     devcontainer: scan.sloc.mode === 'greenfield',

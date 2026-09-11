@@ -1,5 +1,5 @@
 import type { Operation, PackageManager } from '@plumbward/core'
-import { block, cmd, dep, file, json } from '@plumbward/packs-sdk'
+import { block, ciPushBranches, cmd, dep, file, json } from '@plumbward/packs-sdk'
 import type {
   DetectionResult,
   HealthCheck,
@@ -20,6 +20,7 @@ import {
   preCommitHook,
 } from './templates/tooling.js'
 import { gobernanzaDoc } from './templates/docs.js'
+import { workflowChecks } from './workflow-checks.js'
 
 const PACK_VERSION = '0.1.0'
 const DEFAULT_NODE_VERSION = '22'
@@ -139,7 +140,12 @@ export const nodeTsPack: StackPack = {
     operations.push(
       file(
         '.github/workflows/ci-dev.yml',
-        ciDevWorkflow(manager, profile.mode, profile),
+        ciDevWorkflow(
+          manager,
+          profile.mode,
+          profile,
+          ciPushBranches(profile),
+        ),
         'Valida cada Pull Request antes de que la revise una persona.',
       ),
     )
@@ -152,11 +158,14 @@ export const nodeTsPack: StackPack = {
         ),
       )
     }
-    if (profile.deployTarget !== 'none') {
+    // Sin rama de despliegue configurada no se genera el workflow: desplegar
+    // desde una rama adivinada no se puede deshacer. `validate` lo avisa.
+    const release = profile.branches.release
+    if (profile.deployTarget !== 'none' && release !== null) {
       operations.push(
         file(
           '.github/workflows/ci-prod.yml',
-          ciProdWorkflow(manager, profile),
+          ciProdWorkflow(manager, release),
           'Pipeline de producción con puerta de aprobación manual.',
         ),
       )
@@ -298,7 +307,7 @@ export const nodeTsPack: StackPack = {
     return operations
   },
 
-  validate(context: RepoContext): HealthCheck[] {
+  async validate(context: RepoContext): Promise<HealthCheck[]> {
     const files = new Set(context.scan.files)
 
     const checks: HealthCheck[] = [
@@ -345,6 +354,9 @@ export const nodeTsPack: StackPack = {
         fixHint: 'Ejecuta `plumbward apply`.',
       },
     ]
+
+    // Workflows leídos tal como están en disco: ver workflow-checks.ts.
+    checks.push(...(await workflowChecks(context)))
 
     return checks
   },

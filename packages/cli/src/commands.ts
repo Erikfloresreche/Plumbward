@@ -11,7 +11,8 @@ import {
 } from '@plumbward/core'
 import type { ChangePlan, CommandRunner, Operation } from '@plumbward/core'
 import { branchExists } from '@plumbward/scanner'
-import { file, isLongLivedBranch } from '@plumbward/packs-sdk'
+import type { GitState } from '@plumbward/scanner'
+import { file, requiresIsolation } from '@plumbward/packs-sdk'
 import type { Profile } from '@plumbward/packs-sdk'
 import { CLI_VERSION, buildContext, buildRegistry, profileToYaml } from './context.js'
 import { error, renderHealthChecks, renderPlan, renderScan, success, warn } from './render.js'
@@ -97,37 +98,88 @@ export async function runPlan(cwd: string, options: { diff: boolean }): Promise<
 }
 
 /**
- * Prepara la rama aislada de trabajo. Devuelve la rama de partida.
+ * ¿Bloquea la rama aislada ya existente este `apply`?
  *
- * Qué ramas se protegen lo decide `isLongLivedBranch`: el perfil, la rama por
- * defecto detectada y una lista de respaldo, sin distinguir mayúsculas. Antes
- * era una lista cableada que distinguía mayúsculas, y en un repositorio cuya
- * rama de releases se llamaba `Prod` esta función escribía directamente sobre
- * ella.
+ * Si hay que aislar el trabajo y la rama aislada ya existe, **no se usa**: puede
+ * estar desactualizada, y el plan que se enseña se calcula sobre la rama de
+ * partida. Se comprueba **antes** de pedir confirmación, para no preguntar algo
+ * que luego no se va a hacer.
+ */
+async function isolatedBranchBlocks(
+  repoRoot: string,
+  git: Pick<GitState, 'branch' | 'detachedHead' | 'defaultBranch'>,
+  createBranch: boolean,
+  profile: Profile,
+): Promise<boolean> {
+  if (!createBranch || !requiresIsolation(git, profile)) return false
+  if (!(await branchExists(repoRoot, GOVERNANCE_BRANCH))) return false
+
+  console.log(`\n${error(`La rama "${GOVERNANCE_BRANCH}" ya existe. No se ha escrito nada.`)}`)
+  console.log(
+    pc.dim(
+      '  Puede estar desactualizada, y el plan se ha calculado sobre la rama actual. Opciones:\n' +
+        `  · Si es tu trabajo de gobernanza en curso: git checkout ${GOVERNANCE_BRANCH} y ejecuta apply allí.\n` +
+        `  · Si ya la integraste: git branch -d ${GOVERNANCE_BRANCH} (no borra trabajo sin integrar) y vuelve a ejecutar apply.`,
+    ),
+  )
+  return true
+}
+
+interface HeadSnapshot {
+  /** `refs/heads/<rama>`, o `null` con HEAD desacoplado. */
+  readonly ref: string | null
+  /** Commit al que apunta HEAD, o `null` en un repositorio sin commits. */
+  readonly commit: string | null
+}
+
+async function readHead(repoRoot: string): Promise<HeadSnapshot> {
+  const [ref, commit] = await Promise.all([
+    execa('git', ['symbolic-ref', '-q', 'HEAD'], { cwd: repoRoot, reject: false }),
+    execa('git', ['rev-parse', '-q', '--verify', 'HEAD'], { cwd: repoRoot, reject: false }),
+  ])
+  return {
+    ref: ref.exitCode === 0 ? ref.stdout.trim() : null,
+    commit: commit.exitCode === 0 ? commit.stdout.trim() : null,
+  }
+}
+
+/**
+ * ¿Ha cambiado HEAD desde que se calculó el plan?
+ *
+ * La confirmación puede tardar, y mientras tanto alguien puede cambiar de rama
+ * desde otro terminal, el selector de ramas del IDE o un agente en paralelo. El
+ * plan y la decisión de aislar se calcularon sobre la rama del escaneo:
+ * aplicarlos en otra sería escribir algo que nadie aprobó, quizá directamente en
+ * `Prod`. Si HEAD se ha movido, no se escribe nada.
+ */
+function headMoved(scanned: Pick<GitState, 'branch'>, before: HeadSnapshot, now: HeadSnapshot): boolean {
+  const scannedRef = scanned.branch === null ? null : `refs/heads/${scanned.branch}`
+  return now.ref !== scannedRef || now.ref !== before.ref || now.commit !== before.commit
+}
+
+/**
+ * Prepara la rama aislada de trabajo, si hace falta.
+ *
+ * Qué ramas se aíslan lo decide `requiresIsolation`: todas salvo las ramas de
+ * trabajo reconocibles, y siempre con HEAD desacoplado (ADR 0005). La rama se
+ * crea con `--no-track`: sin eso, con `branch.autoSetupMerge=inherit` heredaría
+ * el upstream de la rama de partida, y un `git push` sin argumentos podría
+ * mandar el trabajo a `Prod`.
  */
 async function prepareBranch(
   repoRoot: string,
-  currentBranch: string | null,
+  git: Pick<GitState, 'branch' | 'detachedHead' | 'defaultBranch'>,
   createBranch: boolean,
   profile: Profile,
-  defaultBranch: string | null,
-): Promise<string | null> {
-  if (!createBranch || currentBranch === null) return currentBranch
-
-  if (!isLongLivedBranch(currentBranch, profile, defaultBranch)) {
-    log.info(`Se trabajará sobre la rama actual "${currentBranch}".`)
-    return currentBranch
+): Promise<void> {
+  if (!createBranch) return
+  if (!requiresIsolation(git, profile)) {
+    log.info(`Se trabajará sobre la rama actual "${git.branch}".`)
+    return
   }
-
-  const exists = await branchExists(repoRoot, GOVERNANCE_BRANCH)
-  await execa('git', ['checkout', ...(exists ? [] : ['-b']), GOVERNANCE_BRANCH], {
-    cwd: repoRoot,
-  })
-  log.success(
-    `Creada y activada la rama "${GOVERNANCE_BRANCH}". La rama "${currentBranch}" no se ha tocado.`,
-  )
-
-  return currentBranch
+  const origin = git.detachedHead ? 'un HEAD desacoplado' : `la rama "${git.branch}"`
+  await execa('git', ['checkout', '--no-track', '-b', GOVERNANCE_BRANCH], { cwd: repoRoot })
+  log.success(`Creada y activada la rama "${GOVERNANCE_BRANCH}" a partir de ${origin}, que no se ha tocado.`)
 }
 
 export interface ApplyOptions {
@@ -171,6 +223,12 @@ export async function runApply(cwd: string, options: ApplyOptions): Promise<numb
     )
   }
 
+  if (await isolatedBranchBlocks(scan.repoRoot, scan.git, options.branch, context.context.profile)) {
+    return 1
+  }
+
+  const headBefore = await readHead(scan.repoRoot)
+
   if (!options.yes) {
     const answer = await confirm({
       message: `¿Aplicar estos cambios${
@@ -184,13 +242,13 @@ export async function runApply(cwd: string, options: ApplyOptions): Promise<numb
     }
   }
 
-  await prepareBranch(
-    scan.repoRoot,
-    scan.git.branch,
-    options.branch,
-    context.context.profile,
-    scan.git.defaultBranch,
-  )
+  if (headMoved(scan.git, headBefore, await readHead(scan.repoRoot))) {
+    console.log(`\n${error('La rama o el commit actual han cambiado mientras se confirmaba. No se ha escrito nada.')}`)
+    console.log(pc.dim('  El plan se calculó sobre la rama anterior. Vuelve a ejecutar apply para ver el de la actual.'))
+    return 1
+  }
+
+  await prepareBranch(scan.repoRoot, scan.git, options.branch, context.context.profile)
 
   try {
     const result = await applyPlan(plan, {

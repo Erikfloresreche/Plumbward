@@ -18,6 +18,10 @@ export default defineConfig({
     },
   },
   test: {
+    // Aísla git de la configuración de la máquina y del entorno en todas las
+    // pruebas: con `commit.gpgsign` o un `core.hooksPath` globales, o un
+    // `GIT_DIR` heredado, las que crean repositorios fallaban o escribían fuera.
+    setupFiles: ['./vitest.setup.ts'],
     include: ['packages/**/src/**/*.test.ts', 'packages/**/test/**/*.test.ts'],
     exclude: ['**/node_modules/**', '**/dist/**'],
   },

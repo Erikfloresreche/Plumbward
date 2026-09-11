@@ -83,6 +83,7 @@ export function ciDevWorkflow(
   manager: PackageManager,
   mode: GovernanceMode,
   profile: Profile,
+  pushBranches: readonly string[],
 ): string {
   const strict = profile.strictness === 'strict'
   const ratchetNote =
@@ -102,12 +103,14 @@ export function ciDevWorkflow(
 # ---------------------------------------------------------------------------
 name: CI · Validación de PR
 
+# Se ejecuta en TODAS las Pull Requests, vayan a la rama que vayan. Filtrar por
+# rama de destino dejaba sin revisar las PRs dirigidas a una rama que la
+# herramienta no había identificado como principal.
 on:
   pull_request:
-    branches: [${profile.branches.main}${profile.branches.dev ? `, ${profile.branches.dev}` : ''}]
-  push:
-    branches: [${profile.branches.dev ?? profile.branches.main}]
-
+${pushBranches.length > 0 ? `  push:
+    branches: [${pushBranches.join(', ')}]
+` : ''}
 # Cancela ejecuciones antiguas de la misma rama: ahorra minutos de CI y dinero.
 concurrency:
   group: \${{ github.workflow }}-\${{ github.ref }}
@@ -254,12 +257,16 @@ ${setupSteps(manager, false)}
 `
 }
 
-/** Workflow de despliegue a producción, con puerta de aprobación manual. */
-export function ciProdWorkflow(manager: PackageManager, profile: Profile): string {
+/**
+ * Workflow de despliegue a producción, con puerta de aprobación manual. Sólo se llama cuando el equipo ha
+ * configurado explícitamente `branches.release`: nunca se despliega desde una
+ * rama deducida (ADR 0005).
+ */
+export function ciProdWorkflow(manager: PackageManager, release: string): string {
   return `# ---------------------------------------------------------------------------
 # Despliegue a PRODUCCIÓN
 #
-# Sólo se dispara desde "${profile.branches.main}" y exige aprobación manual a
+# Sólo se dispara desde "${release}" y exige aprobación manual a
 # través del entorno "production" de GitHub (Settings > Environments).
 #
 # Configura ahí los revisores obligatorios: es la última barrera antes de que el
@@ -269,7 +276,7 @@ name: CD · Producción
 
 on:
   push:
-    branches: [${profile.branches.main}]
+    branches: [${release}]
   workflow_dispatch:
 
 concurrency:

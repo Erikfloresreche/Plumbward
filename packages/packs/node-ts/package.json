@@ -24,6 +24,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
+    "@plumbward/ast": "workspace:*",
     "@plumbward/core": "workspace:*",
     "@plumbward/packs-sdk": "workspace:*",
     "@plumbward/scanner": "workspace:*"
