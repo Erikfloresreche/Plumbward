@@ -11,6 +11,7 @@ import {
 } from '@plumbward/core'
 import type { ChangePlan, CommandRunner, Operation } from '@plumbward/core'
 import { branchExists } from '@plumbward/scanner'
+import type { GitState } from '@plumbward/scanner'
 import { file, isLongLivedBranch } from '@plumbward/packs-sdk'
 import type { Profile } from '@plumbward/packs-sdk'
 import { CLI_VERSION, buildContext, buildRegistry, profileToYaml } from './context.js'
@@ -99,35 +100,43 @@ export async function runPlan(cwd: string, options: { diff: boolean }): Promise<
 /**
  * Prepara la rama aislada de trabajo. Devuelve la rama de partida.
  *
- * Qué ramas se protegen lo decide `isLongLivedBranch`: el perfil, la rama por
- * defecto detectada y una lista de respaldo, sin distinguir mayúsculas. Antes
- * era una lista cableada que distinguía mayúsculas, y en un repositorio cuya
- * rama de releases se llamaba `Prod` esta función escribía directamente sobre
- * ella.
+ * Se aísla el trabajo cuando la rama actual es de larga duración —lo decide
+ * `isLongLivedBranch` a partir del perfil, la rama por defecto y una lista de
+ * respaldo, sin distinguir mayúsculas— y también **con HEAD desacoplado**: ahí
+ * no hay rama que proteger, pero cualquier commit posterior quedaría suelto y
+ * se perdería con facilidad.
  */
-async function prepareBranch(
+export async function prepareBranch(
   repoRoot: string,
-  currentBranch: string | null,
+  git: Pick<GitState, 'branch' | 'detachedHead' | 'defaultBranch'>,
   createBranch: boolean,
   profile: Profile,
-  defaultBranch: string | null,
 ): Promise<string | null> {
-  if (!createBranch || currentBranch === null) return currentBranch
+  if (!createBranch) return git.branch
 
-  if (!isLongLivedBranch(currentBranch, profile, defaultBranch)) {
-    log.info(`Se trabajará sobre la rama actual "${currentBranch}".`)
-    return currentBranch
+  const needsIsolation =
+    git.detachedHead || (git.branch !== null && isLongLivedBranch(git.branch, profile, git.defaultBranch))
+
+  if (!needsIsolation) {
+    log.info(`Se trabajará sobre la rama actual "${git.branch}".`)
+    return git.branch
   }
 
+  const origin = git.detachedHead ? 'un HEAD desacoplado' : `la rama "${git.branch}"`
   const exists = await branchExists(repoRoot, GOVERNANCE_BRANCH)
   await execa('git', ['checkout', ...(exists ? [] : ['-b']), GOVERNANCE_BRANCH], {
     cwd: repoRoot,
   })
+
+  // El mensaje dice lo que ha pasado de verdad. Si la rama ya existía, se ha
+  // activado tal como estaba, sin actualizarla (pendiente en F0-15).
   log.success(
-    `Creada y activada la rama "${GOVERNANCE_BRANCH}". La rama "${currentBranch}" no se ha tocado.`,
+    exists
+      ? `Activada la rama existente "${GOVERNANCE_BRANCH}", tal como estaba. Partías de ${origin}, que no se ha tocado.`
+      : `Creada y activada la rama "${GOVERNANCE_BRANCH}" a partir de ${origin}, que no se ha tocado.`,
   )
 
-  return currentBranch
+  return git.branch
 }
 
 export interface ApplyOptions {
@@ -184,13 +193,7 @@ export async function runApply(cwd: string, options: ApplyOptions): Promise<numb
     }
   }
 
-  await prepareBranch(
-    scan.repoRoot,
-    scan.git.branch,
-    options.branch,
-    context.context.profile,
-    scan.git.defaultBranch,
-  )
+  await prepareBranch(scan.repoRoot, scan.git, options.branch, context.context.profile)
 
   try {
     const result = await applyPlan(plan, {

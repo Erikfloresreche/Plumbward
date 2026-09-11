@@ -6,7 +6,7 @@
 > misma Pull Request que la implementa.
 
 **Última actualización:** 2026-09-11
-**Estado global:** Fase 0 en curso — F0-1, F0-3, F0-5, F0-8 y F0-14 completadas. Quedan F0-2, F0-4, F0-6, F0-7, F0-9 a F0-13 y F0-15.
+**Estado global:** Fase 0 en curso — F0-1, F0-3, F0-5, F0-8, F0-13 y F0-14 completadas. Quedan F0-2, F0-4, F0-6, F0-7, F0-9 a F0-12 y F0-15.
 **Producto:** Plumbward · https://github.com/Erikfloresreche/Plumbward
 **Modelo de negocio:** suscripción anual por repositorio — ver
 [MODELO_DE_NEGOCIO.md](MODELO_DE_NEGOCIO.md)
@@ -605,7 +605,7 @@ revisión de F0-3 y encontró el tercero solo, en su primera ejecución.
 
 ---
 
-### [ ] F0-13 — Proteger las ramas para que el rojo bloquee de verdad
+### [x] F0-13 — Proteger las ramas para que el rojo bloquee de verdad
 **Rama:** configuración de GitHub, sin rama de código · **Depende de:** F0-3
 
 **Origen:** la revisión de F0-3. La CI pinta el rojo pero no impide nada: con
@@ -627,9 +627,22 @@ que se puede ignorar no es un control.
 4. Borrar del remoto las ramas de tareas ya integradas.
 
 **Criterios de aceptación:**
-- Una PR con un check en rojo no se puede mergear desde la interfaz.
-- `gh api repos/.../rulesets` devuelve las reglas configuradas.
-- Las reglas cubren `Prod` y `develop`, los nombres reales de las ramas.
+- [x] Una PR con un check en rojo no se puede mergear desde la interfaz.
+- [x] `gh api repos/.../rulesets` devuelve las reglas configuradas.
+- [x] Las reglas cubren `Prod` y `develop`, los nombres reales de las ramas.
+
+**Cerrada el 2026-09-11**, configurada a mano en GitHub. Ruleset activo sobre
+`develop` y `Prod`: bloqueo de borrado y de force push, PR obligatoria con **0
+aprobaciones** —con 1, un desarrollador en solitario no podría mergear nunca sus
+propias PRs— y los seis checks obligatorios, verificados uno a uno contra los
+nombres reales de los jobs. Un push directo a `develop` es rechazado; probado.
+
+Llegó un día tarde: horas antes, F0-14 había entrado en `develop` por un push
+directo, sin PR ni revisión, porque la rama local se creó enganchada a
+`origin/develop`. Con esta regla, eso ya no puede ocurrir.
+
+Lo aprendido al configurarla a mano es la base de la versión automática, en
+F3-5.
 
 ---
 
@@ -669,13 +682,49 @@ if (!PROTECTED_BRANCHES.has(currentBranch)) { /* trabaja sobre la rama actual */
 
 **Criterios de aceptación:**
 - [x] En un repositorio cuya rama por defecto se llame `Prod`, `apply` crea la
-      rama aislada igual que lo haría en `main`. **Verificado ejecutando el CLI
-      real**: el commit de `Prod` es el mismo antes y después del `apply`.
-- [x] Ningún nombre de rama aparece cableado en la ruta de decisión. Queda una
-      lista de respaldo, `LONG_LIVED_BRANCH_NAMES`, pero sólo puede *añadir*
-      protección.
+      rama aislada igual que lo haría en `main` — también con una etiqueta
+      `Prod`, con HEAD desacoplado y en un repositorio sin commits.
+- [x] La decisión no depende de una lista cableada. Queda una de respaldo,
+      `LONG_LIVED_BRANCH_NAMES`, pero sólo puede *añadir* protección, y hay tests
+      con nombres que no están en ella.
 
-**Cerrada el 2026-09-11.**
+**Cerrada dos veces.** La primera versión se dio por terminada el 2026-09-11 y
+**no lo estaba**. Entró en `develop` sin PR, la revisión posterior al merge la
+desmontó, y se rehízo en `fix/f0-protected-branches-rework`. Queda escrito para
+no olvidar cómo pasó.
+
+**Qué estaba mal en la primera versión** (verificado con repositorios reales):
+
+1. **La protección se seguía saltando.** La rama se leía con
+   `git rev-parse --abbrev-ref HEAD`, que devuelve `heads/Prod` si existe una
+   etiqueta llamada `Prod` —algo habitual para marcar despliegues—. Ese nombre
+   no coincide con nada y `apply` escribía sobre `Prod`. `symbolic-ref --short`
+   tiene el mismo defecto; se comprobó antes de elegir la solución.
+2. **Introdujo una regresión en repos git-flow.** Usaba la rama por defecto de
+   GitHub como rama de releases. En git-flow esa es `develop`, y la CI generada
+   pasaba a desplegar a producción desde `develop`. Rama por defecto ≠ rama de
+   releases.
+3. **Su verificación no demostraba nada.** Se dio como prueba que "el commit de
+   `Prod` es el mismo antes y después del `apply`", pero `apply` nunca hace
+   commit: eso se cumplía también con el fallo sin arreglar.
+4. **Los tests repetían la lista.** Quitar una fuente entera de la decisión no
+   rompía ninguno, porque todos usaban nombres que ya estaban en la lista.
+
+**Cómo se rehízo:**
+
+- **Primero los tests en rojo.** `packages/cli/test/protected-branches.test.ts`
+  ejecuta `runApply` completo sobre repositorios reales y pregunta lo único que
+  importa: *¿en qué rama queda el repositorio?*. Con el código anterior, 5 de 7
+  fallaban por exactamente las razones de arriba.
+- La rama actual se lee con `git symbolic-ref -q HEAD` **sin abreviar**. Con
+  HEAD desacoplado se crea igualmente la rama aislada.
+- La rama de releases se deduce de **las ramas que existen**
+  (`detectBranchRoles`), nunca de la rama por defecto; y la de integración
+  (`develop`) se detecta también, para que la CI generada cubra las dos.
+- **Pruebas de mutación:** se rompieron a propósito seis piezas de la lógica
+  —cada fuente de la unión, la insensibilidad a mayúsculas, la lectura de la
+  rama, la deducción de la rama de releases, el aislamiento con HEAD
+  desacoplado— y **todas hicieron fallar algún test**.
 
 **El descubrimiento que cambió el diseño:** la rama por defecto se lee de
 `refs/remotes/origin/HEAD` sin red, porque el escáner tiene que funcionar
@@ -697,12 +746,11 @@ demás ramas configuradas en el perfil también se protegen, no sólo la de
 releases. Antes, `apply` en `develop` escribía directamente sobre la rama de
 integración, que CONTRIBUTING dice que debe estar siempre en verde.
 
-**Viaja en la misma PR, a propósito: la CI no comprobaba los tipos.** La
-revisión posterior al merge de la PR #6 descubrió que, desde que la matriz pasó
-de `'22'` a `'22.13'`, los pasos de typecheck y de coherencia tenían
-`if: matrix.node == '22'` y se saltaban en todas las ejecuciones. La CI verde de
-`develop` no incluía ninguno de los dos. Se corrige aquí porque sin ello la CI
-de esta PR tampoco comprobaría los tipos del código que cambia. Ahora son un job
+**La CI no comprobaba los tipos.** La revisión posterior al merge de la PR #6
+descubrió que, desde que la matriz pasó de `'22'` a `'22.13'`, los pasos de
+typecheck y de coherencia tenían `if: matrix.node == '22'` y se saltaban en
+todas las ejecuciones: la CI verde de `develop` no incluía ninguno de los dos.
+Se corrigió en la primera versión de F0-14. Ahora son un job
 propio, `Tipos y coherencia`, sin condiciones que puedan desajustarse, y el
 script de coherencia falla si alguna condición `if` apunta a una versión que no
 está en la matriz o si el job desaparece.
@@ -788,6 +836,25 @@ nombres de rama, tal como está, es más frágil de lo que parece.**
     reglas de IA generadas) y un control nuevo de CI, y la descripción de la PR
     se saltó los apartados de criterios y Definition of Done de la plantilla.
     Nada que corregir en el código; queda registrado para no repetirlo.
+
+11. **De la revisión de F0-14**, pendientes:
+    - El control de que existe el job `calidad` se ejecuta **dentro de ese mismo
+      job**: con `if: false`, `continue-on-error: true` o quitándole los pasos,
+      el control desaparece con él. Debe comprobarse desde otro job, o mejor,
+      que el job sea un check obligatorio (lo es desde F0-13) y verificar que
+      lo sigue siendo.
+    - La comprobación de condiciones `if` no reconoce `- if:` en forma de
+      elemento de lista, operandos invertidos ni `startsWith`, y no mira
+      `e2e.yml`.
+    - Si la rama aislada ya existe, `apply` la activa tal como está, quizá
+      desactualizada respecto a la rama de partida. El mensaje ya lo dice; el
+      comportamiento sigue pendiente.
+    - La rama por defecto sólo se lee de `origin`: un repo cuyo remoto se llame
+      `upstream` no aporta esa fuente.
+    - Los tests de `packages/*/test/` no pasan por el typecheck: los
+      `tsconfig` sólo incluyen `src/`.
+    - Los tests que ejecutan `runApply` imprimen toda la salida del CLI en el
+      log de la CI.
 
 **Qué se convierte en control mecánico:** los puntos 2, 3 y 4 (corpus y tests),
 y el 9 si el control de nombres de rama se extiende al diagrama del §3.2. El 7 es
@@ -1340,10 +1407,35 @@ práctica en producto.
    reales que devuelve el historial de git.
 4. Documenta el flujo en el `GOBERNANZA.md` que ya genera el pack de Node.
 
+**Lo aprendido configurándolo a mano en F0-13**, que concreta el diseño:
+
+- **Los checks obligatorios salen de los workflows generados.** Deben coincidir
+  exactamente con el `name` de cada job, y los de matriz se expanden (`Node
+  22.13`, `Node 24`…). Si la matriz cambia y la regla no, todas las PRs quedan
+  bloqueadas para siempre. Como Plumbward genera las dos cosas, calcula la lista
+  exacta y en cada `upgrade` actualiza ambas a la vez. **Es la ventaja que no
+  tiene una herramienta que sólo protege ramas.** `doctor` avisa si un check
+  obligatorio no corresponde a ningún job.
+- **Aprobaciones según el equipo:** 0 para un desarrollador solo, que con 1 no
+  podría mergear nunca sus propias PRs; 1 o más para equipos.
+- **Es una operación remota nueva**, fuera de las seis operaciones locales del
+  núcleo, así que requiere una **ADR**. Debe conservar las garantías: `plan`
+  muestra la regla exacta, se leen primero las existentes para no pisarlas,
+  `apply` sólo con confirmación explícita, y el journal guarda su identificador
+  para que `rollback` la borre.
+- **Requiere permisos de administración:** se usa la sesión de `gh` que ya
+  tenga el usuario, sin guardar nunca el token.
+- **Límite de GitHub:** las reglas se aplican en repositorios públicos con
+  cualquier plan, pero en privados exigen Pro, Team o Enterprise. Detectarlo y
+  explicarlo, en lugar de crear una regla que GitHub ignora sin avisar.
+- Multiplataforma: GitLab y Bitbucket tienen APIs equivalentes.
+
 **Criterios de aceptación:**
 - Tras aplicar, el repo del cliente tiene documentado su flujo y las
   protecciones listas para activar.
 - Nada toca la configuración remota del repositorio sin confirmación explícita.
+- Los checks obligatorios coinciden con los jobs generados, y cambiar la matriz
+  actualiza la regla en el mismo `upgrade`.
 
 ---
 

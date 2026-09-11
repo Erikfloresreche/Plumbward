@@ -21,6 +21,7 @@ export type {
 export {
   readGitState,
   readDefaultBranch,
+  listBranchNames,
   listTrackedFiles,
   branchExists,
   normaliseRemote,

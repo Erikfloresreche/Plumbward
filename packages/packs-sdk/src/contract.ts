@@ -1,5 +1,6 @@
 import type { Operation } from '@plumbward/core'
 import type { GovernanceMode, RepoScan } from '@plumbward/scanner'
+import { detectBranchRoles } from './branches.js'
 
 /**
  * Contrato público de un StackPack.
@@ -109,18 +110,20 @@ export interface StackPack {
 
 /** Perfil por defecto derivado del escaneo, para el modo no interactivo. */
 export function recommendedProfile(scan: RepoScan): Profile {
+  const roles = detectBranchRoles(scan.git.branches)
   const strictness: StrictnessLevel = scan.sloc.mode === 'greenfield' ? 'strict' : 'moderate'
 
   return {
     strictness,
     mode: scan.sloc.mode,
     branches: {
-      // La rama por defecto detectada, si la hay. Es una sugerencia: acaba en
-      // `config.yml`, que el equipo revisa en una PR y puede corregir. El
-      // último recurso conserva el comportamiento anterior.
-      main: scan.git.defaultBranch ?? (scan.git.branch === 'master' ? 'master' : 'main'),
+      // Se deduce de las ramas que existen, NO de la rama por defecto del
+      // remoto: en git-flow esa es `develop`, y tomarla como rama de releases
+      // hacía que la CI generada desplegara a producción desde develop. Es una
+      // sugerencia que acaba en `config.yml`, revisable en una PR.
+      main: roles.release ?? (scan.git.branch === 'master' ? 'master' : 'main'),
       staging: null,
-      dev: null,
+      dev: roles.integration,
     },
     deployTarget: 'none',
     devcontainer: scan.sloc.mode === 'greenfield',

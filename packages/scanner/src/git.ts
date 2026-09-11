@@ -45,12 +45,34 @@ export async function readDefaultBranch(repoRoot: string): Promise<string | null
   return name.length > 0 ? name : null
 }
 
+/**
+ * Nombres de todas las ramas locales y de seguimiento remoto, sin prefijo.
+ *
+ * Funciona sin red: lee las referencias que ya hay en disco. Excluye `HEAD`,
+ * que en `refs/remotes/<remoto>/HEAD` es un puntero y no una rama.
+ */
+export async function listBranchNames(repoRoot: string): Promise<string[]> {
+  const output = await git(repoRoot, ['for-each-ref', '--format=%(refname)', 'refs/heads', 'refs/remotes'])
+  if (!output) return []
+
+  const names = new Set<string>()
+  for (const ref of output.split('\n')) {
+    const name = ref.startsWith('refs/heads/')
+      ? ref.slice('refs/heads/'.length)
+      : ref.replace(/^refs\/remotes\/[^/]+\//, '')
+    if (name.length > 0 && name !== 'HEAD' && !name.startsWith('refs/')) names.add(name)
+  }
+  return [...names].sort()
+}
+
 export async function readGitState(repoRoot: string): Promise<GitState> {
   const insideRepo = await git(repoRoot, ['rev-parse', '--is-inside-work-tree'])
   if (insideRepo !== 'true') {
     return {
       isRepo: false,
       branch: null,
+      detachedHead: false,
+      branches: [],
       defaultBranch: null,
       isDirty: false,
       rootCommit: null,
@@ -59,14 +81,18 @@ export async function readGitState(repoRoot: string): Promise<GitState> {
     }
   }
 
-  const [branch, status, rootCommits, remoteUrl, defaultBranch] = await Promise.all([
-    git(repoRoot, ['rev-parse', '--abbrev-ref', 'HEAD']),
+  const [headRef, status, rootCommits, remoteUrl, defaultBranch, branches] = await Promise.all([
+    // Sin `--short`: ver el comentario de `GitState.branch`.
+    git(repoRoot, ['symbolic-ref', '-q', 'HEAD']),
     git(repoRoot, ['status', '--porcelain']),
     // Huella del repositorio: hash del primer commit (especificación, módulo 1).
     git(repoRoot, ['rev-list', '--max-parents=0', 'HEAD']),
     git(repoRoot, ['config', '--get', 'remote.origin.url']),
     readDefaultBranch(repoRoot),
+    listBranchNames(repoRoot),
   ])
+
+  const branch = headRef?.startsWith('refs/heads/') ? headRef.slice('refs/heads/'.length) : null
 
   // Un repo puede tener varias raíces (historiales fusionados): se toma la última,
   // que es la más antigua en el orden de `rev-list`.
@@ -79,7 +105,9 @@ export async function readGitState(repoRoot: string): Promise<GitState> {
 
   return {
     isRepo: true,
-    branch: branch ?? null,
+    branch,
+    detachedHead: branch === null,
+    branches,
     defaultBranch,
     isDirty: status !== undefined && status.length > 0,
     rootCommit,

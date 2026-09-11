@@ -18,7 +18,21 @@ export type GovernanceMode =
 
 export interface GitState {
   readonly isRepo: boolean
+  /**
+   * Rama actual, leída con `git symbolic-ref HEAD` y sin abreviar.
+   *
+   * No se usa `git rev-parse --abbrev-ref HEAD` ni `symbolic-ref --short`: ambos
+   * devuelven `heads/Prod` si existe una etiqueta o un remoto llamado `Prod`, y
+   * ese nombre no coincide con nada. Es `null` con HEAD desacoplado.
+   */
   readonly branch: string | null
+  /** `true` si HEAD no apunta a ninguna rama (checkout de un commit o etiqueta). */
+  readonly detachedHead: boolean
+  /**
+   * Nombres de todas las ramas conocidas, locales y de seguimiento remoto, sin
+   * prefijo y sin duplicados. Sirven para deducir qué papel tiene cada una.
+   */
+  readonly branches: readonly string[]
   /**
    * Rama por defecto del remoto, según `refs/remotes/origin/HEAD`.
    *

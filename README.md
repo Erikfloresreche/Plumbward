@@ -46,9 +46,10 @@ repositorio como estaba.
 Si estás en una rama de larga duración, `apply` crea antes una rama dedicada
 (`chore/setup-ai-governance`) y trabaja allí. **No hace falta que tu rama se
 llame `main`**: se reconocen las que configures en `.governance/config.yml`, la
-rama por defecto de tu remoto y las convenciones habituales (`Prod`, `trunk`,
-`develop`, `produccion`…), sin distinguir mayúsculas. En una rama de trabajo,
-opera sobre ella y te lo dice.
+rama por defecto de `origin` y las convenciones habituales (`Prod`, `trunk`,
+`develop`, `producción`…), sin distinguir mayúsculas. También aísla el trabajo
+si tienes HEAD desacoplado. En una rama de trabajo, opera sobre ella y te lo
+dice.
 
 ## Tres garantías
 

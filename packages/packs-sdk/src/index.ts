@@ -15,10 +15,16 @@ export { recommendedProfile } from './contract.js'
 export { file, json, yaml, block, dep, cmd } from './dsl.js'
 export type { FileOptions } from './dsl.js'
 
+export {
+  LONG_LIVED_BRANCH_NAMES,
+  detectBranchRoles,
+  longLivedBranches,
+  isLongLivedBranch,
+} from './branches.js'
+export type { BranchRoles } from './branches.js'
+
 export { PackRegistry } from './registry.js'
 export type { SelectedPack } from './registry.js'
 
 export { checkPackConformance } from './conformance.js'
-
-export { LONG_LIVED_BRANCH_NAMES, longLivedBranches, isLongLivedBranch } from './branches.js'
 export type { ConformanceViolation } from './conformance.js'
