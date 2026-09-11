@@ -87,6 +87,14 @@ Esa revisión **entrega hallazgos; no aprueba ni integra**. El merge lo hace una
 persona. Y es una válvula para no bloquear el trabajo, no un sustituto de la
 revisión humana: si hay alguien disponible, revisa esa persona.
 
+### Un hallazgo termina en un control
+
+Lo que salga de una revisión se convierte en un test o en una comprobación de
+CI, o se registra como no mecanizable explicando por qué. Una regla añadida a un
+documento no cuenta: los documentos de reglas decaen a medida que crecen, y el
+propósito de este proyecto es precisamente sustituir reglas que se ignoran por
+controles que no se pueden saltar.
+
 ## Definition of Done
 
 **La lista canónica y completa está en el §4 de
@@ -106,6 +114,8 @@ cumple todo esto, además de sus criterios propios:
   escrituras en base de datos.
 - Se han entregado el mensaje de commit y la descripción de la PR en inglés, y
   se ha preguntado quién revisa.
+- Cada hallazgo de la revisión ha terminado en un control mecánico, o está
+  registrado como no mecanizable y por qué.
 
 ## Escribir un pack
 

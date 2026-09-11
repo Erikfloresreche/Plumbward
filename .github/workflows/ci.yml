@@ -1,0 +1,90 @@
+# ---------------------------------------------------------------------------
+# Integración continua.
+#
+# Es la puerta que impide que entre en `develop` código que no compila, no
+# tipa o no pasa las pruebas. Vendemos CI: no tenerla sería incoherente.
+#
+# Los tests de punta a punta van en `e2e.yml` porque son lentos y crean
+# repositorios git reales; separarlos mantiene esta comprobación por debajo del
+# minuto y da retroalimentación rápida en cada push.
+# ---------------------------------------------------------------------------
+name: CI
+
+on:
+  pull_request:
+    branches: [develop, main]
+  push:
+    branches: [develop, main]
+
+# Un push nuevo sobre la misma rama cancela la ejecución anterior: ahorra
+# minutos, que en un repositorio privado son un recurso limitado.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+# Mínimo privilegio: estos trabajos sólo necesitan leer el código.
+permissions:
+  contents: read
+
+jobs:
+  verificar:
+    name: Node ${{ matrix.node }}
+    runs-on: ubuntu-latest
+    strategy:
+      # Que falle una versión no cancela las demás: interesa saber si el fallo
+      # es de una versión concreta o de todas.
+      fail-fast: false
+      matrix:
+        # 20 es el suelo declarado en `engines`; 22 es LTS en mantenimiento y
+        # 24 es LTS activa. Node 18 se retiró: lleva sin soporte de seguridad
+        # desde abril de 2025 y no vamos a sostener un runtime sin parches.
+        node: ['20', '22', '24']
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Lee la versión de pnpm del campo `packageManager` de package.json.
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: pnpm
+
+      # La caché de turbo evita recompilar paquetes que no han cambiado.
+      - name: Restaurar caché de turbo
+        uses: actions/cache@v4
+        with:
+          path: .turbo
+          key: turbo-${{ runner.os }}-node${{ matrix.node }}-${{ github.sha }}
+          restore-keys: |
+            turbo-${{ runner.os }}-node${{ matrix.node }}-
+
+      - name: Instalar dependencias
+        run: pnpm install --frozen-lockfile
+
+      - name: Compilar
+        run: pnpm build
+
+      - name: Comprobar tipos
+        run: pnpm typecheck
+
+      - name: Pruebas unitarias
+        run: pnpm test:unit
+
+  secretos:
+    name: Escaneo de secretos
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Gitleaks necesita el historial completo para revisar cada commit,
+          # no sólo el árbol de trabajo. Sin esto sólo vería el último estado.
+          fetch-depth: 0
+
+      # NOTA: si este repositorio se mueve a una organización de GitHub, esta
+      # acción exigirá un secreto GITLEAKS_LICENSE. Mientras sea una cuenta
+      # personal, es gratuita.
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

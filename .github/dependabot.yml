@@ -1,0 +1,17 @@
+# ---------------------------------------------------------------------------
+# Actualización automática de dependencias.
+#
+# Las acciones de GitHub son código de terceros que se ejecuta con acceso al
+# repositorio: mantenerlas al día es parte de la higiene que este producto
+# vende. Empezamos sólo por las acciones; las dependencias de npm entrarán
+# cuando exista el flujo de changesets (F0-6).
+# ---------------------------------------------------------------------------
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: 'build'

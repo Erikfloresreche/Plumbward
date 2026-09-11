@@ -6,7 +6,7 @@
 > misma Pull Request que la implementa.
 
 **Última actualización:** 2026-09-09
-**Estado global:** Fase 0 en curso — F0-1, F0-5 y F0-8 completadas. Quedan F0-2, F0-3, F0-4, F0-6, F0-7 y F0-9 a F0-11.
+**Estado global:** Fase 0 en curso — F0-1, F0-3, F0-5 y F0-8 completadas. Quedan F0-2, F0-4, F0-6, F0-7 y F0-9 a F0-12.
 **Producto:** Plumbward · https://github.com/Erikfloresreche/Plumbward
 **Modelo de negocio:** suscripción anual por repositorio — ver
 [MODELO_DE_NEGOCIO.md](MODELO_DE_NEGOCIO.md)
@@ -180,6 +180,9 @@ Aplica a **todas** las tareas, además de sus criterios propios:
       escrituras en base de datos: los lanza una persona (ver `CLAUDE.md`).
 - [ ] Se han entregado en inglés el mensaje de commit, el título de la PR y su
       descripción, y se ha preguntado quién revisa.
+- [ ] Cada hallazgo de la revisión ha terminado en un **control mecánico**, o
+      está registrado explícitamente como no mecanizable y por qué. Una regla
+      escrita en prosa no cuenta: decae.
 
 ---
 
@@ -247,7 +250,7 @@ y las cabeceras de fichero gestionado mentirán sobre qué versión generó qué
 
 ---
 
-### [ ] F0-3 — Pipeline de integración continua propio
+### [x] F0-3 — Pipeline de integración continua propio
 **Rama:** `ci/f0-pipeline-propio` · **Depende de:** F0-1
 
 **Por qué:** vendemos CI. No tener CI es un problema de credibilidad además de
@@ -263,9 +266,47 @@ uno técnico.
 3. Ejecutar `gitleaks` sobre nuestro propio repo en cada PR.
 
 **Criterios de aceptación:**
-- Una PR con un test roto queda bloqueada en rojo.
-- El pipeline completo baja de 5 minutos con caché caliente.
-- Node 18 pasa (o, si no pasa, se sube `engines` conscientemente y se documenta).
+- [x] Una PR con un test roto queda bloqueada en rojo.
+- [ ] El pipeline completo baja de 5 minutos con caché caliente. *Pendiente de
+      medir en la primera ejecución real.*
+- [x] Node 18 pasa, o se sube `engines` conscientemente y se documenta. **Se
+      subió.**
+
+**Cerrada el 2026-09-10.** Entregado: `ci.yml` (matriz de Node, build,
+typecheck y unitarios, más escaneo de secretos), `e2e.yml` y `dependabot.yml`
+para las acciones de GitHub.
+
+**Cuatro decisiones tomadas durante la ejecución:**
+
+1. **Matriz 20 / 22 / 24, no 18 / 20 / 22.** Node 18 lleva sin soporte de
+   seguridad desde abril de 2025 y Node 20 desde abril de 2026. Sostener un
+   runtime sin parches es incoherente en un producto que vende higiene de
+   seguridad. `engines` sube a `>=20`, que se mantiene como suelo pragmático
+   mientras haya equipos ahí; 22 es LTS en mantenimiento y 24 LTS activa.
+
+2. **Pruebas partidas en `test:unit` y `test:e2e`.** Las unitarias tardan menos
+   de un segundo y corren en las tres versiones de Node; las de punta a punta
+   crean repositorios git reales y corren una sola vez. La división sale gratis
+   de la estructura que ya había: `src/` frente a `test/`.
+
+3. **`fail-fast: false` en la matriz.** Interesa saber si un fallo es de una
+   versión concreta o de todas; cancelar el resto oculta esa información.
+
+4. **Dependabot sólo para acciones de GitHub, por ahora.** Son código de
+   terceros que se ejecuta con acceso al repositorio. Las dependencias de npm
+   esperan a que exista el flujo de changesets (F0-6), para no generar ruido de
+   PRs sin forma de versionarlas.
+
+**Dos cosas que conviene que sepas:**
+
+- **El repositorio es privado**, así que los minutos de Actions están limitados
+  (2.000/mes en el plan gratuito). Hacerlo **público** los vuelve ilimitados, y
+  la licencia BUSL ya lo permite: el `README` vende que el código es auditable,
+  así que tenerlo cerrado contradice el argumento comercial. Recomendación:
+  hacerlo público antes de F6-1.
+- Si el repositorio se mueve a una **organización** de GitHub,
+  `gitleaks-action` pasa a exigir un secreto `GITLEAKS_LICENSE`. Mientras sea
+  una cuenta personal es gratuita. Está anotado en el propio workflow.
 
 ---
 
@@ -481,6 +522,56 @@ desapercibido.
 **Criterios de aceptación:**
 - `apply` con instalación seguido de `rollback` deja el lockfile como estaba.
 - `rollback` informa explícitamente de lo que no puede deshacer.
+
+---
+
+### [ ] F0-12 — Convertir en controles los hallazgos de nuestras revisiones
+**Rama:** `test/f0-controles-de-revision` · **Depende de:** F0-3
+
+**Origen:** las dos revisiones en contexto nuevo de septiembre de 2026
+produjeron 30 hallazgos. Repasándolos, **cinco controles habrían evitado unos
+dos tercios**.
+
+**Por qué en forma de control y no de regla escrita:** `CLAUDE.md` ya ronda las
+130 líneas. A las 400 nadie las aplica de forma fiable, porque cada regla nueva
+diluye a las demás. Un test que falla, falla siempre. Es la misma tesis que
+vende el producto, aplicada a nosotros.
+
+**Trabajo — los cinco controles, como tests:**
+
+1. **Términos prohibidos.** Tras un renombrado, ninguna aparición del nombre
+   viejo sobrevive salvo en contextos declarados. Habría cazado
+   `GOVERNANCE_DEBUG`, `$AEGIS`, el prefijo `governance-e2e-` y el
+   `governance --version` de los criterios de F0-6.
+
+2. **Hechos protegidos.** Una lista de nombres de terceros y registros fechados
+   que un reemplazo masivo **nunca** puede tocar. Es el que habría parado el
+   fallo más grave: renombrar `@save3asy/aegiscode`, el paquete real de un
+   competidor, a un nombre que no existe. **El más importante de los cinco.**
+
+3. **Los comandos documentados existen.** Cada `plumbward <x>` en documentación
+   o en el `LICENSE` debe corresponder a un comando registrado en el CLI. Habría
+   cazado el *Additional Use Grant* nombrando `report` e `init`, y `upgrade`
+   descrito en presente sin existir.
+
+4. **Snapshots de lo generado.** Ficheros dorados con la salida exacta de cada
+   pack, para que cualquier cambio en marcadores, identificadores de bloque o
+   tokens persistidos aparezca en el diff. Habría cazado el cambio silencioso
+   del identificador del bloque de `.gitignore`.
+
+5. **Tablas derivadas, no escritas.** El diagrama de dependencias se genera
+   desde los `package.json`. Habría cazado el diagrama que inventaba una arista
+   y omitía dos.
+
+**Lo que NO es mecanizable, y hay que aceptarlo:** afirmar en la documentación
+que existe una frontera de seguridad que el código no implementa. Ningún linter
+detecta eso. Para esa clase, la única defensa es la revisión en contexto nuevo.
+
+**Criterios de aceptación:**
+- Reintroducir a propósito cada uno de los cuatro fallos citados hace fallar su
+  control correspondiente.
+- La lista de hechos protegidos y la de términos prohibidos viven en un fichero
+  legible y se revisan en la PR, no escondidas en un test.
 
 ---
 
@@ -818,6 +909,31 @@ empaquetando esto**, y es de lo más diferenciador que podemos ofrecer.
 
 ---
 
+### [ ] F2-13 — Snapshots dorados de lo que genera cada pack
+**Rama:** `test/f2-snapshots-de-packs` · **Depende de:** F2-3, F0-12
+
+**Por qué:** un pack produce ficheros que acaban dentro del repositorio del
+cliente. Hoy nada impide que un refactor cambie un marcador, un identificador de
+bloque o el nombre de un script generado **sin que ningún test se entere** —
+exactamente lo que pasó en F0-8 con el identificador del bloque de `.gitignore`.
+
+**Trabajo:**
+1. Extender el kit de conformidad con snapshots de la salida completa de cada
+   pack sobre repositorios sintéticos representativos.
+2. Marcar explícitamente qué partes de esa salida son **tokens persistidos** —
+   los que se escriben en ficheros del cliente y no pueden cambiar sin
+   migración— y hacer que su cambio falle con un mensaje que lo explique, en
+   lugar de simplemente actualizar el snapshot.
+3. Cubrir también el diff entre versiones: qué cambiaría un `upgrade`.
+
+**Criterios de aceptación:**
+- Cambiar un marcador o un identificador de bloque falla con un mensaje que
+  nombra la migración que haría falta.
+- Actualizar un snapshot exige una acción consciente, nunca un `--update` a
+  ciegas en la CI.
+
+---
+
 ### [ ] F2-11 — Frontera real para packs de terceros
 **Rama:** `feat/f2-aislamiento-packs` · **Depende de:** F2-8
 
@@ -1084,6 +1200,36 @@ facilidad porque copia ejemplos de documentación pensados para desarrollo local
 - Cada control cita su fuente oficial.
 - Cero falsos positivos sobre los repositorios de prueba de F6-2; un control
   ruidoso se desactiva antes que tolerarlo.
+
+---
+
+### [ ] F3-9 — Controles derivados de incidentes
+**Rama:** `feat/f3-controles-derivados` · **Depende de:** F3-7, F0-12
+
+**Por qué es la funcionalidad con más foso de todo el plan:** el trinquete
+impide empeorar en métricas. Esto impide **repetir un fallo concreto**. Al año,
+la configuración de Plumbward de un cliente contiene los errores que su equipo
+ya no comete — y eso no lo replica un competidor publicando un repositorio, ni
+lo regala una plataforma. Es coste de cambio real.
+
+**Trabajo:**
+1. Un **catálogo de controles parametrizables**: cadena prohibida, fichero
+   obligatorio, acoplamiento símbolo-test, coherencia entre documentación y
+   comandos, token persistido que no puede cambiar, configuración insegura.
+2. Flujo que convierte un hallazgo en una instancia de uno de esos controles con
+   dos o tres respuestas. **No se deriva un control de prosa arbitraria**: se
+   elige plantilla y se parametriza. Prometer lo contrario sería vender magia.
+3. Los controles resultantes se versionan en el repositorio del cliente, en
+   formato legible, y se revisan en una PR como cualquier otro cambio.
+4. El registro de controles derivados alimenta el informe de F4-4: *"este año
+   convertisteis 23 incidencias en controles; ninguna se ha repetido"*. **Es el
+   informe de renovación, no hay que construirlo aparte.**
+
+**Criterios de aceptación:**
+- Un hallazgo típico se convierte en control en menos de un minuto.
+- El control resultante es legible por una persona que no estuvo en la
+  incidencia.
+- Desactivar un control exige motivo escrito, visible en la revisión.
 
 ---
 
