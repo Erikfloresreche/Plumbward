@@ -22,7 +22,13 @@ export default defineConfig({
     // pruebas: con `commit.gpgsign` o un `core.hooksPath` globales, o un
     // `GIT_DIR` heredado, las que crean repositorios fallaban o escribían fuera.
     setupFiles: ['./vitest.setup.ts'],
-    include: ['packages/**/src/**/*.test.ts', 'packages/**/test/**/*.test.ts'],
+    include: [
+      'packages/**/src/**/*.test.ts',
+      'packages/**/test/**/*.test.ts',
+      // Los controles de `scripts/` también se prueban: `verificar-coherencia`
+      // ejecutaba todo al cargarse y no se podía cubrir (F0-15).
+      'scripts/**/*.test.mjs',
+    ],
     exclude: ['**/node_modules/**', '**/dist/**'],
   },
 })

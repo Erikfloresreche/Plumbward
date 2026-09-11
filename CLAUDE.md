@@ -11,8 +11,9 @@ empezar cualquier tarea** y marca su casilla al terminarla.
 
 ## 0. Cómo retomar el proyecto desde cero
 
-Si es tu primera sesión en esta conversación, todo lo necesario está en el
-repositorio. Léelo en este orden:
+Si abres la sesión sin contexto previo —lo normal, porque cada tarea empieza en
+una sesión nueva (§6)—, todo lo necesario está en el repositorio. Léelo en este
+orden:
 
 | Orden | Fichero | Qué te da |
 |---|---|---|
@@ -28,6 +29,7 @@ Del plan y de la arquitectura, lee sólo la tarea y las secciones que toca (§6)
 Comprueba el estado real antes de fiarte de lo escrito:
 
 ```bash
+pnpm install                                                    # un clon recién hecho no trae dependencias
 git branch --show-current && git status --short
 gh run list --branch "$(git branch --show-current)" --limit 3   # la CI ya dice si está verde
 pnpm check:coherencia
@@ -51,7 +53,10 @@ los cambios en el árbol de trabajo, di con exactitud qué ficheros has tocado y
 entrega el mensaje de commit listo para copiar.
 
 Sí puedes usar los de sólo lectura: `status`, `log`, `diff`, `show`,
-`branch --list`, `blame`, `ls-files`, `rev-parse`.
+`branch --list`, `branch --show-current`, `blame`, `ls-files`, `rev-parse`.
+
+`check:coherencia` comprueba que todo comando `git` de la §0 está en esta
+lista: si se añade uno a la guía sin permitirlo aquí, la CI lo dice.
 
 **Por qué:** quien firma el commit responde de lo que entra en el historial. Un
 push automático mete código en un repositorio compartido sin que nadie lo haya
