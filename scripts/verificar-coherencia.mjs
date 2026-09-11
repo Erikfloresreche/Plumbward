@@ -10,8 +10,9 @@
  * una incoherencia mecanizable, su comprobación se añade aquí.
  */
 import { readFileSync } from 'node:fs'
-import { readdirSync, statSync } from 'node:fs'
-import { join, dirname } from 'node:path'
+import { readdirSync, statSync, lstatSync, readlinkSync, existsSync } from 'node:fs'
+import { createHash } from 'node:crypto'
+import { join, dirname, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const raiz = join(dirname(fileURLToPath(import.meta.url)), '..')
@@ -202,6 +203,107 @@ const ramaPR = process.env.GITHUB_HEAD_REF
 if (ramaPR && !ramaPR.startsWith('dependabot/')) {
   const motivo = problemaDeRama(ramaPR)
   if (motivo) fallo('nombre-de-rama-de-la-pr', `"${ramaPR}" ${motivo}`)
+}
+
+// ── 6. Las skills de agente versionadas son las que fija el lock (F0-17) ──
+// Una skill es código de terceros que el asistente carga con acceso al repo.
+// `skills-lock.json` fija su hash; si alguien la edita a mano o la sustituye,
+// el lock deja de describir lo que se carga y nadie se entera. El hash se
+// calcula igual que `computeSkillFolderHash` de la CLI `skills` (v1.5.25):
+// sha256 de ruta relativa + contenido de cada fichero, ordenados por ruta.
+const SKILLS_DIR = '.agents/skills'
+const CLAUDE_SKILLS_DIR = '.claude/skills'
+
+/** @returns {string} */
+function skillFolderHash(dir) {
+  /** @type {{ path: string, content: Buffer }[]} */
+  const files = []
+  const walk = (current) => {
+    for (const entry of readdirSync(current, { withFileTypes: true })) {
+      const full = join(current, entry.name)
+      if (entry.isDirectory()) {
+        if (entry.name !== '.git' && entry.name !== 'node_modules') walk(full)
+      } else if (entry.isFile() && entry.name !== '.DS_Store') {
+        // .DS_Store: lo crea macOS, está en .gitignore y nunca llega a la CI.
+        files.push({ path: relative(dir, full).split('\\').join('/'), content: readFileSync(full) })
+      }
+    }
+  }
+  walk(dir)
+  files.sort((a, b) => a.path.localeCompare(b.path))
+  const hash = createHash('sha256')
+  for (const f of files) hash.update(f.path).update(f.content)
+  return hash.digest('hex')
+}
+
+if (existsSync(join(raiz, 'skills-lock.json'))) {
+  const locked = json('skills-lock.json').skills ?? {}
+  const installed = existsSync(join(raiz, SKILLS_DIR))
+    ? readdirSync(join(raiz, SKILLS_DIR), { withFileTypes: true }).filter((e) => e.isDirectory()).map((e) => e.name)
+    : []
+  for (const name of installed) {
+    if (!(name in locked)) fallo('skill-sin-lock', `${SKILLS_DIR}/${name} no está en skills-lock.json`)
+  }
+  for (const [name, entry] of Object.entries(locked)) {
+    const dir = join(raiz, SKILLS_DIR, name)
+    if (!existsSync(dir)) {
+      fallo('skill-ausente', `skills-lock.json fija "${name}" pero ${SKILLS_DIR}/${name} no existe`)
+      continue
+    }
+    const actual = skillFolderHash(dir)
+    if (actual !== entry.computedHash) {
+      fallo('skill-alterada', `${SKILLS_DIR}/${name} no coincide con el hash de skills-lock.json (${actual})`)
+    }
+    // 6b. Claude Code sólo lee `.claude/skills/`. Sin el enlace, la skill está
+    // instalada y versionada pero ningún asistente la carga: parece que funciona.
+    const link = join(raiz, CLAUDE_SKILLS_DIR, name)
+    const expected = `../../${SKILLS_DIR}/${name}`
+    let target
+    try {
+      target = lstatSync(link).isSymbolicLink() ? readlinkSync(link) : undefined
+    } catch {
+      target = undefined
+    }
+    if (target !== expected) {
+      fallo('skill-sin-enlace', `${CLAUDE_SKILLS_DIR}/${name} debe ser un enlace a ${expected}`)
+    }
+  }
+}
+
+// ── 7. El runbook de napkin respeta sus propias reglas de curación (F0-17) ─
+// Las reglas están escritas en la cabecera del fichero, y una regla escrita se
+// incumple. Máximo 10 entradas por categoría; cada una con fecha y "Do instead".
+const NAPKIN = '.claude/napkin.md'
+if (existsSync(join(raiz, NAPKIN))) {
+  let category
+  let count = 0
+  let pending // entrada abierta que aún no ha mostrado su "Do instead"
+  const closeEntry = () => {
+    if (pending) fallo('napkin-sin-do-instead', `"${pending}" (${category})`)
+    pending = undefined
+  }
+  for (const line of leer(NAPKIN).split('\n')) {
+    const header = /^## (.+)$/.exec(line)
+    if (header) {
+      closeEntry()
+      category = header[1]
+      count = 0
+      continue
+    }
+    const item = /^\d+\. (.*)$/.exec(line)
+    if (item) {
+      closeEntry()
+      count += 1
+      if (count === 11) fallo('napkin-categoria-llena', `"${category}" pasa de 10 entradas`)
+      if (!/^\*\*\[\d{4}-\d{2}-\d{2}\] /.test(item[1])) {
+        fallo('napkin-sin-fecha', `"${item[1].slice(0, 60)}" (${category})`)
+      }
+      pending = item[1].slice(0, 60)
+      continue
+    }
+    if (/^\s+Do instead: \S/.test(line)) pending = undefined
+  }
+  closeEntry()
 }
 
 // ── Resultado ─────────────────────────────────────────────────────────────

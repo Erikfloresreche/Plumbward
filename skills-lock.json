@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "skills": {
+    "napkin": {
+      "source": "blader/napkin",
+      "sourceType": "github",
+      "skillPath": "SKILL.md",
+      "computedHash": "cbf334225ff185844c4f947cfec40c47fd292b4a06d8894b5a697e532b5cf53f"
+    }
+  }
+}

@@ -11,3 +11,6 @@ coverage/
 
 # Registros de ejecución de herramientas
 *.log
+
+# Ajustes personales de Claude Code: no se versionan
+.claude/settings.local.json
