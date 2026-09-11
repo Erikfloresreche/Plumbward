@@ -75,17 +75,35 @@ jobs:
       - name: Compilar
         run: pnpm build
 
-      # `tsc` usa la versión de @types/node fijada en el lockfile, así que el
-      # resultado es idéntico en las tres versiones. Se ejecuta sólo en el suelo.
-      - name: Comprobar tipos
-        if: matrix.node == '22'
-        run: pnpm typecheck
-
       - name: Pruebas unitarias
         run: pnpm test:unit
 
+
+  calidad:
+    name: Tipos y coherencia
+    # Job propio, fuera de la matriz y sin condiciones `if`. Antes eran pasos
+    # de la matriz con `if: matrix.node == '22'`; al cambiar la matriz a
+    # '22.13' la condición dejó de cumplirse y ambos pasos se saltaban en
+    # silencio en cada ejecución. Aquí no hay condición que pueda desajustarse.
+    # `tsc` no depende del runtime (usa @types/node del lockfile), así que una
+    # sola versión basta: la del suelo declarado.
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22.13'
+          cache: pnpm
+
+      - name: Instalar dependencias
+        run: pnpm install --frozen-lockfile
+
+      - name: Comprobar tipos
+        run: pnpm typecheck
+
       - name: Coherencia entre lo que declaramos y lo que probamos
-        if: matrix.node == '22'
         run: pnpm check:coherencia
 
   secretos:

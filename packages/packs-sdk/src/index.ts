@@ -19,4 +19,6 @@ export { PackRegistry } from './registry.js'
 export type { SelectedPack } from './registry.js'
 
 export { checkPackConformance } from './conformance.js'
+
+export { LONG_LIVED_BRANCH_NAMES, longLivedBranches, isLongLivedBranch } from './branches.js'
 export type { ConformanceViolation } from './conformance.js'

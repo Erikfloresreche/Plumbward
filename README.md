@@ -43,9 +43,12 @@ Un ciclo típico son tres comandos: `scan` para ver dónde estás, `plan` para v
 qué cambiaría, `apply` para hacerlo. Y si algo no encaja, `rollback` deja el
 repositorio como estaba.
 
-Si estás en `main`, `master`, `production` o `prod`, `apply` crea antes una rama
-dedicada (`chore/setup-ai-governance`) y trabaja allí. En cualquier otra rama
-trabaja sobre la que ya tengas activa y te lo dice.
+Si estás en una rama de larga duración, `apply` crea antes una rama dedicada
+(`chore/setup-ai-governance`) y trabaja allí. **No hace falta que tu rama se
+llame `main`**: se reconocen las que configures en `.governance/config.yml`, la
+rama por defecto de tu remoto y las convenciones habituales (`Prod`, `trunk`,
+`develop`, `produccion`…), sin distinguir mayúsculas. En una rama de trabajo,
+opera sobre ella y te lo dice.
 
 ## Tres garantías
 

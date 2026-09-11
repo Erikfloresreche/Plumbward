@@ -6,7 +6,7 @@
 > misma Pull Request que la implementa.
 
 **Última actualización:** 2026-09-11
-**Estado global:** Fase 0 en curso — F0-1, F0-3, F0-5 y F0-8 completadas. Quedan F0-2, F0-4, F0-6, F0-7 y F0-9 a F0-14.
+**Estado global:** Fase 0 en curso — F0-1, F0-3, F0-5, F0-8 y F0-14 completadas. Quedan F0-2, F0-4, F0-6, F0-7 y F0-9 a F0-13.
 **Producto:** Plumbward · https://github.com/Erikfloresreche/Plumbward
 **Modelo de negocio:** suscripción anual por repositorio — ver
 [MODELO_DE_NEGOCIO.md](MODELO_DE_NEGOCIO.md)
@@ -632,7 +632,7 @@ que se puede ignorar no es un control.
 
 ---
 
-### [ ] F0-14 — La detección de ramas protegidas no puede estar cableada
+### [x] F0-14 — La detección de ramas protegidas no puede estar cableada
 **Rama:** `fix/f0-protected-branches` · **Depende de:** nada · **Prioridad: alta**
 
 **Origen:** al renombrar la rama de releases de este repositorio a `Prod`,
@@ -667,9 +667,38 @@ if (!PROTECTED_BRANCHES.has(currentBranch)) { /* trabaja sobre la rama actual */
 4. Tests con `Prod`, `PROD`, `trunk`, `produccion` y un repositorio sin remoto.
 
 **Criterios de aceptación:**
-- En un repositorio cuya rama por defecto se llame `Prod`, `apply` crea la rama
-  aislada igual que lo haría en `main`.
-- Ningún nombre de rama aparece cableado en la ruta de decisión.
+- [x] En un repositorio cuya rama por defecto se llame `Prod`, `apply` crea la
+      rama aislada igual que lo haría en `main`. **Verificado ejecutando el CLI
+      real**: el commit de `Prod` es el mismo antes y después del `apply`.
+- [x] Ningún nombre de rama aparece cableado en la ruta de decisión. Queda una
+      lista de respaldo, `LONG_LIVED_BRANCH_NAMES`, pero sólo puede *añadir*
+      protección.
+
+**Cerrada el 2026-09-11.**
+
+**El descubrimiento que cambió el diseño:** la rama por defecto se lee de
+`refs/remotes/origin/HEAD` sin red, porque el escáner tiene que funcionar
+offline. En un clon recién hecho apunta bien. Pero **en este mismo
+repositorio apuntaba a `origin/main`**, una rama que ya no existe: el repo se creó
+con `git init` + `push` cuando la rama era `main`, y renombrarla en GitHub no
+actualiza la referencia local. Peor aún, `refs/remotes/origin/main` seguía
+existiendo como referencia huérfana, así que ni siquiera comprobar que la rama
+de destino existe detecta el desfase. Sin red no hay forma de saberlo.
+
+Por eso la decisión no se apoya en una sola fuente sino en una **unión**
+(`longLivedBranches`): las ramas del perfil, la rama por defecto detectada y la
+lista de respaldo, sin distinguir mayúsculas. Un dato desfasado sólo puede
+añadir protección, nunca quitarla. El coste de un falso positivo es una rama de
+trabajo innecesaria; el de un falso negativo, escribir sobre producción.
+
+**De paso, un cambio de comportamiento deliberado:** `develop`, `staging` y las
+demás ramas configuradas en el perfil también se protegen, no sólo la de
+releases. Antes, `apply` en `develop` escribía directamente sobre la rama de
+integración, que CONTRIBUTING dice que debe estar siempre en verde.
+
+**Pendiente, anotado para `doctor` (F4-3):** avisar cuando `origin/HEAD` pueda
+estar desfasado y sugerir `git remote set-head origin --auto`. La herramienta no
+debe ejecutarlo sola: modifica el estado de git y necesita red.
 
 ---
 

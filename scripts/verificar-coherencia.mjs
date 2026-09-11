@@ -41,6 +41,33 @@ if (!matriz) {
   }
 }
 
+// ── 1b. Ninguna condición apunta a una versión que no está en la matriz ────
+// Nació de la revisión de la PR #6: tras cambiar la matriz de '22' a '22.13',
+// dos pasos con `if: matrix.node == '22'` se saltaron en silencio en todas las
+// ejecuciones — entre ellos el typecheck y este mismo script. Un `if` que
+// nunca se cumple no falla: desaparece.
+if (matriz) {
+  const versiones = matriz[1].split(',').map((v) => v.trim().replace(/'/g, ''))
+  for (const m of ci.matchAll(/matrix\.node\s*==\s*'([^']+)'/g)) {
+    if (!versiones.includes(m[1])) {
+      fallo(
+        'condicion-de-matriz',
+        `ci.yml tiene una condición "matrix.node == '${m[1]}'" pero la matriz es [${versiones.join(', ')}]. Ese paso no se ejecutaría nunca.`,
+      )
+    }
+  }
+}
+
+// ── 1c. El job de tipos y coherencia usa la versión del suelo ─────────────
+{
+  const job = /calidad:[\s\S]*?node-version:\s*'([^']+)'/.exec(ci)
+  if (!job) {
+    fallo('job-de-calidad', 'no se encuentra el job `calidad` en ci.yml: los tipos y la coherencia no se comprobarían en CI')
+  } else if (job[1] !== sueloDeclarado) {
+    fallo('job-de-calidad', `el job \`calidad\` usa Node ${job[1]} y el suelo declarado es ${sueloDeclarado}`)
+  }
+}
+
 // ── 2. La documentación dice la misma versión que package.json ────────────
 for (const doc of ['README.md', 'CONTRIBUTING.md']) {
   const texto = leer(doc)

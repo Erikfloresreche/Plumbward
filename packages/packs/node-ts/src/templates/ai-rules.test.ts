@@ -13,6 +13,7 @@ const scan: RepoScan = {
   git: {
     isRepo: true,
     branch: 'main',
+    defaultBranch: 'main',
     isDirty: false,
     rootCommit: 'abc123',
     remoteUrl: null,

@@ -11,14 +11,16 @@ import {
 } from '@plumbward/core'
 import type { ChangePlan, CommandRunner, Operation } from '@plumbward/core'
 import { branchExists } from '@plumbward/scanner'
-import { file } from '@plumbward/packs-sdk'
+import { file, isLongLivedBranch } from '@plumbward/packs-sdk'
+import type { Profile } from '@plumbward/packs-sdk'
 import { CLI_VERSION, buildContext, buildRegistry, profileToYaml } from './context.js'
 import { error, renderHealthChecks, renderPlan, renderScan, success, warn } from './render.js'
 
-/** Rama aislada donde se integran los cambios. Nunca se trabaja sobre main. */
+/**
+ * Rama aislada donde se integran los cambios. Nunca se trabaja directamente
+ * sobre una rama de larga duración, se llame como se llame en cada equipo.
+ */
 export const GOVERNANCE_BRANCH = 'chore/setup-ai-governance'
-
-const PROTECTED_BRANCHES = new Set(['main', 'master', 'production', 'prod'])
 
 /** Ejecutor real de comandos, con la salida visible para el usuario. */
 const runner: CommandRunner = async (cmd, args, cwd) => {
@@ -94,15 +96,25 @@ export async function runPlan(cwd: string, options: { diff: boolean }): Promise<
   return 0
 }
 
-/** Prepara la rama aislada de trabajo. Devuelve la rama de partida. */
+/**
+ * Prepara la rama aislada de trabajo. Devuelve la rama de partida.
+ *
+ * Qué ramas se protegen lo decide `isLongLivedBranch`: el perfil, la rama por
+ * defecto detectada y una lista de respaldo, sin distinguir mayúsculas. Antes
+ * era una lista cableada que distinguía mayúsculas, y en un repositorio cuya
+ * rama de releases se llamaba `Prod` esta función escribía directamente sobre
+ * ella.
+ */
 async function prepareBranch(
   repoRoot: string,
   currentBranch: string | null,
   createBranch: boolean,
+  profile: Profile,
+  defaultBranch: string | null,
 ): Promise<string | null> {
   if (!createBranch || currentBranch === null) return currentBranch
 
-  if (!PROTECTED_BRANCHES.has(currentBranch)) {
+  if (!isLongLivedBranch(currentBranch, profile, defaultBranch)) {
     log.info(`Se trabajará sobre la rama actual "${currentBranch}".`)
     return currentBranch
   }
@@ -172,7 +184,13 @@ export async function runApply(cwd: string, options: ApplyOptions): Promise<numb
     }
   }
 
-  await prepareBranch(scan.repoRoot, scan.git.branch, options.branch)
+  await prepareBranch(
+    scan.repoRoot,
+    scan.git.branch,
+    options.branch,
+    context.context.profile,
+    scan.git.defaultBranch,
+  )
 
   try {
     const result = await applyPlan(plan, {

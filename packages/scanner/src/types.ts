@@ -19,6 +19,16 @@ export type GovernanceMode =
 export interface GitState {
   readonly isRepo: boolean
   readonly branch: string | null
+  /**
+   * Rama por defecto del remoto, según `refs/remotes/origin/HEAD`.
+   *
+   * Se lee sin red, y por eso **puede estar desfasada**: si la rama se renombró
+   * en el remoto después de clonar o de hacer el primer push, la referencia
+   * local sigue apuntando al nombre viejo hasta que alguien ejecuta
+   * `git remote set-head origin --auto`. Nunca debe usarse como única fuente
+   * para decidir qué ramas proteger.
+   */
+  readonly defaultBranch: string | null
   readonly isDirty: boolean
   /** Hash del primer commit: identificador estable del proyecto. */
   readonly rootCommit: string | null

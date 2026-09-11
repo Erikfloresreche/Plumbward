@@ -27,12 +27,31 @@ export function normaliseRemote(url: string): string {
     .toLowerCase()
 }
 
+/**
+ * Rama por defecto del remoto `origin`, sin conectarse a la red.
+ *
+ * Devuelve `null` si no hay remoto, si `origin/HEAD` no está definido o si
+ * apunta a una referencia que no existe. Ver la advertencia sobre desfases en
+ * `GitState.defaultBranch`: este valor informa, pero no decide por sí solo.
+ */
+export async function readDefaultBranch(repoRoot: string): Promise<string | null> {
+  const symbolic = await git(repoRoot, ['symbolic-ref', '--quiet', 'refs/remotes/origin/HEAD'])
+  if (!symbolic?.startsWith('refs/remotes/origin/')) return null
+
+  const exists = await git(repoRoot, ['rev-parse', '--verify', '--quiet', symbolic])
+  if (exists === undefined) return null
+
+  const name = symbolic.slice('refs/remotes/origin/'.length)
+  return name.length > 0 ? name : null
+}
+
 export async function readGitState(repoRoot: string): Promise<GitState> {
   const insideRepo = await git(repoRoot, ['rev-parse', '--is-inside-work-tree'])
   if (insideRepo !== 'true') {
     return {
       isRepo: false,
       branch: null,
+      defaultBranch: null,
       isDirty: false,
       rootCommit: null,
       remoteUrl: null,
@@ -40,12 +59,13 @@ export async function readGitState(repoRoot: string): Promise<GitState> {
     }
   }
 
-  const [branch, status, rootCommits, remoteUrl] = await Promise.all([
+  const [branch, status, rootCommits, remoteUrl, defaultBranch] = await Promise.all([
     git(repoRoot, ['rev-parse', '--abbrev-ref', 'HEAD']),
     git(repoRoot, ['status', '--porcelain']),
     // Huella del repositorio: hash del primer commit (especificación, módulo 1).
     git(repoRoot, ['rev-list', '--max-parents=0', 'HEAD']),
     git(repoRoot, ['config', '--get', 'remote.origin.url']),
+    readDefaultBranch(repoRoot),
   ])
 
   // Un repo puede tener varias raíces (historiales fusionados): se toma la última,
@@ -60,6 +80,7 @@ export async function readGitState(repoRoot: string): Promise<GitState> {
   return {
     isRepo: true,
     branch: branch ?? null,
+    defaultBranch,
     isDirty: status !== undefined && status.length > 0,
     rootCommit,
     remoteUrl: remoteUrl ?? null,

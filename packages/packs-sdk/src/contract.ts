@@ -115,7 +115,10 @@ export function recommendedProfile(scan: RepoScan): Profile {
     strictness,
     mode: scan.sloc.mode,
     branches: {
-      main: scan.git.branch === 'master' ? 'master' : 'main',
+      // La rama por defecto detectada, si la hay. Es una sugerencia: acaba en
+      // `config.yml`, que el equipo revisa en una PR y puede corregir. El
+      // último recurso conserva el comportamiento anterior.
+      main: scan.git.defaultBranch ?? (scan.git.branch === 'master' ? 'master' : 'main'),
       staging: null,
       dev: null,
     },

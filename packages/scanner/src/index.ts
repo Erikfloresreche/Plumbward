@@ -18,7 +18,13 @@ export type {
   RepoScan,
 } from './types.js'
 
-export { readGitState, listTrackedFiles, branchExists, normaliseRemote } from './git.js'
+export {
+  readGitState,
+  readDefaultBranch,
+  listTrackedFiles,
+  branchExists,
+  normaliseRemote,
+} from './git.js'
 export {
   measureSloc,
   countSloc,
