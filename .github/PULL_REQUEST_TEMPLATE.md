@@ -28,3 +28,5 @@
 - [ ] Generated files carry explanatory comments in the configured language
 - [ ] Every new error path is reversible, or writes nothing
 - [ ] The task checkbox is ticked in `docs/PLAN_DE_EJECUCION.md`
+- [ ] Every review finding became a mechanical control, or is recorded as
+      non-mechanisable with the reason

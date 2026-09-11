@@ -96,6 +96,24 @@ persona.
 Esto es una válvula de escape para no bloquear el trabajo, no un sustituto de la
 revisión humana. Cuando hay otra persona disponible, revisa esa persona.
 
+### Un hallazgo termina en un control, no en una regla escrita
+
+Cuando una revisión encuentra algo, **se convierte en un control mecánico** —un
+test, una comprobación en CI— o **se registra explícitamente como no
+mecanizable, diciendo por qué**.
+
+Nunca "lo apunto aquí y ya".
+
+**Por qué:** este fichero ya ronda las 130 líneas. A las 400 nadie las aplica de
+forma fiable, ni una persona ni un asistente, porque cada regla nueva diluye a
+las demás. Un test que falla, falla siempre, y no depende de que alguien se
+acuerde. Es la misma tesis que vende el producto —las reglas se ignoran, los
+controles no— aplicada a nosotros.
+
+Hay hallazgos que no se pueden mecanizar: afirmar en la documentación que existe
+una frontera de seguridad que el código no implementa, por ejemplo. Para esa
+clase, la defensa es la revisión en contexto nuevo, y se dice.
+
 ---
 
 ## 2. Invariantes de arquitectura

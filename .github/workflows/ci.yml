@@ -1,0 +1,125 @@
+# ---------------------------------------------------------------------------
+# Integración continua.
+#
+# Es la puerta que impide que entre en `develop` código que no compila, no
+# tipa o no pasa las pruebas. Vendemos CI: no tenerla sería incoherente.
+#
+# Los tests de punta a punta van en `e2e.yml` porque son lentos y crean
+# repositorios git reales; separarlos mantiene esta comprobación por debajo del
+# minuto y da retroalimentación rápida en cada push.
+# ---------------------------------------------------------------------------
+name: CI
+
+on:
+  pull_request:
+    branches: [develop, Prod]
+  push:
+    branches: [develop, Prod]
+  schedule:
+    # Lunes a las 6:00 UTC: escaneo de secretos sobre todo el historial.
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+
+# Un push nuevo sobre la misma rama cancela la ejecución anterior: ahorra
+# minutos, que en un repositorio privado son un recurso limitado.
+concurrency:
+  group: ci-${{ github.ref }}
+  # Sólo se cancela en Pull Requests. En `develop` y `main`, cancelar dejaría un
+  # commit integrado sin ningún resultado de CI, y CONTRIBUTING dice que la
+  # rama de integración debe estar siempre en verde.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+# Mínimo privilegio: estos trabajos sólo necesitan leer el código.
+permissions:
+  contents: read
+
+jobs:
+  verificar:
+    name: Node ${{ matrix.node }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      # Que falle una versión no cancela las demás: interesa saber si el fallo
+      # es de una versión concreta o de todas.
+      fail-fast: false
+      matrix:
+        # 22 es el suelo: pnpm 11 usa `node:sqlite` y exige Node >= 22.13, así
+        # que en 20 no podemos ni instalar dependencias. Se soporta lo que se
+        # puede probar. 24 es LTS activa y 26 es sobre lo que se desarrolla en
+        # local: si no se prueba, un fallo sólo de 26 se descubre tarde.
+        node: ['22.13', '24', '26']
+
+    steps:
+      - uses: actions/checkout@v5
+
+      # Lee la versión de pnpm del campo `packageManager` de package.json.
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: ${{ matrix.node }}
+          cache: pnpm
+
+      # La caché de turbo evita recompilar paquetes que no han cambiado.
+      - name: Restaurar caché de turbo
+        uses: actions/cache@v5
+        with:
+          path: .turbo
+          key: turbo-${{ runner.os }}-node${{ matrix.node }}-${{ github.sha }}
+          restore-keys: |
+            turbo-${{ runner.os }}-node${{ matrix.node }}-
+
+      - name: Instalar dependencias
+        run: pnpm install --frozen-lockfile
+
+      - name: Compilar
+        run: pnpm build
+
+      # `tsc` usa la versión de @types/node fijada en el lockfile, así que el
+      # resultado es idéntico en las tres versiones. Se ejecuta sólo en el suelo.
+      - name: Comprobar tipos
+        if: matrix.node == '22'
+        run: pnpm typecheck
+
+      - name: Pruebas unitarias
+        run: pnpm test:unit
+
+      - name: Coherencia entre lo que declaramos y lo que probamos
+        if: matrix.node == '22'
+        run: pnpm check:coherencia
+
+  secretos:
+    name: Escaneo de secretos
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          # Gitleaks necesita el historial completo para revisar cada commit,
+          # no sólo el árbol de trabajo. Sin esto sólo vería el último estado.
+          fetch-depth: 0
+
+      # NOTA: si este repositorio se mueve a una organización de GitHub, esta
+      # acción exigirá un secreto GITLEAKS_LICENSE. Mientras sea una cuenta
+      # personal, es gratuita.
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  historial:
+    name: Escaneo de secretos sobre todo el historial
+    # El job `secretos` sólo mira los commits de la Pull Request. El historial
+    # anterior a este workflow nunca se ha revisado, y el repositorio es
+    # público: una credencial en el commit de importación sería visible para
+    # cualquiera. Esto lo cubre, semanalmente y bajo demanda.
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_ENABLE_SUMMARY: true

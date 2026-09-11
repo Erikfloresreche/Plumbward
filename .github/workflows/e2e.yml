@@ -1,0 +1,48 @@
+# ---------------------------------------------------------------------------
+# Pruebas de punta a punta.
+#
+# Crean repositorios git reales en directorios temporales y ejecutan el ciclo
+# completo: escanear, planificar, aplicar y revertir. Son las que de verdad
+# demuestran que la herramienta no corrompe el repositorio de un cliente.
+#
+# Van separadas de `ci.yml` porque son lentas y tocan git. Se ejecutan sobre
+# una sola versión de Node: lo que prueban es comportamiento, no compatibilidad.
+# ---------------------------------------------------------------------------
+name: E2E
+
+on:
+  pull_request:
+    branches: [develop, Prod]
+  push:
+    branches: [develop, Prod]
+
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  ciclo-completo:
+    name: Ciclo completo sobre repositorios reales
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          cache: pnpm
+
+      - name: Instalar dependencias
+        run: pnpm install --frozen-lockfile
+
+      # No se compila: los tests importan `src` a través de los alias de
+      # vitest y no cargan nada de `dist`. Compilar aquí serían 30 segundos
+      # de nada en el workflow que existe precisamente por ser lento.
+      # Los tests configuran la identidad de git en cada repositorio temporal
+      # que crean, así que no hace falta configuración global aquí.
+      - name: Pruebas de punta a punta
+        run: pnpm test:e2e

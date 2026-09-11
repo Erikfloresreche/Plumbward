@@ -5,12 +5,15 @@
   "type": "module",
   "packageManager": "pnpm@11.24.0",
   "engines": {
-    "node": ">=18"
+    "node": ">=22.13"
   },
   "scripts": {
     "build": "turbo run build",
     "typecheck": "turbo run typecheck",
     "test": "vitest run",
+    "test:unit": "vitest run src/",
+    "test:e2e": "vitest run test/",
+    "check:coherencia": "node scripts/verificar-coherencia.mjs",
     "test:watch": "vitest",
     "cli": "node packages/cli/dist/index.js"
   },
