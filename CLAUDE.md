@@ -225,7 +225,8 @@ lee en ella. La defensa es esta sección y la pregunta de la §0.
   está en `.agents/skills/napkin/`, fijada en `skills-lock.json` y enlazada desde
   `.claude/skills/napkin`, que es donde Claude Code la busca. Se añade una
   entrada cuando algo no mecanizable ya ha costado un error; lo mecanizable va a
-  un control. El repositorio es público: nada personal.
+  un control. Se cura sólo al añadir, aunque la skill pida hacerlo en cada
+  lectura. El repositorio es público: nada personal.
   `pnpm check:coherencia` comprueba el hash de la skill, el enlace, y que el
   runbook cumple sus reglas (fecha, "Do instead", máximo 10 por categoría).
 - **caveman**: plugin opcional de cada desarrollador, no se versiona. Comprime

@@ -1048,15 +1048,19 @@ dentro de la PR provocaba otra ronda. Caveman sólo recorta la salida, menos del
 
 **Criterios de aceptación:**
 - [x] `CLAUDE.md` recoge el protocolo y cómo se usan napkin y caveman.
-- [ ] Claude Code carga la skill napkin desde `.claude/skills/`. Se verifica al
-  abrir una sesión nueva: las skills se descubren al arrancar.
-- [x] `check:coherencia` falla al editar la skill, borrar el enlace, añadir una
-  skill sin lock, quitar un "Do instead", quitar una fecha o pasar de 10
-  entradas en una categoría. Probado con los seis mutantes.
+- [x] Claude Code carga la skill napkin desde `.claude/skills/`. Verificado en
+  una sesión nueva: las skills se descubren al arrancar.
+- [x] `check:coherencia` falla al editar la skill, meter un enlace simbólico en
+  ella, borrar el enlace de `.claude/skills/`, añadir una skill sin lock, quitar
+  un "Do instead", quitar una fecha o pasar de 10 entradas en una categoría.
+  Probado con los mutantes.
 - [x] F2-9 y F2-12 incluyen el protocolo y las herramientas de agente.
 
 **No mecanizable:** la duración de una sesión y lo que se lee en ella. Ningún
 control del repositorio lo observa; la defensa es la sección 6 de `CLAUDE.md`.
+Tampoco lo es cuándo se cura el runbook: la skill pide curarlo en cada lectura y
+nuestra regla, sólo al añadir una entrada. Ningún control ve cuántas veces se
+reescribe; prevalece `CLAUDE.md`, que lo dice expresamente.
 
 **Limitación conocida:** el enlace simbólico no funciona en Windows con
 `core.symlinks=false`, donde git lo deja como un fichero de texto. Hoy nadie del

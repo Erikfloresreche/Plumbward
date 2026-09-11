@@ -221,7 +221,12 @@ function skillFolderHash(dir) {
   const walk = (current) => {
     for (const entry of readdirSync(current, { withFileTypes: true })) {
       const full = join(current, entry.name)
-      if (entry.isDirectory()) {
+      // Un enlace simbólico no es fichero ni directorio para `Dirent`: la CLI
+      // `skills` lo salta, así que su contenido nunca entra en el hash. Se
+      // prohíbe, o sería una forma de meter código que el lock no cubre.
+      if (entry.isSymbolicLink()) {
+        fallo('skill-con-enlace', `${relative(raiz, full)} es un enlace simbólico: el hash del lock no lo cubre`)
+      } else if (entry.isDirectory()) {
         if (entry.name !== '.git' && entry.name !== 'node_modules') walk(full)
       } else if (entry.isFile() && entry.name !== '.DS_Store') {
         // .DS_Store: lo crea macOS, está en .gitignore y nunca llega a la CI.
@@ -239,7 +244,7 @@ function skillFolderHash(dir) {
 if (existsSync(join(raiz, 'skills-lock.json'))) {
   const locked = json('skills-lock.json').skills ?? {}
   const installed = existsSync(join(raiz, SKILLS_DIR))
-    ? readdirSync(join(raiz, SKILLS_DIR), { withFileTypes: true }).filter((e) => e.isDirectory()).map((e) => e.name)
+    ? readdirSync(join(raiz, SKILLS_DIR), { withFileTypes: true }).filter((e) => !e.isFile()).map((e) => e.name)
     : []
   for (const name of installed) {
     if (!(name in locked)) fallo('skill-sin-lock', `${SKILLS_DIR}/${name} no está en skills-lock.json`)
