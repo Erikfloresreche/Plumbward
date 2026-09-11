@@ -309,13 +309,32 @@ if (existsSync(join(raiz, NAPKIN))) {
     // --hard` escrito en prosa, entre acentos graves, es igual de copiable y
     // se colaba. El subcomando arrastra sólo sus opciones, de modo que la
     // captura termina donde acaba el comando y no se come la frase.
+    //
+    // Se saltan las opciones globales (`git -C ruta push`, `git -c k=v commit`)
+    // para llegar al subcomando: son una forma corriente de escribir un
+    // comando, y un patrón que empiece a exigir letra tras `git ` no casaba en
+    // absoluto y lo dejaba pasar entero. La negación por detrás evita `legit`,
+    // y `\s+` tras `git` evita `gitlab`.
+    //
+    // El grupo es opcional a propósito: un `git` cuyo subcomando este control
+    // no sepa leer cae en `undefined` en vez de desaparecer, y se falla en voz
+    // alta. Silencio aquí es exactamente lo que hacía falsa la frase de la §1.
     const usos = seccion0.matchAll(
-      /(?:^|[\s`("])git\s+([a-z][a-z-]*(?:\s+--?[a-z][\w.-]*(?:=\S+)?)*)/g,
+      /(?<![\w-])git\s+(?:-[cC]\s+\S+\s+)*([a-z][a-z-]*(?:\s+--?[a-z][\w.-]*(?:=\S+)?)*)?/g,
     )
     let vistos = 0
     for (const uso of usos) {
       vistos += 1
-      const comando = uso[1].trim()
+      const comando = uso[1]?.trim()
+      if (!comando) {
+        const contexto = seccion0.slice(uso.index, uso.index + 48).split('\n')[0].trim()
+        fallo(
+          'git-permitido-en-claude-md',
+          `la §0 escribe "${contexto}", y este control no sabe leer ahí un subcomando: ` +
+            'no puede afirmar que la §1 lo permita',
+        )
+        continue
+      }
       const permitido = permitidos.some((p) => comando === p || comando.startsWith(`${p} `))
       if (!permitido) {
         fallo(

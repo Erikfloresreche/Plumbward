@@ -918,6 +918,9 @@ entre dos secciones del mismo fichero, y sólo se ve leyendo las dos a la vez.
 - El control 8 recorre la §0 entera, no sólo sus bloques ```bash: un comando
   escrito en prosa entre acentos graves se colaba, y la afirmación de la §1
   —"todo comando `git` de la §0"— era falsa. También lo encontró la revisión.
+  La segunda pasada añadió las opciones globales: `git -C ruta push` y
+  `git -c k=v commit` no casaban con el patrón y desaparecían enteros. Nueve
+  mutantes probados a mano; automatizarlos es el punto 4 de F0-25.
 
 **No mecanizable:** un commit `docs:` de la PR #6 metió un cambio de producto
 (las reglas de IA generadas) y un control nuevo de CI, y la descripción de la PR
@@ -1262,8 +1265,18 @@ van al plan y no a la rama abierta (§6.4 de `CLAUDE.md`).
    comando con un punto. Falla en voz alta, que es la dirección segura, pero el
    mensaje apunta al sitio equivocado y cuesta de diagnosticar.
 
-**Qué se convierte en control mecánico:** el 1 y el 3, con tests. El 2 es una
-anotación: ningún control puede ver que una rama de bot ha dejado de serlo
+4. **El control 8 no tiene ni un test automático.** Se ha validado con nueve
+   mutantes a mano, en dos revisiones. Es el argumento textual del punto 4 de
+   F0-15 —lógica en línea dentro de un script que acaba en `process.exit`—
+   aplicado al control que nació de esa misma revisión, y la rama de error
+   nueva (el `git` cuyo subcomando no se sabe leer) tampoco tiene prueba. La
+   solución ya está demostrada en F0-15: sacar el cuerpo a una función pura,
+   en un módulo propio, y cubrirla con los mutantes que hoy se lanzan a mano.
+
+5. **Cosmético.** El mensaje de la aserción de mínimo dice "1 de las 1 tareas".
+
+**Qué se convierte en control mecánico:** el 1, el 3 y el 4, con tests. El 2 es
+una anotación: ningún control puede ver que una rama de bot ha dejado de serlo
 porque una persona ha empujado a ella.
 
 **Criterios de aceptación:**
@@ -1272,6 +1285,10 @@ porque una persona ha empujado a ella.
 - El punto 2 está anotado en el JSDoc de `branchExemption`.
 - Añadir a la §1 un comando con un punto no trunca la lista de permitidos, y
   hay un test que lo fija.
+- El control 8 vive en un módulo propio con tests que cubren, como mínimo, los
+  nueve mutantes ya probados a mano: comando en prosa, en bloque, en tabla,
+  con `-C` y con `-c`, permitido con `=`, subcomando ilegible, `gitlab`/`legit`
+  que no son comandos, y la lista de la §1 recortada.
 
 ---
 
