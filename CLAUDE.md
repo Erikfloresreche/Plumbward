@@ -9,6 +9,31 @@ empezar cualquier tarea** y marca su casilla al terminarla.
 
 ---
 
+## 0. Cómo retomar el proyecto desde cero
+
+Si es tu primera sesión en esta conversación, todo lo necesario está en el
+repositorio. Léelo en este orden:
+
+| Orden | Fichero | Qué te da |
+|---|---|---|
+| 1 | Este fichero | Límites operativos y reglas de trabajo |
+| 2 | `docs/PLAN_DE_EJECUCION.md`, cabecera | **Dónde estamos**: la línea *Estado global* dice qué tareas están cerradas |
+| 3 | `docs/ARQUITECTURA.md` | Cómo funciona el código y **por qué** cada pieza está donde está |
+| 4 | `docs/MODELO_DE_NEGOCIO.md` | Qué vendemos, a quién, y qué no podemos prometer |
+| 5 | `docs/adr/` | Las decisiones grandes, con las alternativas descartadas |
+
+Comprueba el estado real antes de fiarte de lo escrito:
+
+```bash
+git branch --show-current && git status --short
+pnpm build && pnpm typecheck && pnpm test && pnpm check:coherencia
+```
+
+Y **pregunta a la persona en qué está trabajando** antes de deducirlo: el plan
+dice qué queda pendiente, no dónde está ella ahora mismo.
+
+---
+
 ## 1. Límites operativos (innegociable)
 
 ### Prohibido ejecutar comandos git que modifiquen el estado
@@ -133,8 +158,10 @@ No se rompen sin una ADR en `docs/adr/` que lo justifique:
 
 ## 3. Flujo de trabajo
 
-- Ramas: `main` (releases) y `develop` (integración). Una rama por tarea del
-  plan, nombrada `<tipo>/f<fase>-<slug>`, nacida de `develop`.
+- Ramas: `Prod` (releases) y `develop` (integración). Una rama por tarea del
+  plan, nombrada `<tipo>/f<fase>-<slug>` **con el slug en inglés** —el nombre de
+  rama queda en el historial igual que el commit—, nacida de `develop`. Ejemplo:
+  `fix/f0-protected-branches`. `pnpm check:coherencia` lo comprueba en cada PR.
 - Una rama implementa **exactamente una tarea**. Si aparece trabajo imprevisto,
   se añade una tarea nueva al plan; no se amplía la actual.
 - El desarrollador crea las ramas y hace los merges. Tú indicas cuál toca.

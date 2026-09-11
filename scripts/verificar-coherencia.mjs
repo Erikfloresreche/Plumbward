@@ -126,6 +126,53 @@ try {
   console.warn('  (aviso: no se han podido listar las ramas remotas; control omitido)')
 }
 
+// ── 5. Los nombres de rama van en inglés y con el formato del plan ───────
+// Formato `<tipo>/f<fase>-<slug>`. El idioma no se puede demostrar
+// mecánicamente, así que esto es una heurística deliberadamente conservadora:
+// caracteres no ASCII y palabras españolas frecuentes en nuestros nombres. No
+// sustituye a la revisión; atrapa el caso típico, que es el que se repite.
+const FORMATO_RAMA = /^(feat|fix|refactor|test|docs|build|ci|chore)\/f\d+-[a-z0-9]+(-[a-z0-9]+)*$/
+const PALABRAS_ES = new Set([
+  'de', 'del', 'la', 'las', 'el', 'los', 'y', 'con', 'para', 'por', 'al', 'sin',
+  'rama', 'ramas', 'regla', 'reglas', 'prueba', 'pruebas', 'paquete', 'informe',
+  'guia', 'flujo', 'flujos', 'control', 'controles', 'propio', 'documentacion',
+])
+
+/** @returns {string | undefined} el motivo por el que el nombre no vale */
+function problemaDeRama(rama) {
+  if (/[^\x00-\x7F]/.test(rama)) return 'contiene caracteres no ASCII'
+  if (!FORMATO_RAMA.test(rama)) return 'no sigue el formato <tipo>/f<fase>-<slug>'
+  const slug = rama.split('/')[1].replace(/^f\d+-/, '')
+  const enEspanol = slug.split('-').filter((t) => PALABRAS_ES.has(t))
+  if (enEspanol.length > 0) return `parece estar en español (${enEspanol.join(', ')})`
+  return undefined
+}
+
+// 5a. Las ramas previstas para tareas PENDIENTES del plan. Las cerradas se
+// saltan a propósito: su nombre es un hecho histórico, no una convención.
+{
+  let pendiente = false
+  for (const linea of leer('docs/PLAN_DE_EJECUCION.md').split('\n')) {
+    const cabecera = /^### \[([ x])\] /.exec(linea)
+    if (cabecera) pendiente = cabecera[1] === ' '
+    const m = /^\*\*Rama:\*\* `([^`]+)`/.exec(linea)
+    if (m && pendiente) {
+      const motivo = problemaDeRama(m[1])
+      if (motivo) fallo('nombre-de-rama-en-plan', `"${m[1]}" ${motivo}`)
+    }
+  }
+}
+
+// 5b. La rama de la Pull Request en curso. GitHub la expone en la variable de
+// entorno GITHUB_HEAD_REF: se lee de ahí y no interpolándola en el workflow,
+// porque un nombre de rama lo controla quien abre la PR y meterlo en un `run:`
+// sería una vía de inyección de comandos.
+const ramaPR = process.env.GITHUB_HEAD_REF
+if (ramaPR && !ramaPR.startsWith('dependabot/')) {
+  const motivo = problemaDeRama(ramaPR)
+  if (motivo) fallo('nombre-de-rama-de-la-pr', `"${ramaPR}" ${motivo}`)
+}
+
 // ── Resultado ─────────────────────────────────────────────────────────────
 if (fallos.length > 0) {
   console.error('\nCoherencia: se han encontrado incoherencias.\n')

@@ -54,12 +54,19 @@ es un fichero mal escrito, son datos perdidos.
 
   return `## 7. Lo que NO debes ejecutar
 
-${gitBlock}${dbBlock}### Idioma de los mensajes de commit y de Pull Request
+${gitBlock}${dbBlock}### Idioma del historial de git
 
-Aunque el proyecto se documente en otro idioma, **los mensajes de commit y las
-descripciones de Pull Request se redactan siempre en ${idioma}**, siguiendo
-Conventional Commits. Entrégalos como texto para que los use la persona que
-haga el commit.
+Aunque el proyecto se documente en otro idioma, **los mensajes de commit, los
+títulos y descripciones de Pull Request y los nombres de rama se redactan siempre
+en ${idioma}**. Todo eso queda en el historial de git, y lo leerá gente que no
+estuvo en la conversación.
+
+- Commits y títulos de PR siguen Conventional Commits.
+- Las ramas siguen el formato \`<tipo>/<descripción-en-kebab-case>\`, por ejemplo
+  \`fix/protected-branch-detection\`. Propón el nombre de la rama antes de empezar
+  a trabajar.
+
+Entrégalo todo como texto para que lo use la persona que ejecuta git.
 
 `
 }
@@ -192,7 +199,7 @@ ${stack?.typescript ? '- Prohibido `any`; usa `unknown` y estrecha el tipo. Tipo
 - Maneja los errores de forma explícita; nada de \`catch\` vacíos.
 - Mantén las funciones por debajo de ${strict ? '50' : '80'} líneas.
 - No modifiques CI/CD, \`.env\` ni lockfiles salvo petición explícita.
-${profile.agentBoundaries.git ? '- No ejecutes comandos git que modifiquen el estado (commit, push, merge, reset): los lanza la persona que trabaja.\n' : ''}${profile.agentBoundaries.database ? '- No ejecutes migraciones ni sentencias que escriban en la base de datos: las lanza la persona que trabaja.\n' : ''}- Redacta los mensajes de commit y de PR en ${profile.agentBoundaries.commitLanguage === 'en' ? 'inglés' : 'español'}.
+${profile.agentBoundaries.git ? '- No ejecutes comandos git que modifiquen el estado (commit, push, merge, reset): los lanza la persona que trabaja.\n' : ''}${profile.agentBoundaries.database ? '- No ejecutes migraciones ni sentencias que escriban en la base de datos: las lanza la persona que trabaja.\n' : ''}- Redacta los mensajes de commit, las PR y los nombres de rama en ${profile.agentBoundaries.commitLanguage === 'en' ? 'inglés' : 'español'}.
 
 Las reglas completas están en \`.cursorrules\`.
 `
