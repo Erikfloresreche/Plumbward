@@ -14,6 +14,7 @@ import { readdirSync, statSync, lstatSync, readlinkSync, existsSync } from 'node
 import { createHash } from 'node:crypto'
 import { join, dirname, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { checkPlan, checkPullRequestBranch } from './branch-names.mjs'
 
 const raiz = join(dirname(fileURLToPath(import.meta.url)), '..')
 const leer = (p) => readFileSync(join(raiz, p), 'utf8')
@@ -156,53 +157,20 @@ try {
 }
 
 // ── 5. Los nombres de rama van en inglés y con el formato del plan ───────
-// Formato `<tipo>/f<fase>-<slug>`. El idioma no se puede demostrar
-// mecánicamente, así que esto es una heurística deliberadamente conservadora:
-// caracteres no ASCII y palabras españolas frecuentes en nuestros nombres. No
-// sustituye a la revisión; atrapa el caso típico, que es el que se repite.
-const FORMATO_RAMA = /^(feat|fix|refactor|test|docs|build|ci|chore)\/f\d+-[a-z0-9]+(-[a-z0-9]+)*$/
-// `control` NO está en la lista: es también una palabra inglesa, y rechazaba
-// nombres válidos como `fix/f0-branch-control-review`. La heurística completa se
-// rehace con un corpus de prueba en F0-15.
-const PALABRAS_ES = new Set([
-  'de', 'del', 'la', 'las', 'el', 'los', 'y', 'con', 'para', 'por', 'al', 'sin',
-  'rama', 'ramas', 'regla', 'reglas', 'prueba', 'pruebas', 'paquete', 'informe',
-  'guia', 'flujo', 'flujos', 'controles', 'propio', 'documentacion',
-])
-
-/** @returns {string | undefined} el motivo por el que el nombre no vale */
-function problemaDeRama(rama) {
-  if (/[^\x00-\x7F]/.test(rama)) return 'contiene caracteres no ASCII'
-  if (!FORMATO_RAMA.test(rama)) return 'no sigue el formato <tipo>/f<fase>-<slug>'
-  const slug = rama.split('/')[1].replace(/^f\d+-/, '')
-  const enEspanol = slug.split('-').filter((t) => PALABRAS_ES.has(t))
-  if (enEspanol.length > 0) return `parece estar en español (${enEspanol.join(', ')})`
-  return undefined
-}
-
-// 5a. Las ramas previstas para tareas PENDIENTES del plan. Las cerradas se
-// saltan a propósito: su nombre es un hecho histórico, no una convención.
-{
-  let pendiente = false
-  for (const linea of leer('docs/PLAN_DE_EJECUCION.md').split('\n')) {
-    const cabecera = /^### \[([ x])\] /.exec(linea)
-    if (cabecera) pendiente = cabecera[1] === ' '
-    const m = /^\*\*Rama:\*\* `([^`]+)`/.exec(linea)
-    if (m && pendiente) {
-      const motivo = problemaDeRama(m[1])
-      if (motivo) fallo('nombre-de-rama-en-plan', `"${m[1]}" ${motivo}`)
-    }
-  }
-}
-
-// 5b. La rama de la Pull Request en curso. GitHub la expone en la variable de
-// entorno GITHUB_HEAD_REF: se lee de ahí y no interpolándola en el workflow,
+// La lógica vive en `scripts/branch-names.mjs` y está cubierta por
+// `scripts/branch-names.test.mjs` con un corpus de nombres reales. Aquí sólo
+// se conectan las dos entradas: el plan y la rama de la Pull Request en curso.
+//
+// La rama de la PR se lee de GITHUB_HEAD_REF y no se interpola en el workflow,
 // porque un nombre de rama lo controla quien abre la PR y meterlo en un `run:`
-// sería una vía de inyección de comandos.
-const ramaPR = process.env.GITHUB_HEAD_REF
-if (ramaPR && !ramaPR.startsWith('dependabot/')) {
-  const motivo = problemaDeRama(ramaPR)
-  if (motivo) fallo('nombre-de-rama-de-la-pr', `"${ramaPR}" ${motivo}`)
+// sería una vía de inyección de comandos. El autor viene de GITHUB_ACTOR.
+for (const motivo of checkPlan(leer('docs/PLAN_DE_EJECUCION.md'))) {
+  fallo('nombre-de-rama-en-plan', motivo)
+}
+
+const motivoRamaPR = checkPullRequestBranch(process.env.GITHUB_HEAD_REF, process.env.GITHUB_ACTOR)
+if (motivoRamaPR) {
+  fallo('nombre-de-rama-de-la-pr', `"${process.env.GITHUB_HEAD_REF}" ${motivoRamaPR}`)
 }
 
 // ── 6. Las skills de agente versionadas son las que fija el lock (F0-17) ──
@@ -309,6 +277,76 @@ if (existsSync(join(raiz, NAPKIN))) {
     if (/^\s+Do instead: \S/.test(line)) pending = undefined
   }
   closeEntry()
+}
+
+// ── 8. Los comandos git de la §0 de CLAUDE.md los permite la §1 (F0-15) ───
+// La guía para retomar el proyecto proponía `git branch --show-current`, que
+// no estaba en la lista de comandos de sólo lectura permitidos. Una guía que
+// manda hacer algo que el mismo fichero prohíbe sólo se descubre leyendo las
+// dos secciones a la vez, que es justo lo que nadie hace.
+{
+  const claude = leer('CLAUDE.md')
+  const seccion = (prefijo) => {
+    const desde = claude.indexOf(`\n## ${prefijo}`)
+    if (desde < 0) return undefined
+    const resto = claude.slice(desde + 1)
+    const hasta = resto.indexOf('\n## ')
+    return hasta < 0 ? resto : resto.slice(0, hasta)
+  }
+
+  const seccion0 = seccion('0. ')
+  const listaDePermitidos = /Sí puedes usar los de sólo lectura:([\s\S]*?)\./.exec(claude)
+  const permitidos = listaDePermitidos
+    ? [...listaDePermitidos[1].matchAll(/`([^`]+)`/g)].map((m) => m[1])
+    : []
+
+  // Sin ancla no hay control: se falla en vez de pasar en silencio.
+  if (!seccion0) fallo('git-permitido-en-claude-md', 'no se encuentra la sección "## 0. " en CLAUDE.md')
+  else if (permitidos.length === 0) {
+    fallo('git-permitido-en-claude-md', 'no se encuentra la lista de comandos git de sólo lectura en la §1')
+  } else {
+    // Se recorre la §0 entera, no sólo sus bloques ```bash: un `git reset
+    // --hard` escrito en prosa, entre acentos graves, es igual de copiable y
+    // se colaba. El subcomando arrastra sólo sus opciones, de modo que la
+    // captura termina donde acaba el comando y no se come la frase.
+    //
+    // Se saltan las opciones globales (`git -C ruta push`, `git -c k=v commit`)
+    // para llegar al subcomando: son una forma corriente de escribir un
+    // comando, y un patrón que empiece a exigir letra tras `git ` no casaba en
+    // absoluto y lo dejaba pasar entero. La negación por detrás evita `legit`,
+    // y `\s+` tras `git` evita `gitlab`.
+    //
+    // El grupo es opcional a propósito: un `git` cuyo subcomando este control
+    // no sepa leer cae en `undefined` en vez de desaparecer, y se falla en voz
+    // alta. Silencio aquí es exactamente lo que hacía falsa la frase de la §1.
+    const usos = seccion0.matchAll(
+      /(?<![\w-])git\s+(?:-[cC]\s+\S+\s+)*([a-z][a-z-]*(?:\s+--?[a-z][\w.-]*(?:=\S+)?)*)?/g,
+    )
+    let vistos = 0
+    for (const uso of usos) {
+      vistos += 1
+      const comando = uso[1]?.trim()
+      if (!comando) {
+        const contexto = seccion0.slice(uso.index, uso.index + 48).split('\n')[0].trim()
+        fallo(
+          'git-permitido-en-claude-md',
+          `la §0 escribe "${contexto}", y este control no sabe leer ahí un subcomando: ` +
+            'no puede afirmar que la §1 lo permita',
+        )
+        continue
+      }
+      const permitido = permitidos.some((p) => comando === p || comando.startsWith(`${p} `))
+      if (!permitido) {
+        fallo(
+          'git-permitido-en-claude-md',
+          `la §0 propone "git ${comando}", que no está en la lista de sólo lectura de la §1`,
+        )
+      }
+    }
+    // Si la §0 deja de proponer comandos, este control se queda sin objeto y
+    // hay que revisarlo, no dejarlo pasando en verde sin mirar nada.
+    if (vistos === 0) fallo('git-permitido-en-claude-md', 'la §0 ya no propone ningún comando git')
+  }
 }
 
 // ── Resultado ─────────────────────────────────────────────────────────────

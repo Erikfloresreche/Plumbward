@@ -5,8 +5,8 @@
 > Cada tarea se cierra actualizando su casilla en este fichero, dentro de la
 > misma Pull Request que la implementa.
 
-**Última actualización:** 2026-09-11
-**Estado global:** Fase 0 en curso — F0-1, F0-3, F0-5, F0-8, F0-13, F0-14 y F0-17 completadas. Quedan F0-2, F0-4, F0-6, F0-7, F0-9 a F0-12, F0-15 y F0-16.
+**Última actualización:** 2026-09-12
+**Estado global:** Fase 0 en curso — F0-1, F0-3, F0-5, F0-8, F0-13, F0-14, F0-15 y F0-17 completadas. Quedan F0-2, F0-4, F0-6, F0-7, F0-9 a F0-12, F0-16 y F0-18 a F0-25.
 **Producto:** Plumbward · https://github.com/Erikfloresreche/Plumbward
 **Modelo de negocio:** suscripción anual por repositorio — ver
 [MODELO_DE_NEGOCIO.md](MODELO_DE_NEGOCIO.md)
@@ -839,13 +839,19 @@ debe ejecutarlo sola: modifica el estado de git y necesita red.
 
 ---
 
-### [ ] F0-15 — Corregir el control de nombres de rama tras la revisión de la PR #6
+### [x] F0-15 — Corregir el control de nombres de rama tras la revisión de la PR #6
 **Rama:** `fix/f0-branch-control-review` · **Depende de:** F0-14
 
 **Origen:** la PR #6 se mergeó sin revisión y se revisó después, en contexto
 nuevo. El hallazgo más grave —la CI nunca ejecutaba el control— se corrigió en
 F0-14. Quedan estos, y su conclusión general es incómoda: **el control de
 nombres de rama, tal como está, es más frágil de lo que parece.**
+
+La revisión dejó catorce puntos, y sólo cinco son el control de nombres de rama.
+Los demás —la plantilla de cliente, la decisión de estrategia de merge, los
+restos del plan y los seguimientos de las revisiones de F0-14 y de la PR #7— se
+han repartido en F0-19 a F0-24: una rama implementa exactamente una tarea (§3 de
+`CLAUDE.md`).
 
 **Trabajo:**
 
@@ -881,115 +887,57 @@ nombres de rama, tal como está, es más frágil de lo que parece.**
    y termina con `process.exit`. Separar la lógica en funciones exportadas y
    cubrirla con tests unitarios.
 
-5. **La plantilla para clientes se contradice en español.** Con
-   `commitLanguage: 'es'` dice que las ramas van en español y pone como ejemplo
-   `fix/protected-branch-detection`, en inglés fijo. El test sólo cubre `en`, y
-   dos aserciones incluyen un salto de línea literal que se romperá al
-   reajustar el párrafo. Con `git: false` sigue diciendo "la persona que ejecuta
-   git".
-
-6. **Documentación de configuración desactualizada.** La cabecera que se escribe
-   en el `config.yml` del cliente y el JSDoc de `commitLanguage` siguen diciendo
-   que sólo afecta a commits y PRs; ahora también a ramas y títulos.
-
-7. **El argumento está mal formulado, y destapa una decisión pendiente.** Se
-   justifica la regla con "el nombre de rama queda en el historial de git". Con
-   *squash merge* y borrado de rama, que es lo que dice el §3.2, no queda. Sólo
-   queda porque en la práctica se está mergeando con *merge commit*. Hay que
-   decidir cuál de las dos es la regla y reformular el argumento: el nombre de
-   rama se ve en la PR, en la CI y en el mensaje del merge, y lo lee todo el
-   equipo.
-
-8. **La sección 0 de `CLAUDE.md` no funciona literalmente en un clon limpio.**
+5. **La sección 0 de `CLAUDE.md` no funciona literalmente en un clon limpio.**
    Le falta `pnpm install`, usa `git branch --show-current` que no está en la
-   lista de comandos de sólo lectura permitidos del §1, dice "primera sesión en
-   esta conversación" y el fichero afirma rondar las 130 líneas cuando tiene
-   190.
+   lista de comandos de sólo lectura permitidos del §1 y dice "primera sesión en
+   esta conversación".
 
-9. **Restos en el plan.** El diagrama del §3.2 sigue diciendo
-   `docs/f2-guia-packs` y `main (release)`; F3-5 tiene dos puntos numerados
-   `2.`; la lista de "ya entregado" de F0-12 no incluye los controles 4 y 5.
+**Qué se convierte en control mecánico:** los puntos 1, 2, 3 y 4 —las
+exenciones del 1 se cubren con tests igual que el corpus y el analizador—. Del
+5, que los comandos `git` de la §0 estén permitidos por la §1: es un choque
+entre dos secciones del mismo fichero, y sólo se ve leyendo las dos a la vez.
 
-10. **Ámbito y proceso.** Un commit `docs:` metió un cambio de producto (las
-    reglas de IA generadas) y un control nuevo de CI, y la descripción de la PR
-    se saltó los apartados de criterios y Definition of Done de la plantilla.
-    Nada que corregir en el código; queda registrado para no repetirlo.
+**Cómo ha quedado:**
+- La lógica vive en `scripts/branch-names.mjs`: funciones puras, sin
+  `process.exit`. `scripts/verificar-coherencia.mjs` sólo conecta las entradas.
+- El corpus está en `scripts/branch-names-corpus.json`: 33 nombres españoles, 43
+  ingleses. La heurística nueva detecta 32 de 33 y no rechaza ninguno de los 43;
+  la anterior dejaba pasar 15 y rechazaba 2. El único no detectado,
+  `feat/f3-ci-solo-diff`, está declarado en el propio corpus con su test: todos
+  sus componentes son también palabras inglesas.
+- La señal de idioma ya no es sólo una lista de palabras: son terminaciones que
+  no existen en inglés (`-cion`, `-dad`, `-miento`, `-cia`, `-ido`), y las
+  palabras funcionales (`de`, `y`, `al`…) sólo cuentan **entre** otros dos
+  componentes, que es lo que separa `gobierno-de-ramas` de `de-duplicate`.
+- Exención por autor: `[bot]` en el login, `<login>-patch-<n>` sólo si el login
+  es el del autor, y `revert-<pr>-<rama>` sólo si la rama revertida era válida.
+  `Prod` y `develop` son una lista explícita, no un patrón.
+- La aserción de mínimo cuenta **por tarea**, no totales: una línea `**Rama:**`
+  bajo una cabecera que no es tarea compensaba a la que faltaba, y la tarea sin
+  rama seguía sin juzgarse. Lo encontró la revisión de esta PR.
+- El control 8 recorre la §0 entera, no sólo sus bloques ```bash: un comando
+  escrito en prosa entre acentos graves se colaba, y la afirmación de la §1
+  —"todo comando `git` de la §0"— era falsa. También lo encontró la revisión.
+  La segunda pasada añadió las opciones globales: `git -C ruta push` y
+  `git -c k=v commit` no casaban con el patrón y desaparecían enteros. Nueve
+  mutantes probados a mano; automatizarlos es el punto 4 de F0-25.
 
-11. **De la revisión de F0-14**, pendientes:
-    - El control de que existe el job `calidad` se ejecuta **dentro de ese mismo
-      job**: con `if: false`, `continue-on-error: true` o quitándole los pasos,
-      el control desaparece con él. Debe comprobarse desde otro job, o mejor,
-      que el job sea un check obligatorio (lo es desde F0-13) y verificar que
-      lo sigue siendo.
-    - La comprobación de condiciones `if` no reconoce `- if:` en forma de
-      elemento de lista, operandos invertidos ni `startsWith`, y no mira
-      `e2e.yml`.
-    - La rama por defecto sólo se lee de `origin`: un repo cuyo remoto se llame
-      `upstream` no aporta esa fuente.
-    - Los tests de `packages/*/test/` no pasan por el typecheck: los
-      `tsconfig` sólo incluyen `src/`.
-    - Un `integration` deducido de un `origin/HEAD` desfasado se escribe en
-      `config.yml` como si fuera una elección del equipo. Mitigado con un aviso en
-      el propio fichero; el wizard (F4-1) debería confirmarlo.
-    - Los tests que ejecutan `runApply` imprimen toda la salida del CLI en el
-      log de la CI.
-    - `listBranchNames` quita sólo el primer segmento del nombre de un remoto:
-      un remoto con `/` en el nombre produce nombres de rama erróneos.
-12. **Sacar el escaneo del historial completo a un workflow propio.** Vive en
-    `ci.yml` con una condición, así que aparece como *Skipped* en todas las PRs y
-    genera la duda de si algo falla. En un workflow que sólo se dispare por
-    calendario y a mano, no aparecería. (Se ejecutó por primera vez el
-    2026-09-11: el historial completo está limpio.)
-13. **De la revisión de la PR #7**, pendientes:
-    - Tras un fallo de `apply` —un `EACCES`, por ejemplo—, la reversión
-      automática deja HEAD en `chore/setup-ai-governance` y el mensaje dice "el
-      repositorio está intacto". Los ficheros lo están, pero la rama actual ya no
-      es la de partida. El mensaje debe decir en qué rama queda y cómo volver.
-      Lo mismo tras `rollback`.
-    - `pnpm check:mutations` no se ejecuta en CI, así que todavía no es un
-      control: depende de que alguien lo lance. Añadirlo como job, al menos en
-      las PRs que tocan `branches.ts`, `context.ts`, `commands.ts` o las
-      plantillas de CI. Así deja de ejecutarse dentro de la sesión del
-      asistente, que es lo que más tarda.
-14. **De la cuarta revisión previa al merge de la PR #7**, pendientes:
-    - **Prioridad alta.** `rollback` en `Prod` sobrescribe ficheros de `Prod`
-      con un journal de un `apply` que escribió en la rama aislada: el journal
-      guarda la rama de partida, no la escrita, está ignorado por git y
-      sobrevive a los checkouts. Reproducido: devuelve el `package.json` de
-      `Prod` a una versión anterior. Existe también en `develop`. El journal
-      debe guardar la rama en la que se escribió, y `rollback` negarse en
-      cualquier otra.
-    - `doctor` da por revisadas todas las PRs con `branches-ignore` o `paths`
-      en `pull_request`, y avisa en falso con `on: pull_request` y
-      `on: [push, pull_request]`.
-    - Con una rama llamada `chore`, `apply` falla tras confirmar con un error
-      crudo de git (`refs/heads/chore' exists`). No escribe nada, pero la
-      comprobación previa no lo detecta.
-    - Un valor no textual en `branches` (`release: 2024`) se descarta sin avisar.
-    - El consejo `git branch -d` no funciona tras un *squash merge*.
-    - `ciPushBranches` deduplica sin distinguir mayúsculas, y los filtros de
-      GitHub sí distinguen: `integration: prod` y `release: Prod` dejan fuera
-      `Prod`.
-
-**Qué se convierte en control mecánico:** los puntos 2, 3 y 4 (corpus y tests),
-y el 9 si el control de nombres de rama se extiende al diagrama del §3.2. El 7 es
-una decisión, no un control. El 10 es de proceso: la defensa es la revisión.
-Del 11: que `calidad` siga siendo un check obligatorio se comprueba leyendo el
-ruleset desde otro job; `- if:`, `startsWith`, `e2e.yml`, el remoto `upstream`,
-`listBranchNames` y el typecheck de `test/` se cubren con tests. El aviso sobre
-un `integration` desfasado no es mecanizable —depende de que el equipo lea el
-fichero— y lo resuelve la confirmación del wizard (F4-1). La salida de
-`runApply` en el log es ergonomía, no corrección: no requiere control. El 12 es
-un cambio de estructura sin regla que vigilar: no mecanizable, y no hace falta.
-El 13 se cubre con un test del mensaje tras un fallo simulado y con el propio
-job de mutaciones. El 14, con un test por punto; el de `rollback`, reproduciendo
-el caso de la revisión.
+**No mecanizable:** un commit `docs:` de la PR #6 metió un cambio de producto
+(las reglas de IA generadas) y un control nuevo de CI, y la descripción de la PR
+se saltó los apartados de criterios y Definition of Done de la plantilla. No hay
+control que vea el ámbito de un commit ni que lea una descripción; la defensa es
+la revisión en contexto nuevo. Queda registrado para no repetirlo.
 
 **Criterios de aceptación:**
-- Una PR de `develop` a `Prod` pasa el control.
-- El corpus de nombres está en el repositorio y el control lo pasa.
-- El script de coherencia tiene tests que se ejecutan en `test:unit`.
-- La sección 0 de `CLAUDE.md` funciona copiando y pegando en un clon limpio.
+- [x] Una PR de `develop` a `Prod` pasa el control. Verificado simulando
+  `GITHUB_HEAD_REF=develop`, junto con las ramas de bot, del editor web y del
+  botón *Revert*.
+- [x] El corpus de nombres está en el repositorio y el control lo pasa.
+- [x] El script de coherencia tiene tests que se ejecutan en `test:unit`
+  (`scripts/branch-names.test.mjs`, 97 casos).
+- [x] La sección 0 de `CLAUDE.md` funciona copiando y pegando en un clon limpio,
+  y un control lo vigila: `check:coherencia` falla si la §0 propone un comando
+  `git` que la §1 no permite. Probado con el mutante.
 
 ---
 
@@ -1113,6 +1061,234 @@ después, se escribe directamente en inglés.
 - `CLAUDE.md` ya no exige español para comentarios ni documentación.
 - `pnpm check:coherencia` sigue en verde.
 - Ningún enlace interno queda roto tras la traducción.
+
+---
+
+### [ ] F0-19 — La plantilla de ramas para clientes se contradice en español
+**Rama:** `docs/f0-branch-naming-templates` · **Depende de:** F0-15
+
+**Origen:** revisión de la PR #6, puntos 5 y 6. Salieron de F0-15 para no
+mezclar el control del repositorio con lo que se le genera al cliente.
+
+**Trabajo:**
+1. Con `commitLanguage: 'es'` la plantilla dice que las ramas van en español y
+   pone como ejemplo `fix/protected-branch-detection`, en inglés fijo. El test
+   sólo cubre `en`, y dos aserciones incluyen un salto de línea literal que se
+   romperá al reajustar el párrafo. Con `git: false` sigue diciendo "la persona
+   que ejecuta git".
+2. La cabecera que se escribe en el `config.yml` del cliente y el JSDoc de
+   `commitLanguage` siguen diciendo que sólo afecta a commits y PRs; ahora
+   también a ramas y títulos.
+
+**Qué se convierte en control mecánico:** el test de la plantilla se amplía a
+`es` y a `git: false`, y deja de comparar párrafos con saltos de línea
+literales.
+
+**Criterios de aceptación:**
+- La plantilla dice lo mismo en `es` y en `en`, y el test cubre los dos idiomas.
+- Con `git: false` no aparece ninguna mención a quien ejecuta git.
+- La cabecera del `config.yml` y el JSDoc de `commitLanguage` nombran ramas y
+  títulos.
+
+---
+
+### [ ] F0-20 — Decidir la estrategia de merge y reformular el argumento
+**Rama:** `docs/f0-merge-strategy` · **Depende de:** F0-15
+
+**Origen:** revisión de la PR #6, punto 7. El argumento de la regla de nombres
+de rama es "el nombre de rama queda en el historial de git". Con *squash merge*
+y borrado de rama, que es lo que dice el §3.2, no queda. Sólo queda porque en la
+práctica se está mergeando con *merge commit*.
+
+**Trabajo:** decidir cuál de las dos es la regla y dejarla escrita en un sitio.
+Reformular el argumento: el nombre de rama se ve en la PR, en la CI y en el
+mensaje del merge, y lo lee todo el equipo.
+
+**Qué se convierte en control mecánico:** nada por sí mismo; es una decisión. Si
+se elige *squash merge*, el consejo `git branch -d` de la CLI deja de funcionar
+y eso sí es un control (queda en F0-24).
+
+**Criterios de aceptación:**
+- El §3.2 y `CLAUDE.md` dicen la misma estrategia de merge.
+- El argumento de la regla de nombres de rama no afirma nada que la estrategia
+  elegida desmienta.
+
+---
+
+### [ ] F0-21 — Restos del plan y del diagrama de flujo
+**Rama:** `docs/f0-plan-leftovers` · **Depende de:** F0-15
+
+**Origen:** revisión de la PR #6, punto 9.
+
+**Trabajo:** el diagrama del §3.2 sigue diciendo `docs/f2-guia-packs` y
+`main (release)`; F3-5 tiene dos puntos numerados `2.`; la lista de "ya
+entregado" de F0-12 no incluye los controles que se han ido añadiendo, y F0-12
+sigue diciendo que `CLAUDE.md` "ronda las 130 líneas" cuando pasa de 250.
+
+**Qué se convierte en control mecánico:** extender el control de nombres de rama
+al diagrama del §3.2, que hoy no mira. El recuento de controles de F0-12 se
+deriva de `verificar-coherencia.mjs` en vez de escribirse a mano, que es lo que
+lo deja caducado cada vez que se añade uno. El resto es corrección puntual.
+
+**Criterios de aceptación:**
+- El diagrama del §3.2 usa nombres de rama que pasan el control, y el control
+  los mira.
+- F3-5 numera sus puntos sin repetir.
+- F0-12 no afirma ningún número —de controles ni de líneas— que el repositorio
+  desmienta.
+
+---
+
+### [ ] F0-22 — Seguimientos de la revisión de F0-14
+**Rama:** `fix/f0-f014-review-followups` · **Depende de:** F0-15
+
+**Origen:** revisión de la PR #7, punto 11 de F0-15.
+
+**Trabajo:**
+1. El control de que existe el job `calidad` se ejecuta **dentro de ese mismo
+   job**: con `if: false`, `continue-on-error: true` o quitándole los pasos, el
+   control desaparece con él. Debe comprobarse desde otro job, o mejor, que el
+   job sea un check obligatorio (lo es desde F0-13) y verificar que lo sigue
+   siendo leyendo el ruleset.
+2. La comprobación de condiciones `if` no reconoce `- if:` en forma de elemento
+   de lista, operandos invertidos ni `startsWith`, y no mira `e2e.yml`.
+3. La rama por defecto sólo se lee de `origin`: un repo cuyo remoto se llame
+   `upstream` no aporta esa fuente.
+4. Los tests de `packages/*/test/` no pasan por el typecheck: los `tsconfig`
+   sólo incluyen `src/`.
+5. `listBranchNames` quita sólo el primer segmento del nombre de un remoto: un
+   remoto con `/` en el nombre produce nombres de rama erróneos.
+6. Los tests que ejecutan `runApply` imprimen toda la salida del CLI en el log
+   de la CI.
+
+**Qué se convierte en control mecánico:** los puntos 1 a 5. El 6 es ergonomía,
+no corrección. Un `integration` deducido de un `origin/HEAD` desfasado y escrito
+en `config.yml` **no** es mecanizable —depende de que el equipo lea el fichero—
+y lo resuelve la confirmación del wizard (F4-1).
+
+**Criterios de aceptación:**
+- Vaciar el job `calidad` hace fallar la CI desde otro job.
+- Hay un test por cada uno de los puntos 2 a 5, y falla al revertir su
+  corrección.
+
+---
+
+### [ ] F0-23 — Sacar el escaneo del historial completo a su propio workflow
+**Rama:** `ci/f0-history-scan-workflow` · **Depende de:** F0-15
+
+**Origen:** revisión de la PR #6, punto 12. Vive en `ci.yml` con una condición,
+así que aparece como *Skipped* en todas las PRs y genera la duda de si algo
+falla. En un workflow que sólo se dispare por calendario y a mano, no
+aparecería. Se ejecutó por primera vez el 2026-09-11: el historial completo
+está limpio.
+
+**Qué se convierte en control mecánico:** nada. Es un cambio de estructura sin
+regla nueva que vigilar.
+
+**Criterios de aceptación:**
+- El escaneo vive en su propio workflow, con disparadores `schedule` y
+  `workflow_dispatch`.
+- Ninguna PR muestra un job *Skipped* por esta causa.
+
+---
+
+### [ ] F0-24 — Seguimientos de las revisiones de la PR #7
+**Rama:** `fix/f0-pr7-review-followups` · **Depende de:** F0-15
+
+**Origen:** puntos 13 y 14 de F0-15, de la tercera y la cuarta revisión previas
+al merge de la PR #7.
+
+**Trabajo:**
+1. **Prioridad alta.** `rollback` en `Prod` sobrescribe ficheros de `Prod` con
+   un journal de un `apply` que escribió en la rama aislada: el journal guarda
+   la rama de partida, no la escrita, está ignorado por git y sobrevive a los
+   checkouts. Reproducido: devuelve el `package.json` de `Prod` a una versión
+   anterior. Existe también en `develop`. El journal debe guardar la rama en la
+   que se escribió, y `rollback` negarse en cualquier otra.
+2. Tras un fallo de `apply` —un `EACCES`, por ejemplo—, la reversión automática
+   deja HEAD en `chore/setup-ai-governance` y el mensaje dice "el repositorio
+   está intacto". Los ficheros lo están, pero la rama actual ya no es la de
+   partida. El mensaje debe decir en qué rama queda y cómo volver. Lo mismo tras
+   `rollback`.
+3. `doctor` da por revisadas todas las PRs con `branches-ignore` o `paths` en
+   `pull_request`, y avisa en falso con `on: pull_request` y
+   `on: [push, pull_request]`.
+4. Con una rama llamada `chore`, `apply` falla tras confirmar con un error crudo
+   de git (`refs/heads/chore' exists`). No escribe nada, pero la comprobación
+   previa no lo detecta.
+5. Un valor no textual en `branches` (`release: 2024`) se descarta sin avisar.
+6. El consejo `git branch -d` no funciona tras un *squash merge* (depende de
+   F0-20).
+7. `ciPushBranches` deduplica sin distinguir mayúsculas, y los filtros de GitHub
+   sí distinguen: `integration: prod` y `release: Prod` dejan fuera `Prod`.
+8. `pnpm check:mutations` no se ejecuta en CI, así que todavía no es un control:
+   depende de que alguien lo lance. Añadirlo como job, al menos en las PRs que
+   tocan `branches.ts`, `context.ts`, `commands.ts` o las plantillas de CI. Así
+   deja de ejecutarse dentro de la sesión del asistente, que es lo que más tarda.
+
+**Qué se convierte en control mecánico:** un test por punto; el del `rollback`,
+reproduciendo el caso de la revisión. El 8 es el propio job de mutaciones.
+
+**Criterios de aceptación:**
+- `rollback` se niega a actuar en una rama distinta de aquella en la que
+  `apply` escribió, y hay un test que reproduce el caso de `Prod`.
+- Hay un test por cada uno de los puntos 2 a 7, y falla al revertir su
+  corrección.
+- `check:mutations` corre en CI.
+
+---
+
+### [ ] F0-25 — Seguimientos de la revisión de la PR #10
+**Rama:** `fix/f0-branch-control-followups` · **Depende de:** F0-15
+
+**Origen:** revisión en contexto nuevo de la PR #10 (F0-15). Los dos
+bloqueantes se corrigieron dentro de la PR; estos son los no bloqueantes, que
+van al plan y no a la rama abierta (§6.4 de `CLAUDE.md`).
+
+**Trabajo:**
+1. **Dos exenciones siguen siendo por nombre, no por autor.** `branchExemption`
+   exime `Prod`/`develop` y `revert-<n>-<rama válida>` sin mirar el autor:
+   cualquiera puede llamar a su rama `revert-1-develop` y saltarse el control
+   entero. El impacto real es bajo —es un control de convención, no de
+   seguridad— pero la puerta trasera que cerró el punto 1 de F0-15 sigue
+   entreabierta con otra forma. Decidir si se ata también al autor (la rama
+   `revert-*` la crea quien pulsa el botón, que es alguien con permiso de
+   escritura) o si se acepta, y dejarlo escrito donde se pueda leer.
+2. **Regresión operativa con Dependabot, sin anotar.** La exención exige ahora
+   `GITHUB_ACTOR` terminado en `[bot]`. Si una persona empuja un commit a una
+   rama `dependabot/...`, el actor es esa persona y la rama falla el formato:
+   CI roja en una rama legítima. Con el prefijo anterior no pasaba. La decisión
+   es deliberada y correcta, pero no está anotada ni en el plan ni en el JSDoc.
+3. **La lista de permitidos del control 8 se corta en el primer punto.** El
+   patrón `/Sí puedes usar los de sólo lectura:([\s\S]*?)\./` trunca la lista
+   en silencio si alguien añade a la §1 un `git log --format=%h` o cualquier
+   comando con un punto. Falla en voz alta, que es la dirección segura, pero el
+   mensaje apunta al sitio equivocado y cuesta de diagnosticar.
+
+4. **El control 8 no tiene ni un test automático.** Se ha validado con nueve
+   mutantes a mano, en dos revisiones. Es el argumento textual del punto 4 de
+   F0-15 —lógica en línea dentro de un script que acaba en `process.exit`—
+   aplicado al control que nació de esa misma revisión, y la rama de error
+   nueva (el `git` cuyo subcomando no se sabe leer) tampoco tiene prueba. La
+   solución ya está demostrada en F0-15: sacar el cuerpo a una función pura,
+   en un módulo propio, y cubrirla con los mutantes que hoy se lanzan a mano.
+
+5. **Cosmético.** El mensaje de la aserción de mínimo dice "1 de las 1 tareas".
+
+**Qué se convierte en control mecánico:** el 1, el 3 y el 4, con tests. El 2 es
+una anotación: ningún control puede ver que una rama de bot ha dejado de serlo
+porque una persona ha empujado a ella.
+
+**Criterios de aceptación:**
+- La decisión del punto 1 está escrita, y si se ata al autor hay un test que
+  rechaza `revert-1-develop` de un autor sin permiso.
+- El punto 2 está anotado en el JSDoc de `branchExemption`.
+- Añadir a la §1 un comando con un punto no trunca la lista de permitidos, y
+  hay un test que lo fija.
+- El control 8 vive en un módulo propio con tests que cubren, como mínimo, los
+  nueve mutantes ya probados a mano: comando en prosa, en bloque, en tabla,
+  con `-C` y con `-c`, permitido con `=`, subcomando ilegible, `gitlab`/`legit`
+  que no son comandos, y la lista de la §1 recortada.
 
 ---
 
