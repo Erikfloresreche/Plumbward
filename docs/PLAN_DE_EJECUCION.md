@@ -1068,6 +1068,54 @@ equipo desarrolla en Windows; el control lo detectaría.
 
 ---
 
+### [ ] F0-18 — Documentación del repositorio en inglés
+**Rama:** `docs/f0-english-documentation` · **Depende de:** F0-16
+
+**Origen:** decisión del 2026-09-11. El código, los comentarios y la
+documentación de este repositorio están en español porque así se decidió al
+empezar (CLAUDE.md, §"Mensajes de commit..."). Se revierte: la industria y el
+propio asistente trabajan en inglés, y cada documento en español que el
+asistente lee o reescribe (el plan tiene más de 2.000 líneas) se paga en
+tokens en cada sesión. Es distinto de la Fase 1: aquella traduce lo que el
+producto **genera** para el cliente según su perfil; esto traduce **nuestra
+propia** documentación.
+
+**No es retroactivo.** Un ADR ya cerrado, o una entrada de este plan ya
+marcada, es un hecho histórico —como las alternativas descartadas o las fechas
+de cierre— y no se reescribe, igual que un reemplazo de marca no toca hechos
+fechados. Esta tarea traduce el documento que ya existe hoy; lo que se escriba
+después, se escribe directamente en inglés.
+
+**Trabajo:**
+1. Traducir a inglés, conservando su estructura y enlaces: `README.md`,
+   `CONTRIBUTING.md`, `CLAUDE.md`, `.claude/napkin.md`,
+   `.github/PULL_REQUEST_TEMPLATE.md`, `docs/PLAN_DE_EJECUCION.md`,
+   `docs/ARQUITECTURA.md`, `docs/MODELO_DE_NEGOCIO.md` y las cinco ADR de
+   `docs/adr/`. **Depende de F0-16** porque esos ficheros ya tienen que llevar
+   nombre en inglés antes de traducir su contenido: traducir y renombrar a la
+   vez duplica el churn y complica revisar el diff.
+2. Revertir en `CLAUDE.md` la regla que fija el español para comentarios y
+   documentación (§"Mensajes de commit..." y §4). El propio fichero que impone
+   la regla es el primero que hay que cambiar.
+3. Actualizar la tabla de la §0 y cualquier referencia cruzada a los nombres de
+   fichero que cambien de contenido (no de ruta: eso ya lo cubrió F0-16).
+4. Dado el tamaño (el plan solo pasa de 2.000 líneas), esta tarea probablemente
+   se ejecuta en más de una sesión: una tanda por fichero o grupo de ficheros,
+   cada una cerrando su propio commit dentro de la misma rama, seguida de
+   `pnpm check:coherencia`. Sigue siendo una sola tarea del plan y una sola PR.
+5. Comprobación de coherencia: ningún fichero de los listados en el punto 1
+   puede contener texto en español fuera de citas literales (por ejemplo, un
+   nombre propio o un hecho histórico ya fechado).
+
+**Criterios de aceptación:**
+- Los nueve documentos y las cinco ADR están en inglés; los hechos históricos
+  fechados (alternativas descartadas, fechas de cierre) no se reescriben.
+- `CLAUDE.md` ya no exige español para comentarios ni documentación.
+- `pnpm check:coherencia` sigue en verde.
+- Ningún enlace interno queda roto tras la traducción.
+
+---
+
 ## FASE 1 — Internacionalización del motor de plantillas
 
 **Objetivo:** que `Profile.language` funcione de verdad.
@@ -1693,6 +1741,11 @@ mirar. Esta tarea convierte en producto el flujo que ya usamos internamente
    erosione con el uso.
 5. Nueva opción de perfil `assistedReview` (por defecto activa) para que un
    equipo con revisión humana garantizada pueda desactivar el ofrecimiento.
+6. **Revisión proporcional** (origen: F0-17). La primera revisión es completa;
+   las siguientes se limitan al diff de las correcciones y usan un modelo ligero.
+   Una corrección pequeña ya probada no lleva otra ronda. Al cerrar, el
+   asistente recuerda que el merge es del desarrollador y que lo siguiente
+   empieza en una sesión nueva (F3-10 lo automatiza).
 
 **Criterios de aceptación:**
 - Un repositorio configurado recibe el flujo de entrega en sus ficheros de reglas
@@ -1701,6 +1754,8 @@ mirar. Esta tarea convierte en producto el flujo que ya usamos internamente
   entrega de los mensajes.
 - La sección deja explícito que la revisión asistida es una válvula contra el
   bloqueo, no un sustituto de la revisión humana.
+- Las reglas generadas limitan las revisiones de seguimiento al diff de las
+  correcciones.
 
 ---
 
@@ -1782,6 +1837,53 @@ lo regala una plataforma. Es coste de cambio real.
 - El control resultante es legible por una persona que no estuvo en la
   incidencia.
 - Desactivar un control exige motivo escrito, visible en la revisión.
+
+---
+
+### [ ] F3-10 — Cierre de sesión guiado: `plumbward session close`
+**Rama:** `feat/f3-session-close` · **Depende de:** F3-6, F1-3
+
+**Origen:** F0-17. El protocolo de conservación de tokens pide abrir una sesión
+nueva al cerrar cada tarea, pero hacerlo a mano es fricción: hay que recordar
+qué sigue y redactar el arranque. Un paso manual y farragoso se salta; un
+comando que lo deja todo en el portapapeles se usa. Es la tesis del producto
+—los controles vencen a las reglas— aplicada al coste.
+
+**Trabajo:**
+1. `plumbward session close [--next="<tarea>"]`, como subcomando: el resto de la
+   CLI usa verbos sueltos (`scan`, `plan`, `apply`), no `session:close`.
+2. **Precondiciones.** Árbol limpio —ni cambios ni ficheros sin seguimiento— y
+   rama empujada. Si algo falla, lo lista y no hace nada más.
+3. **Siguiente tarea.** Sin `--next`, la primera pendiente cuyas dependencias
+   estén cerradas, leída del plan que declare `.governance/config.yml`
+   (`session.plan`: ruta y patrón de cabecera; por defecto `### [ ] <ID> — <título>`).
+   El cliente no tiene nuestro `PLAN_DE_EJECUCION.md`: la fuente es configurable.
+4. **Prompt de arranque con punteros, no con contenido.** Repositorio, tarea y
+   su rama, último commit (hash y `--stat`) y qué leer y en qué orden. **Nunca el
+   diff**: meterlo en el prompt es justo el contexto arrastrado que se quiere
+   evitar; la sesión nueva lo pide si lo necesita. En el idioma del perfil.
+5. Copia al portapapeles (`pbcopy`, `wl-copy`/`xclip`, `clip.exe`). Sin
+   portapapeles (SSH, CI), lo imprime. No escribe en disco, así que no emite
+   `Operation[]`; mismo config y mismo repo dan el mismo prompt (invariante 2).
+6. Mensaje final: el merge lo hace el desarrollador, y hay que abrir una sesión
+   nueva del asistente y pegar el prompt.
+7. **Sin `clear`.** Limpiar la terminal no vacía el contexto del asistente: lo
+   vacía la sesión nueva. Borrar la pantalla sólo esconde lo que el desarrollador
+   quizá quería leer.
+
+**Lo que no se puede prometer:**
+- "Cero tokens": la sesión nueva sigue cargando las reglas y el prompt de
+  sistema. Se promete **sin contexto acumulado**, que es lo que cuesta.
+- "El cliente ve cuánto ahorra": no hay telemetría (ADR 0002). Medirlo exigiría
+  un informe local leyendo los registros de cada asistente. Es otra tarea, y hay
+  que decidir antes si entra en `MODELO_DE_NEGOCIO.md`.
+
+**Criterios de aceptación:**
+- Con el árbol sucio o la rama sin empujar, falla, lista la causa y no copia nada.
+- Mismo config y mismo repositorio producen el mismo prompt, byte a byte.
+- El prompt no contiene ningún diff y cabe en menos de 20 líneas.
+- Sin portapapeles disponible, imprime el prompt y termina con éxito.
+- Mensajes en español y en inglés.
 
 ---
 
