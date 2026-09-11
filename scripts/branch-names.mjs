@@ -60,8 +60,13 @@ const SPANISH_FUNCTION_WORDS = new Set([
  * lista de palabras: cubren la mitad de los nombres que la lista dejaba pasar
  * sin enumerar el vocabulario del proyecto.
  *
- * `minLength` evita el choque con palabras inglesas cortas (`dad`) y con las
- * escasas largas que acaban igual (`fascia`, `aikido`).
+ * `minLength` descarta las palabras inglesas cortas que acaban igual: `dad`,
+ * `aid`, `via`. **No descarta las largas**: `fascia`, `aikido` y `granddad` se
+ * marcarían como españolas. Es una colisión aceptada a sabiendas, no un
+ * descuido — subir el umbral a 7 perdería `gracia`, que mide lo mismo que
+ * `fascia` y sí está en el corpus. Ninguna de esas palabras aparece en un
+ * nombre de rama de este repositorio; si algún día aparece, se añade al corpus
+ * como negativo y se decide entonces.
  *
  * No se incluye `-ado`/`-ada`: el corpus no lo necesita y el inglés tiene
  * `tornado`, `avocado` y `bravado`.
@@ -180,25 +185,41 @@ export function checkPullRequestBranch(branch, actor) {
  * `declarations` cuenta todas las líneas `**Rama:**`; `branches`, sólo las que
  * nombran una rama entre acentos graves. No son lo mismo: dos tareas del plan
  * declaran a propósito que no tienen rama de código ("configuración de GitHub",
- * "repositorio aparte"), y la aserción de mínimo cuenta las declaraciones.
+ * "repositorio aparte").
+ *
+ * `tasksWithoutDeclaration` se cuenta **por tarea**, no comparando totales: una
+ * línea `**Rama:**` que cuelgue de una cabecera que no es tarea compensaría a la
+ * que falta, y la tarea sin rama volvería a pasar sin que nadie la juzgue. Es el
+ * mismo fallo silencioso que la aserción venía a cerrar.
  *
  * @param {string} text
- * @returns {{ tasks: number, declarations: number, branches: { name: string, pending: boolean }[] }}
+ * @returns {{ tasks: number, declarations: number, tasksWithoutDeclaration: number, branches: { name: string, pending: boolean }[] }}
  */
 export function parsePlan(text) {
   let pending = false
+  let inTask = false
+  let taskHasDeclaration = false
   let tasks = 0
   let declarations = 0
+  let tasksWithoutDeclaration = 0
   /** @type {{ name: string, pending: boolean }[]} */
   const branches = []
+
+  const closeTask = () => {
+    if (inTask && !taskHasDeclaration) tasksWithoutDeclaration += 1
+    inTask = false
+    taskHasDeclaration = false
+  }
 
   for (const line of text.split('\n')) {
     const heading = /^(#{1,6})\s+(.*)$/.exec(line)
     if (heading) {
+      closeTask()
       const task = heading[1].length === 3 && /^\[([ xX])\]\s+\S/.exec(heading[2])
       if (task) {
         tasks += 1
         pending = task[1] === ' '
+        inTask = true
       } else {
         pending = false
       }
@@ -206,11 +227,13 @@ export function parsePlan(text) {
     }
     if (!/^\s*\*\*Rama:\*\*/.test(line)) continue
     declarations += 1
+    if (inTask) taskHasDeclaration = true
     const branch = /^\s*\*\*Rama:\*\*\s*`([^`]+)`/.exec(line)
     if (branch) branches.push({ name: branch[1], pending })
   }
+  closeTask()
 
-  return { tasks, declarations, branches }
+  return { tasks, declarations, tasksWithoutDeclaration, branches }
 }
 
 /**
@@ -224,7 +247,7 @@ export function parsePlan(text) {
 export function checkPlan(text) {
   /** @type {string[]} */
   const failures = []
-  const { tasks, declarations, branches } = parsePlan(text)
+  const { tasks, tasksWithoutDeclaration, branches } = parsePlan(text)
 
   // Aserción de mínimo. El analizador anterior fallaba en silencio: un plan
   // vacío, una cabecera con otra forma o un `**Rama:**` con otro espaciado
@@ -233,10 +256,10 @@ export function checkPlan(text) {
     failures.push('el plan no declara ninguna tarea `### [ ] ...`: el analizador no reconoce su formato')
     return failures
   }
-  if (declarations < tasks) {
+  if (tasksWithoutDeclaration > 0) {
     failures.push(
-      `el plan declara ${tasks} tareas y sólo ${declarations} líneas "**Rama:**". ` +
-        'Falta la rama de alguna tarea, o su línea no sigue el formato que el analizador reconoce.',
+      `${tasksWithoutDeclaration} de las ${tasks} tareas del plan no declaran su rama antes de la ` +
+        'cabecera siguiente. Falta la línea "**Rama:**", o no sigue el formato que el analizador reconoce.',
     )
   }
 

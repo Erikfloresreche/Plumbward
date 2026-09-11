@@ -5,8 +5,8 @@
 > Cada tarea se cierra actualizando su casilla en este fichero, dentro de la
 > misma Pull Request que la implementa.
 
-**Última actualización:** 2026-09-11
-**Estado global:** Fase 0 en curso — F0-1, F0-3, F0-5, F0-8, F0-13, F0-14, F0-15 y F0-17 completadas. Quedan F0-2, F0-4, F0-6, F0-7, F0-9 a F0-12, F0-16 y F0-18 a F0-24.
+**Última actualización:** 2026-09-12
+**Estado global:** Fase 0 en curso — F0-1, F0-3, F0-5, F0-8, F0-13, F0-14, F0-15 y F0-17 completadas. Quedan F0-2, F0-4, F0-6, F0-7, F0-9 a F0-12, F0-16 y F0-18 a F0-25.
 **Producto:** Plumbward · https://github.com/Erikfloresreche/Plumbward
 **Modelo de negocio:** suscripción anual por repositorio — ver
 [MODELO_DE_NEGOCIO.md](MODELO_DE_NEGOCIO.md)
@@ -892,8 +892,9 @@ han repartido en F0-19 a F0-24: una rama implementa exactamente una tarea (§3 d
    lista de comandos de sólo lectura permitidos del §1 y dice "primera sesión en
    esta conversación".
 
-**Qué se convierte en control mecánico:** los puntos 2, 3 y 4 (corpus y tests).
-Del 5, que los comandos `git` de la §0 estén permitidos por la §1: es un choque
+**Qué se convierte en control mecánico:** los puntos 1, 2, 3 y 4 —las
+exenciones del 1 se cubren con tests igual que el corpus y el analizador—. Del
+5, que los comandos `git` de la §0 estén permitidos por la §1: es un choque
 entre dos secciones del mismo fichero, y sólo se ve leyendo las dos a la vez.
 
 **Cómo ha quedado:**
@@ -911,6 +912,12 @@ entre dos secciones del mismo fichero, y sólo se ve leyendo las dos a la vez.
 - Exención por autor: `[bot]` en el login, `<login>-patch-<n>` sólo si el login
   es el del autor, y `revert-<pr>-<rama>` sólo si la rama revertida era válida.
   `Prod` y `develop` son una lista explícita, no un patrón.
+- La aserción de mínimo cuenta **por tarea**, no totales: una línea `**Rama:**`
+  bajo una cabecera que no es tarea compensaba a la que faltaba, y la tarea sin
+  rama seguía sin juzgarse. Lo encontró la revisión de esta PR.
+- El control 8 recorre la §0 entera, no sólo sus bloques ```bash: un comando
+  escrito en prosa entre acentos graves se colaba, y la afirmación de la §1
+  —"todo comando `git` de la §0"— era falsa. También lo encontró la revisión.
 
 **No mecanizable:** un commit `docs:` de la PR #6 metió un cambio de producto
 (las reglas de IA generadas) y un control nuevo de CI, y la descripción de la PR
@@ -1112,15 +1119,20 @@ y eso sí es un control (queda en F0-24).
 
 **Trabajo:** el diagrama del §3.2 sigue diciendo `docs/f2-guia-packs` y
 `main (release)`; F3-5 tiene dos puntos numerados `2.`; la lista de "ya
-entregado" de F0-12 no incluye los controles 4 y 5.
+entregado" de F0-12 no incluye los controles que se han ido añadiendo, y F0-12
+sigue diciendo que `CLAUDE.md` "ronda las 130 líneas" cuando pasa de 250.
 
 **Qué se convierte en control mecánico:** extender el control de nombres de rama
-al diagrama del §3.2, que hoy no mira. El resto es corrección puntual.
+al diagrama del §3.2, que hoy no mira. El recuento de controles de F0-12 se
+deriva de `verificar-coherencia.mjs` en vez de escribirse a mano, que es lo que
+lo deja caducado cada vez que se añade uno. El resto es corrección puntual.
 
 **Criterios de aceptación:**
 - El diagrama del §3.2 usa nombres de rama que pasan el control, y el control
   los mira.
-- F3-5 numera sus puntos sin repetir, y F0-12 lista los cinco controles.
+- F3-5 numera sus puntos sin repetir.
+- F0-12 no afirma ningún número —de controles ni de líneas— que el repositorio
+  desmienta.
 
 ---
 
@@ -1220,6 +1232,46 @@ reproduciendo el caso de la revisión. El 8 es el propio job de mutaciones.
 - Hay un test por cada uno de los puntos 2 a 7, y falla al revertir su
   corrección.
 - `check:mutations` corre en CI.
+
+---
+
+### [ ] F0-25 — Seguimientos de la revisión de la PR #10
+**Rama:** `fix/f0-branch-control-followups` · **Depende de:** F0-15
+
+**Origen:** revisión en contexto nuevo de la PR #10 (F0-15). Los dos
+bloqueantes se corrigieron dentro de la PR; estos son los no bloqueantes, que
+van al plan y no a la rama abierta (§6.4 de `CLAUDE.md`).
+
+**Trabajo:**
+1. **Dos exenciones siguen siendo por nombre, no por autor.** `branchExemption`
+   exime `Prod`/`develop` y `revert-<n>-<rama válida>` sin mirar el autor:
+   cualquiera puede llamar a su rama `revert-1-develop` y saltarse el control
+   entero. El impacto real es bajo —es un control de convención, no de
+   seguridad— pero la puerta trasera que cerró el punto 1 de F0-15 sigue
+   entreabierta con otra forma. Decidir si se ata también al autor (la rama
+   `revert-*` la crea quien pulsa el botón, que es alguien con permiso de
+   escritura) o si se acepta, y dejarlo escrito donde se pueda leer.
+2. **Regresión operativa con Dependabot, sin anotar.** La exención exige ahora
+   `GITHUB_ACTOR` terminado en `[bot]`. Si una persona empuja un commit a una
+   rama `dependabot/...`, el actor es esa persona y la rama falla el formato:
+   CI roja en una rama legítima. Con el prefijo anterior no pasaba. La decisión
+   es deliberada y correcta, pero no está anotada ni en el plan ni en el JSDoc.
+3. **La lista de permitidos del control 8 se corta en el primer punto.** El
+   patrón `/Sí puedes usar los de sólo lectura:([\s\S]*?)\./` trunca la lista
+   en silencio si alguien añade a la §1 un `git log --format=%h` o cualquier
+   comando con un punto. Falla en voz alta, que es la dirección segura, pero el
+   mensaje apunta al sitio equivocado y cuesta de diagnosticar.
+
+**Qué se convierte en control mecánico:** el 1 y el 3, con tests. El 2 es una
+anotación: ningún control puede ver que una rama de bot ha dejado de serlo
+porque una persona ha empujado a ella.
+
+**Criterios de aceptación:**
+- La decisión del punto 1 está escrita, y si se ata al autor hay un test que
+  rechaza `revert-1-develop` de un autor sin permiso.
+- El punto 2 está anotado en el JSDoc de `branchExemption`.
+- Añadir a la §1 un comando con un punto no trunca la lista de permitidos, y
+  hay un test que lo fija.
 
 ---
 

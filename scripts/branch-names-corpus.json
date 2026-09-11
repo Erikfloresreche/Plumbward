@@ -1,11 +1,12 @@
 {
   "_comentario": [
     "Corpus de la heurística de idioma de los nombres de rama (F0-15).",
-    "`spanish` son los 33 nombres que la PR #6 renombró: la heurística debe",
-    "rechazarlos. `english` son sus 33 sustitutos más nombres ingleses reales",
-    "que la lista anterior rechazaba por error: debe aceptarlos todos.",
-    "`spanishNotDetected` es el límite conocido y medido de la heurística: cada",
-    "componente de esos nombres es también una palabra inglesa."
+    "La PR #6 renombró 33 nombres. Aquí están repartidos en dos listas: los 32",
+    "que la heurística debe rechazar están en `spanish`, y el que no detecta,",
+    "en `spanishNotDetected`. `english` son sus 33 sustitutos más nombres",
+    "ingleses reales que la lista anterior rechazaba por error: debe aceptarlos",
+    "todos. `spanishNotDetected` es el límite conocido y medido de la",
+    "heurística: cada componente de esos nombres es también una palabra inglesa."
   ],
   "spanish": [
     "build/f0-version-unica",

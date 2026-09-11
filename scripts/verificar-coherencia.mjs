@@ -305,22 +305,28 @@ if (existsSync(join(raiz, NAPKIN))) {
   else if (permitidos.length === 0) {
     fallo('git-permitido-en-claude-md', 'no se encuentra la lista de comandos git de sólo lectura en la §1')
   } else {
-    const bloques = [...seccion0.matchAll(/```bash\n([\s\S]*?)```/g)].map((m) => m[1])
-    if (bloques.length === 0) {
-      fallo('git-permitido-en-claude-md', 'la §0 ya no trae ningún bloque ```bash que comprobar')
-    }
-    for (const bloque of bloques) {
-      for (const uso of bloque.matchAll(/\bgit\s+([^\n|&#)"']+)/g)) {
-        const comando = uso[1].trim()
-        const permitido = permitidos.some((p) => comando === p || comando.startsWith(`${p} `))
-        if (!permitido) {
-          fallo(
-            'git-permitido-en-claude-md',
-            `la §0 propone "git ${comando}", que no está en la lista de sólo lectura de la §1`,
-          )
-        }
+    // Se recorre la §0 entera, no sólo sus bloques ```bash: un `git reset
+    // --hard` escrito en prosa, entre acentos graves, es igual de copiable y
+    // se colaba. El subcomando arrastra sólo sus opciones, de modo que la
+    // captura termina donde acaba el comando y no se come la frase.
+    const usos = seccion0.matchAll(
+      /(?:^|[\s`("])git\s+([a-z][a-z-]*(?:\s+--?[a-z][\w.-]*(?:=\S+)?)*)/g,
+    )
+    let vistos = 0
+    for (const uso of usos) {
+      vistos += 1
+      const comando = uso[1].trim()
+      const permitido = permitidos.some((p) => comando === p || comando.startsWith(`${p} `))
+      if (!permitido) {
+        fallo(
+          'git-permitido-en-claude-md',
+          `la §0 propone "git ${comando}", que no está en la lista de sólo lectura de la §1`,
+        )
       }
     }
+    // Si la §0 deja de proponer comandos, este control se queda sin objeto y
+    // hay que revisarlo, no dejarlo pasando en verde sin mirar nada.
+    if (vistos === 0) fallo('git-permitido-en-claude-md', 'la §0 ya no propone ningún comando git')
   }
 }
 

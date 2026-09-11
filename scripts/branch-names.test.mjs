@@ -118,17 +118,23 @@ describe('analizador del plan', () => {
   ].join('\n')
 
   it('reconoce [ ], [x] y [X] y cuenta las tareas', () => {
-    const { tasks, declarations, branches } = parsePlan(plan)
+    const { tasks, declarations, tasksWithoutDeclaration, branches } = parsePlan(plan)
     expect(tasks).toBe(2)
     expect(declarations).toBe(3)
+    expect(tasksWithoutDeclaration).toBe(0)
     expect(branches.map((b) => b.pending)).toEqual([true, false, false])
   })
 
   it('cuenta como declarada la tarea que dice no tener rama de código', () => {
-    const { tasks, declarations, branches } = parsePlan(
+    const { tasks, declarations, tasksWithoutDeclaration, branches } = parsePlan(
       '### [ ] F0-1 — Sin rama\n**Rama:** configuración de GitHub, sin rama de código\n',
     )
-    expect({ tasks, declarations, branches }).toEqual({ tasks: 1, declarations: 1, branches: [] })
+    expect({ tasks, declarations, tasksWithoutDeclaration, branches }).toEqual({
+      tasks: 1,
+      declarations: 1,
+      tasksWithoutDeclaration: 0,
+      branches: [],
+    })
   })
 
   it('una cabecera que no es tarea cierra la anterior', () => {
@@ -153,14 +159,34 @@ describe('analizador del plan', () => {
 
   it('falla si alguna tarea no declara su rama', () => {
     const sinRama = '### [ ] F0-1 — Con rama\n**Rama:** `fix/f0-one`\n\n### [ ] F0-2 — Sin rama\n'
-    expect(checkPlan(sinRama)).toEqual([expect.stringContaining('2 tareas y sólo 1')])
+    expect(checkPlan(sinRama)).toEqual([expect.stringContaining('1 de las 2 tareas')])
   })
 
   it('falla si la línea de rama no sigue un formato que el analizador reconoce', () => {
     // El fallo que motivó la aserción: el analizador se saltaba la línea y el
     // control pasaba como si la tarea no tuviera rama que juzgar.
     const otraForma = '### [ ] F0-1 — Tarea\n*Rama*: `fix/f0-ramas-protegidas`\n'
-    expect(checkPlan(otraForma)).toEqual([expect.stringContaining('1 tareas y sólo 0')])
+    expect(checkPlan(otraForma)).toEqual([expect.stringContaining('1 de las 1 tareas')])
+  })
+
+  it('una rama fuera de toda tarea no compensa a la tarea que no la declara', () => {
+    // Regresión de la revisión de la PR #10: comparando totales, la línea de
+    // "## Apéndice" cuadraba las cuentas y el nombre español de F0-1 nunca se
+    // llegaba a juzgar. Se cuenta por tarea, no por totales.
+    const enmascarado = [
+      '### [ ] F0-1 — Con la rama mal escrita',
+      '*Rama*: `fix/f0-ramas-protegidas`',
+      '',
+      '### [ ] F0-2 — Correcta',
+      '**Rama:** `fix/f0-two`',
+      '',
+      '## Apéndice',
+      '**Rama:** `fix/f0-three`',
+      '',
+    ].join('\n')
+    const { tasks, declarations } = parsePlan(enmascarado)
+    expect({ tasks, declarations }).toEqual({ tasks: 2, declarations: 2 })
+    expect(checkPlan(enmascarado)).toEqual([expect.stringContaining('1 de las 2 tareas')])
   })
 
   it('tolera espaciado distinto en la línea de rama', () => {
