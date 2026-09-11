@@ -12,13 +12,13 @@ name: E2E
 
 on:
   pull_request:
-    branches: [develop, main]
+    branches: [develop, Prod]
   push:
-    branches: [develop, main]
+    branches: [develop, Prod]
 
 concurrency:
   group: e2e-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
@@ -27,10 +27,11 @@ jobs:
   ciclo-completo:
     name: Ciclo completo sobre repositorios reales
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: '22'
           cache: pnpm
@@ -38,9 +39,9 @@ jobs:
       - name: Instalar dependencias
         run: pnpm install --frozen-lockfile
 
-      - name: Compilar
-        run: pnpm build
-
+      # No se compila: los tests importan `src` a través de los alias de
+      # vitest y no cargan nada de `dist`. Compilar aquí serían 30 segundos
+      # de nada en el workflow que existe precisamente por ser lento.
       # Los tests configuran la identidad de git en cada repositorio temporal
       # que crean, así que no hace falta configuración global aquí.
       - name: Pruebas de punta a punta

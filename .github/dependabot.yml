@@ -10,6 +10,9 @@ version: 2
 updates:
   - package-ecosystem: github-actions
     directory: /
+    # Sin esto, Dependabot abre las PRs contra la rama por defecto, que no es
+    # la de integración: las actualizaciones entrarían saltándose `develop`.
+    target-branch: develop
     schedule:
       interval: monthly
     open-pull-requests-limit: 3

@@ -100,7 +100,7 @@ La explicación completa, con el porqué de cada decisión, está en
 
 ## Desarrollo
 
-Requiere Node.js >= 18 y pnpm.
+Requiere Node.js >= 22.13 y pnpm.
 
 ```bash
 pnpm install

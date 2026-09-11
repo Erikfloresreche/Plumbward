@@ -6,7 +6,7 @@
 > misma Pull Request que la implementa.
 
 **Última actualización:** 2026-09-09
-**Estado global:** Fase 0 en curso — F0-1, F0-3, F0-5 y F0-8 completadas. Quedan F0-2, F0-4, F0-6, F0-7 y F0-9 a F0-12.
+**Estado global:** Fase 0 en curso — F0-1, F0-3, F0-5 y F0-8 completadas. Quedan F0-2, F0-4, F0-6, F0-7 y F0-9 a F0-14.
 **Producto:** Plumbward · https://github.com/Erikfloresreche/Plumbward
 **Modelo de negocio:** suscripción anual por repositorio — ver
 [MODELO_DE_NEGOCIO.md](MODELO_DE_NEGOCIO.md)
@@ -84,7 +84,7 @@ fricción que encontremos aquí es un requisito para esa feature.
 
 | Rama | Papel | Protección |
 |---|---|---|
-| `main` | Sólo releases publicadas. Cada commit es una versión etiquetada. | Sin push directo. Sólo merge desde `develop` vía PR con CI verde. |
+| `Prod` | Sólo releases publicadas. Cada commit es una versión etiquetada. | Sin push directo. Sólo merge desde `develop` vía PR con CI verde. |
 | `develop` | Integración continua del trabajo en curso. Siempre debe estar en verde. | Sin push directo. Sólo merge de ramas de tarea vía PR. |
 
 ### 3.2 Ramas de tarea
@@ -98,6 +98,11 @@ develop ──┬── feat/f2-pack-python ──── PR ──┐
           ├── feat/f2-pack-go ─────── PR ───┼──> develop ──> PR ──> main (release)
           └── docs/f2-guia-packs ──── PR ───┘
 ```
+
+La rama de releases se llama **`Prod`**, no `main`. Es la convención del equipo,
+y el producto debe adaptarse a la convención del repositorio y no al revés — es
+literalmente lo que vende. Nada en el código ni en los workflows puede dar por
+hecho un nombre de rama.
 
 Reglas:
 - Una rama **nace de `develop` actualizado** y muere al integrarse. No se reutiliza.
@@ -266,11 +271,14 @@ uno técnico.
 3. Ejecutar `gitleaks` sobre nuestro propio repo en cada PR.
 
 **Criterios de aceptación:**
-- [x] Una PR con un test roto queda bloqueada en rojo.
+- [ ] Una PR con un test roto queda bloqueada en rojo. **No se cumple.** La CI
+      pinta el rojo, pero sin protección de rama ni ruleset la PR sigue siendo
+      mergeable. Requiere configuración en GitHub, que no vive en el
+      repositorio: tarea **F0-13**.
 - [ ] El pipeline completo baja de 5 minutos con caché caliente. *Pendiente de
       medir en la primera ejecución real.*
 - [x] Node 18 pasa, o se sube `engines` conscientemente y se documenta. **Se
-      subió.**
+      subió a `>=22`, con el motivo verificado en CI.**
 
 **Cerrada el 2026-09-10.** Entregado: `ci.yml` (matriz de Node, build,
 typecheck y unitarios, más escaneo de secretos), `e2e.yml` y `dependabot.yml`
@@ -278,11 +286,17 @@ para las acciones de GitHub.
 
 **Cuatro decisiones tomadas durante la ejecución:**
 
-1. **Matriz 20 / 22 / 24, no 18 / 20 / 22.** Node 18 lleva sin soporte de
-   seguridad desde abril de 2025 y Node 20 desde abril de 2026. Sostener un
-   runtime sin parches es incoherente en un producto que vende higiene de
-   seguridad. `engines` sube a `>=20`, que se mantiene como suelo pragmático
-   mientras haya equipos ahí; 22 es LTS en mantenimiento y 24 LTS activa.
+1. **Matriz 22 / 24 / 26, y `engines` a `>=22`.** El plan pedía 18 / 20 / 22.
+   Node 18 y 20 llevan sin soporte de seguridad desde abril de 2025 y abril de
+   2026, así que se descartaron por coherencia con lo que vende el producto.
+   Node 20 se intentó igualmente como suelo pragmático, y **la primera ejecución
+   real de la CI lo tumbó**: pnpm 11 usa `node:sqlite` y exige Node >= 22.13, de
+   modo que en 20 no se pueden ni instalar las dependencias.
+
+   La lección importante no es el número: es que estábamos a punto de declarar
+   en `engines` un soporte que **no podíamos verificar**. Se soporta lo que se
+   prueba. Se añadió 26 a la matriz porque es sobre lo que se desarrolla en
+   local, y un fallo exclusivo de 26 se descubriría tarde.
 
 2. **Pruebas partidas en `test:unit` y `test:e2e`.** Las unitarias tardan menos
    de un segundo y corren en las tres versiones de Node; las de punta a punta
@@ -299,11 +313,12 @@ para las acciones de GitHub.
 
 **Dos cosas que conviene que sepas:**
 
-- **El repositorio es privado**, así que los minutos de Actions están limitados
-  (2.000/mes en el plan gratuito). Hacerlo **público** los vuelve ilimitados, y
-  la licencia BUSL ya lo permite: el `README` vende que el código es auditable,
-  así que tenerlo cerrado contradice el argumento comercial. Recomendación:
-  hacerlo público antes de F6-1.
+- **El repositorio se hizo público el 2026-09-11**, lo que deja los minutos de
+  Actions sin límite y alinea el repositorio con la licencia BUSL y con el
+  argumento comercial de que el código es auditable. Consecuencia que hay que
+  asumir: **todo el historial anterior es visible para cualquiera**, y el
+  escaneo de secretos por PR sólo mira los commits de esa PR. De ahí el job
+  `historial`, que revisa el historial completo semanalmente.
 - Si el repositorio se mueve a una **organización** de GitHub,
   `gitleaks-action` pasa a exigir un secreto `GITLEAKS_LICENSE`. Mientras sea
   una cuenta personal es gratuita. Está anotado en el propio workflow.
@@ -567,11 +582,85 @@ vende el producto, aplicada a nosotros.
 que existe una frontera de seguridad que el código no implementa. Ningún linter
 detecta eso. Para esa clase, la única defensa es la revisión en contexto nuevo.
 
+**Ya entregado (en F0-3):** `scripts/verificar-coherencia.mjs`, que comprueba
+que el suelo de Node declarado en `package.json` coincide con el más bajo que
+prueba la CI, que README y CONTRIBUTING dicen esa misma versión, y que cada
+paquete publicable declara su propio `engines`. Nació de tres hallazgos de la
+revisión de F0-3 y encontró el tercero solo, en su primera ejecución.
+
 **Criterios de aceptación:**
 - Reintroducir a propósito cada uno de los cuatro fallos citados hace fallar su
   control correspondiente.
 - La lista de hechos protegidos y la de términos prohibidos viven en un fichero
   legible y se revisan en la PR, no escondidas en un test.
+
+---
+
+### [ ] F0-13 — Proteger las ramas para que el rojo bloquee de verdad
+**Rama:** configuración de GitHub, sin rama de código · **Depende de:** F0-3
+
+**Origen:** la revisión de F0-3. La CI pinta el rojo pero no impide nada: con
+una PR en rojo, `gh pr view --json mergeable` devuelve `MERGEABLE`. Un control
+que se puede ignorar no es un control.
+
+**Trabajo:**
+1. ~~Renombrar `Prod` a `main`.~~ **Descartado.** `Prod` es la convención del
+   equipo y es perfectamente válida; había que arreglar los workflows, no la
+   rama. Ya apuntan a `Prod`, y hay un control que impide que vuelva a pasar.
+2. Ruleset sobre `Prod` y `develop`: prohibir push directo, exigir Pull Request
+   y exigir los checks en verde.
+3. Los nombres de check obligatorios son `Node 22.13`, `Node 24`, `Node 26`,
+   `Escaneo de secretos` y `Ciclo completo sobre repositorios reales`.
+   **Cuidado:** vienen del campo `name` de cada job, así que **cualquier cambio
+   en la matriz invalida la lista**. Un check obligatorio que ya no existe
+   bloquea todas las PRs para siempre.
+4. Borrar del remoto las ramas de tareas ya integradas.
+
+**Criterios de aceptación:**
+- Una PR con un check en rojo no se puede mergear desde la interfaz.
+- `gh api repos/.../rulesets` devuelve las reglas configuradas.
+- Las reglas cubren `Prod` y `develop`, los nombres reales de las ramas.
+
+---
+
+### [ ] F0-14 — La detección de ramas protegidas no puede estar cableada
+**Rama:** `fix/f0-ramas-protegidas` · **Depende de:** nada · **Prioridad: alta**
+
+**Origen:** al renombrar la rama de releases de este repositorio a `Prod`,
+quedó a la vista que el CLI no la reconoce.
+
+**El fallo, y es grave:**
+
+```ts
+const PROTECTED_BRANCHES = new Set(['main', 'master', 'production', 'prod'])
+if (!PROTECTED_BRANCHES.has(currentBranch)) { /* trabaja sobre la rama actual */ }
+```
+
+1. **Distingue mayúsculas.** `Prod` no coincide con `prod`, así que `apply`
+   escribiría **directamente sobre la rama de producción** en lugar de crear la
+   rama aislada. Es una violación de la garantía principal del producto —
+   *"nunca se trabaja sobre main"*— y ocurre en silencio.
+2. **Es una lista cerrada.** No contempla `trunk`, `produccion`, `desarrollo`
+   ni ninguna convención de equipo. Vendemos adaptarnos a cualquier repositorio
+   y damos por hecho cuatro nombres en inglés.
+3. **`recommendedProfile` adivina mal:** `scan.git.branch === 'master' ? 'master'
+   : 'main'` decide que la rama principal se llama `main` en cuanto no se llama
+   `master`. Con `Prod`, el perfil generado miente.
+
+**Trabajo:**
+1. Detectar la rama por defecto **real** del repositorio
+   (`git symbolic-ref refs/remotes/origin/HEAD`, con `init.defaultBranch` y la
+   rama actual como respaldo) en lugar de deducirla de una lista.
+2. `prepareBranch` decide a partir de `profile.branches`, que es la fuente de
+   verdad configurada, más la rama por defecto detectada. La lista cableada pasa
+   a ser sólo un respaldo, y **sin distinguir mayúsculas**.
+3. `recommendedProfile` rellena `branches.main` con la rama detectada.
+4. Tests con `Prod`, `PROD`, `trunk`, `produccion` y un repositorio sin remoto.
+
+**Criterios de aceptación:**
+- En un repositorio cuya rama por defecto se llame `Prod`, `apply` crea la rama
+  aislada igual que lo haría en `main`.
+- Ningún nombre de rama aparece cableado en la ruta de decisión.
 
 ---
 
@@ -1564,7 +1653,8 @@ el valor, paga y aplica.
 1. Scope y organización ya resueltos en F0-8: `@plumbward/*`, organización
    registrada en npm el 2026-09-09.
 2. Empaquetado: un único ejecutable por `tsup`, arranque rápido, `bin` correcto.
-3. Verificar `npx` en macOS, Linux y Windows, y con Node 18, 20 y 22.
+3. Verificar `npx` en macOS, Linux y Windows, con las versiones de Node que
+   la CI pruebe en ese momento (hoy 22.13, 24 y 26).
 4. Publicación automática desde `main` con changesets y provenance.
 5. Comprobar el tamaño del paquete: `npx` se ejecuta en cada demo y una descarga
    lenta arruina la primera impresión.

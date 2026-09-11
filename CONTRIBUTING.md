@@ -14,7 +14,8 @@ contribución que los rompa se rechaza aunque funcione:
 
 ## Puesta en marcha
 
-Requiere Node.js >= 18 y pnpm.
+Requiere Node.js >= 22.13 y pnpm. El suelo no es una preferencia: pnpm 11
+usa `node:sqlite` y no arranca por debajo de esa versión.
 
 ```bash
 git clone https://github.com/Erikfloresreche/Plumbward.git
@@ -33,7 +34,7 @@ Cada tarea tiene identificador, rama, dependencias y criterios de aceptación.
 
 | Rama | Papel |
 |---|---|
-| `main` | Sólo releases. Cada commit es una versión etiquetada |
+| `Prod` | Sólo releases. Cada commit es una versión etiquetada |
 | `develop` | Integración. Siempre debe estar en verde |
 
 Las ramas de tarea nacen de `develop` y se nombran
