@@ -1,5 +1,5 @@
 import type { Operation, PackageManager } from '@plumbward/core'
-import { block, cmd, dep, file, json } from '@plumbward/packs-sdk'
+import { block, ciPushBranches, cmd, dep, file, json } from '@plumbward/packs-sdk'
 import type {
   DetectionResult,
   HealthCheck,
@@ -139,7 +139,12 @@ export const nodeTsPack: StackPack = {
     operations.push(
       file(
         '.github/workflows/ci-dev.yml',
-        ciDevWorkflow(manager, profile.mode, profile),
+        ciDevWorkflow(
+          manager,
+          profile.mode,
+          profile,
+          ciPushBranches(profile, scan.git.defaultBranch, scan.git.branches),
+        ),
         'Valida cada Pull Request antes de que la revise una persona.',
       ),
     )
@@ -152,11 +157,14 @@ export const nodeTsPack: StackPack = {
         ),
       )
     }
-    if (profile.deployTarget !== 'none') {
+    // Sin rama de despliegue configurada no se genera el workflow: desplegar
+    // desde una rama adivinada no se puede deshacer. `validate` lo avisa.
+    const release = profile.branches.release
+    if (profile.deployTarget !== 'none' && release !== null) {
       operations.push(
         file(
           '.github/workflows/ci-prod.yml',
-          ciProdWorkflow(manager, profile),
+          ciProdWorkflow(manager, release),
           'Pipeline de producción con puerta de aprobación manual.',
         ),
       )
@@ -345,6 +353,22 @@ export const nodeTsPack: StackPack = {
         fixHint: 'Ejecuta `plumbward apply`.',
       },
     ]
+
+    // Hay destino de despliegue pero no rama desde la que desplegar: el
+    // workflow de producción no se ha generado. Se avisa en lugar de callarlo.
+    const { deployTarget, branches } = context.profile
+    if (deployTarget !== 'none') {
+      checks.push({
+        id: 'release-branch',
+        label: 'Rama de despliegue configurada',
+        ok: branches.release !== null,
+        detail:
+          branches.release !== null
+            ? `Se despliega a producción desde "${branches.release}".`
+            : `Hay un destino de despliegue (${deployTarget}) pero ninguna rama de despliegue: no se ha generado el workflow de producción.`,
+        fixHint: 'Indica en `.governance/config.yml` la rama desde la que se despliega (`branches.release`). Plumbward no la deduce: desplegar desde una rama adivinada no se puede deshacer.',
+      })
+    }
 
     return checks
   },

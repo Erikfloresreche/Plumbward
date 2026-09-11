@@ -16,12 +16,14 @@ export { file, json, yaml, block, dep, cmd } from './dsl.js'
 export type { FileOptions } from './dsl.js'
 
 export {
+  WORK_BRANCH_PREFIXES,
   LONG_LIVED_BRANCH_NAMES,
-  detectBranchRoles,
-  longLivedBranches,
-  isLongLivedBranch,
+  isWorkBranch,
+  configuredBranches,
+  requiresIsolation,
+  ciPushBranches,
 } from './branches.js'
-export type { BranchRoles } from './branches.js'
+export type { HeadState } from './branches.js'
 
 export { PackRegistry } from './registry.js'
 export type { SelectedPack } from './registry.js'

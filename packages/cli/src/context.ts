@@ -25,6 +25,28 @@ export function buildRegistry(): PackRegistry {
  * El fichero es la fuente de verdad: mientras no cambie, la CLI produce
  * exactamente el mismo plan una y otra vez.
  */
+/**
+ * Traduce los nombres de campo de versiones anteriores del perfil.
+ *
+ * Hasta el 2026-09-11 el perfil tenía `main` y `dev`, que mezclaban dos papeles
+ * (ADR 0005). `dev` pasa a `integration`. `main` **no** se traduce a `release`:
+ * era un valor adivinado, y convertirlo en rama de despliegue sería justo el
+ * error que el cambio evita. Un `release` explícito, en cambio, se respeta.
+ */
+function normaliseBranches(raw: Record<string, unknown> | undefined): Partial<Profile['branches']> {
+  if (!raw) return {}
+  const text = (value: unknown): string | null | undefined =>
+    typeof value === 'string' ? value : value === null ? null : undefined
+  const out: { integration?: string | null; release?: string | null; staging?: string | null } = {}
+  const integration = text(raw['integration']) ?? text(raw['dev'])
+  if (integration !== undefined) out.integration = integration
+  const release = text(raw['release'])
+  if (release !== undefined) out.release = release
+  const staging = text(raw['staging'])
+  if (staging !== undefined) out.staging = staging
+  return out
+}
+
 export async function loadProfile(scan: RepoScan): Promise<{
   profile: Profile
   fromFile: boolean
@@ -39,7 +61,16 @@ export async function loadProfile(scan: RepoScan): Promise<{
     if (typeof parsed !== 'object' || parsed === null) throw new Error('contenido vacío')
     // El perfil recomendado actúa como base: así un config.yml de una versión
     // antigua sigue funcionando cuando se añaden campos nuevos.
-    const profile = { ...recommendedProfile(scan), ...(parsed as Partial<Profile>) } as Profile
+    const base = recommendedProfile(scan)
+    const fromFile = parsed as Partial<Profile> & { branches?: Record<string, unknown> }
+    const profile = {
+      ...base,
+      ...fromFile,
+      // Mezcla profunda de `branches`: un fichero que sólo declare una rama no
+      // debe borrar las demás.
+      branches: { ...base.branches, ...normaliseBranches(fromFile.branches) },
+    } as Profile
+    return { profile, fromFile: true }
     return { profile, fromFile: true }
   } catch (cause) {
     const detail = cause instanceof Error ? cause.message : String(cause)
@@ -78,7 +109,13 @@ export function profileToYaml(profile: Profile): string {
 #   strictness    "strict" o "moderate". Ajusta la dureza de linter y umbrales.
 #   mode          Modo de aplicación derivado del tamaño del repositorio:
 #                 greenfield | ratchet | non-disruptive
-#   branches      Ramas del flujo de trabajo. "staging" y "dev" pueden ser null.
+#   branches      Papel de cada rama. Cualquiera puede ser null.
+#                   integration  A qué rama van las Pull Requests. Se deduce
+#                                de la rama por defecto del remoto.
+#                   release      Desde qué rama se despliega a producción.
+#                                NUNCA se deduce: escríbela tú. Sin ella no se
+#                                genera el workflow de despliegue.
+#                   staging      Rama de preproducción, si la usáis.
 #   deployTarget  vercel | aws | docker | render | none
 #   devcontainer  Genera un entorno de desarrollo contenedorizado.
 #   aiAssistants  Para qué asistentes se generan ficheros de reglas.

@@ -6,7 +6,7 @@
 > misma Pull Request que la implementa.
 
 **Última actualización:** 2026-09-11
-**Estado global:** Fase 0 en curso — F0-1, F0-3, F0-5, F0-8, F0-13 y F0-14 completadas. Quedan F0-2, F0-4, F0-6, F0-7, F0-9 a F0-12 y F0-15.
+**Estado global:** Fase 0 en curso — F0-1, F0-3, F0-5, F0-8, F0-13 y F0-14 completadas. Quedan F0-2, F0-4, F0-6, F0-7, F0-9 a F0-12, F0-15 y F0-16.
 **Producto:** Plumbward · https://github.com/Erikfloresreche/Plumbward
 **Modelo de negocio:** suscripción anual por repositorio — ver
 [MODELO_DE_NEGOCIO.md](MODELO_DE_NEGOCIO.md)
@@ -637,9 +637,11 @@ aprobaciones** —con 1, un desarrollador en solitario no podría mergear nunca 
 propias PRs— y los seis checks obligatorios, verificados uno a uno contra los
 nombres reales de los jobs. Un push directo a `develop` es rechazado; probado.
 
-Llegó un día tarde: horas antes, F0-14 había entrado en `develop` por un push
-directo, sin PR ni revisión, porque la rama local se creó enganchada a
-`origin/develop`. Con esta regla, eso ya no puede ocurrir.
+Llegó tarde: horas antes, F0-14 había entrado en `develop` por un push directo,
+porque la rama local se creó enganchada a `origin/develop`. Con esta regla un
+push directo ya no es posible. **Una PR sin revisión, sí**: con 0 aprobaciones,
+la revisión depende de que se pida. Para un desarrollador en solitario es lo
+correcto, pero conviene no confundir las dos cosas.
 
 Lo aprendido al configurarla a mano es la base de la versión automática, en
 F3-5.
@@ -677,83 +679,68 @@ if (!PROTECTED_BRANCHES.has(currentBranch)) { /* trabaja sobre la rama actual */
 2. `prepareBranch` decide a partir de `profile.branches`, que es la fuente de
    verdad configurada, más la rama por defecto detectada. La lista cableada pasa
    a ser sólo un respaldo, y **sin distinguir mayúsculas**.
-3. `recommendedProfile` rellena `branches.main` con la rama detectada.
+3. ~~`recommendedProfile` rellena `branches.main` con la rama detectada.~~
+   Descartado: ver la tercera versión más abajo y la ADR 0005.
 4. Tests con `Prod`, `PROD`, `trunk`, `produccion` y un repositorio sin remoto.
 
 **Criterios de aceptación:**
-- [x] En un repositorio cuya rama por defecto se llame `Prod`, `apply` crea la
-      rama aislada igual que lo haría en `main` — también con una etiqueta
-      `Prod`, con HEAD desacoplado y en un repositorio sin commits.
-- [x] La decisión no depende de una lista cableada. Queda una de respaldo,
-      `LONG_LIVED_BRANCH_NAMES`, pero sólo puede *añadir* protección, y hay tests
-      con nombres que no están en ella.
+- [x] `apply` no escribe directamente en ninguna rama que no sea claramente de
+      trabajo: tampoco con una etiqueta homónima, con HEAD desacoplado, en un
+      repositorio sin commits ni con nombres fuera de toda lista (`pro`, `pre`,
+      `live`, `release/prod`).
+- [x] La decisión no depende de una lista de ramas de larga duración. La única
+      lista que decide es la de prefijos de trabajo, que es cerrada.
 
-**Cerrada dos veces.** La primera versión se dio por terminada el 2026-09-11 y
-**no lo estaba**. Entró en `develop` sin PR, la revisión posterior al merge la
-desmontó, y se rehízo en `fix/f0-protected-branches-rework`. Queda escrito para
-no olvidar cómo pasó.
+**Cerrada a la tercera.** Queda escrito entero para no repetirlo.
 
-**Qué estaba mal en la primera versión** (verificado con repositorios reales):
+**Primera versión** (entró en `develop` sin PR el 2026-09-11; la desmontó la
+revisión posterior al merge):
 
-1. **La protección se seguía saltando.** La rama se leía con
-   `git rev-parse --abbrev-ref HEAD`, que devuelve `heads/Prod` si existe una
-   etiqueta llamada `Prod` —algo habitual para marcar despliegues—. Ese nombre
-   no coincide con nada y `apply` escribía sobre `Prod`. `symbolic-ref --short`
-   tiene el mismo defecto; se comprobó antes de elegir la solución.
-2. **Introdujo una regresión en repos git-flow.** Usaba la rama por defecto de
-   GitHub como rama de releases. En git-flow esa es `develop`, y la CI generada
-   pasaba a desplegar a producción desde `develop`. Rama por defecto ≠ rama de
-   releases.
-3. **Su verificación no demostraba nada.** Se dio como prueba que "el commit de
-   `Prod` es el mismo antes y después del `apply`", pero `apply` nunca hace
-   commit: eso se cumplía también con el fallo sin arreglar.
-4. **Los tests repetían la lista.** Quitar una fuente entera de la decisión no
-   rompía ninguno, porque todos usaban nombres que ya estaban en la lista.
+1. Leía la rama con `git rev-parse --abbrev-ref HEAD`, que devuelve `heads/Prod`
+   si existe una etiqueta `Prod`. `symbolic-ref --short` tiene el mismo defecto;
+   se comprobó antes de elegir la solución.
+2. Tomaba la rama por defecto de GitHub como rama de releases. En git-flow es
+   `develop`, y la CI generada desplegaba a producción desde `develop`.
+3. **Su verificación no demostraba nada**: "el commit de `Prod` no se mueve" se
+   cumplía también con el fallo, porque `apply` nunca hace commit.
+4. Los tests repetían la lista: quitar una fuente entera no rompía ninguno.
 
-**Cómo se rehízo:**
+**Segunda versión** (PR #7, bloqueada por la revisión previa al merge): arregló
+la lectura de la rama, pero deducía la rama de releases del primer nombre de una
+lista de prioridad. Con `main` (donde van las PRs) y `Prod` (despliegue), la CI
+generada sólo revisaba `Prod` y **las PRs a `main` quedaban sin revisar**. Y
+cualquier nombre fuera de la lista seguía desprotegido.
 
-- **Primero los tests en rojo.** `packages/cli/test/protected-branches.test.ts`
-  ejecuta `runApply` completo sobre repositorios reales y pregunta lo único que
-  importa: *¿en qué rama queda el repositorio?*. Con el código anterior, 5 de 7
-  fallaban por exactamente las razones de arriba.
-- La rama actual se lee con `git symbolic-ref -q HEAD` **sin abreviar**. Con
-  HEAD desacoplado se crea igualmente la rama aislada.
-- La rama de releases se deduce de **las ramas que existen**
-  (`detectBranchRoles`), nunca de la rama por defecto; y la de integración
-  (`develop`) se detecta también, para que la CI generada cubra las dos.
-- **Pruebas de mutación:** se rompieron a propósito seis piezas de la lógica
-  —cada fuente de la unión, la insensibilidad a mayúsculas, la lectura de la
-  rama, la deducción de la rama de releases, el aislamiento con HEAD
-  desacoplado— y **todas hicieron fallar algún test**.
+**La lección de las tres:** cada heurística para deducir "cuál es la rama de
+releases" arreglaba unos repositorios y rompía otros. No se puede deducir. De ahí
+el principio de la **[ADR 0005](adr/0005-inference-only-widens.md)**: lo que se
+deduce del repositorio sólo puede ampliar protecciones, nunca reducirlas ni
+decidir una acción.
 
-**El descubrimiento que cambió el diseño:** la rama por defecto se lee de
-`refs/remotes/origin/HEAD` sin red, porque el escáner tiene que funcionar
-offline. En un clon recién hecho apunta bien. Pero **en este mismo
-repositorio apuntaba a `origin/main`**, una rama que ya no existe: el repo se creó
-con `git init` + `push` cuando la rama era `main`, y renombrarla en GitHub no
-actualiza la referencia local. Peor aún, `refs/remotes/origin/main` seguía
-existiendo como referencia huérfana, así que ni siquiera comprobar que la rama
-de destino existe detecta el desfase. Sin red no hay forma de saberlo.
+**Tercera versión, la que se cierra:**
 
-Por eso la decisión no se apoya en una sola fuente sino en una **unión**
-(`longLivedBranches`): las ramas del perfil, la rama por defecto detectada y la
-lista de respaldo, sin distinguir mayúsculas. Un dato desfasado sólo puede
-añadir protección, nunca quitarla. El coste de un falso positivo es una rama de
-trabajo innecesaria; el de un falso negativo, escribir sobre producción.
+- **Protección invertida.** Se aísla el trabajo siempre, salvo en ramas de
+  trabajo reconocibles por su prefijo (`feat/`, `fix/`, `chore/`…). Un nombre
+  desconocido cae del lado seguro.
+- **El perfil separa los dos papeles** que antes mezclaba `branches.main`:
+  `integration` (a qué rama van las PRs, deducida de `origin/HEAD`) y `release`
+  (desde cuál se despliega, **nunca deducida**). Sin `release`, no se genera el
+  workflow de despliegue y `doctor` lo avisa.
+- **La CI generada revisa todas las Pull Requests**, sin filtrar por rama.
+- La rama actual se lee con `git symbolic-ref -q HEAD` sin abreviar; con HEAD
+  desacoplado se aísla igualmente.
+- Un `config.yml` antiguo sigue funcionando: `dev` pasa a `integration`, pero
+  `main` **no** pasa a `release`, porque era un valor adivinado.
+- Los tests aíslan git de la configuración global de la máquina.
 
-**De paso, un cambio de comportamiento deliberado:** `develop`, `staging` y las
-demás ramas configuradas en el perfil también se protegen, no sólo la de
-releases. Antes, `apply` en `develop` escribía directamente sobre la rama de
-integración, que CONTRIBUTING dice que debe estar siempre en verde.
+**Cómo se verificó:** primero los tests en rojo contra el código anterior —7 de
+15 fallaban—; luego **doce mutaciones** deliberadas de la lógica, incluidas las
+tres que la revisión encontró sin cubrir (aislar siempre, ignorar `--no-branch`,
+fallar en la segunda ejecución), **todas detectadas por algún test**.
 
-**La CI no comprobaba los tipos.** La revisión posterior al merge de la PR #6
-descubrió que, desde que la matriz pasó de `'22'` a `'22.13'`, los pasos de
-typecheck y de coherencia tenían `if: matrix.node == '22'` y se saltaban en
-todas las ejecuciones: la CI verde de `develop` no incluía ninguno de los dos.
-Se corrigió en la primera versión de F0-14. Ahora son un job
-propio, `Tipos y coherencia`, sin condiciones que puedan desajustarse, y el
-script de coherencia falla si alguna condición `if` apunta a una versión que no
-está en la matriz o si el job desaparece.
+**La CI no comprobaba los tipos**, descubierto de paso: los pasos de typecheck y
+coherencia tenían `if: matrix.node == '22'` y la matriz era `'22.13'`. Son ahora
+un job propio, `Tipos y coherencia`.
 
 **Pendiente, anotado para `doctor` (F4-3):** avisar cuando `origin/HEAD` pueda
 estar desfasado y sugerir `git remote set-head origin --auto`. La herramienta no
@@ -855,6 +842,13 @@ nombres de rama, tal como está, es más frágil de lo que parece.**
       `tsconfig` sólo incluyen `src/`.
     - Los tests que ejecutan `runApply` imprimen toda la salida del CLI en el
       log de la CI.
+    - `listBranchNames` quita sólo el primer segmento del nombre de un remoto:
+      un remoto con `/` en el nombre produce nombres de rama erróneos.
+12. **Sacar el escaneo del historial completo a un workflow propio.** Vive en
+    `ci.yml` con una condición, así que aparece como *Skipped* en todas las PRs y
+    genera la duda de si algo falla. En un workflow que sólo se dispare por
+    calendario y a mano, no aparecería. (Se ejecutó por primera vez el
+    2026-09-11: el historial completo está limpio.)
 
 **Qué se convierte en control mecánico:** los puntos 2, 3 y 4 (corpus y tests),
 y el 9 si el control de nombres de rama se extiende al diagrama del §3.2. El 7 es
@@ -865,6 +859,36 @@ una decisión, no un control. El 10 es de proceso: la defensa es la revisión.
 - El corpus de nombres está en el repositorio y el control lo pasa.
 - El script de coherencia tiene tests que se ejecutan en `test:unit`.
 - La sección 0 de `CLAUDE.md` funciona copiando y pegando en un clon limpio.
+
+---
+
+### [ ] F0-16 — Nombres de ficheros e identificadores en inglés
+**Rama:** `refactor/f0-english-names` · **Depende de:** F0-15
+
+**Origen:** decisión del 2026-09-11. Los nombres no son documentación: acaban en
+rutas, imports e historial, y los lee cualquier desarrollador. La documentación
+y los comentarios de este proyecto siguen en español.
+
+**Trabajo:**
+1. Renombrar a inglés los ficheros con nombre en español —`scripts/verificar-coherencia.mjs`,
+   `docs/PLAN_DE_EJECUCION.md`, `docs/ARQUITECTURA.md`, `docs/MODELO_DE_NEGOCIO.md`,
+   las ADR 0001 a 0004 y el `GOBERNANZA.md` que genera el pack de Node— y
+   **actualizar en el mismo cambio todos los enlaces y referencias**.
+2. Pasar a inglés las variables y funciones con nombre en español.
+3. **El control, no sólo la regla.** En la misma sesión en que se acordó, se creó
+   un fichero nuevo con nombre en español (`0005-lo-inferido-solo-amplia.md`,
+   corregido antes de commitear). Una regla recién escrita se incumple con
+   facilidad: `check:coherencia` debe fallar ante un fichero nuevo cuyo nombre
+   parezca español, y ante enlaces rotos tras el renombrado.
+4. **En el producto:** el wizard (F4-1) pregunta a la empresa si trabaja en `es`
+   o en `en`, y **todo gira en torno a esa elección**: el contenido generado, los
+   comentarios y lo que las reglas de IA piden al asistente para nombres y
+   comentarios. Es configuración de la empresa, no imposición nuestra.
+
+**Criterios de aceptación:**
+- Ningún fichero ni identificador en español fuera del contenido en prosa.
+- Ningún enlace roto en la documentación.
+- El control falla al añadir un fichero con nombre en español.
 
 ---
 
@@ -1418,6 +1442,9 @@ práctica en producto.
   obligatorio no corresponde a ningún job.
 - **Aprobaciones según el equipo:** 0 para un desarrollador solo, que con 1 no
   podría mergear nunca sus propias PRs; 1 o más para equipos.
+- **Qué ramas proteger:** `integration` y `release` del perfil, más la rama por
+  defecto. Nunca una rama adivinada; si falta `release`, se protege sólo lo que
+  se sabe y se avisa (ADR 0005).
 - **Es una operación remota nueva**, fuera de las seis operaciones locales del
   núcleo, así que requiere una **ADR**. Debe conservar las garantías: `plan`
   muestra la regla exacta, se leen primero las existentes para no pisarlas,
@@ -1579,7 +1606,9 @@ reglas nuevas sin perder ni una sola personalización del cliente.
 2. Preguntas, **todas con un valor por defecto derivado del escaneo** para que
    pulsar Enter cinco veces dé un resultado correcto:
    - Estrategia de ramas (F3-5).
-   - Destino de despliegue por entorno.
+   - Destino de despliegue por entorno **y la rama desde la que se despliega**
+     (`branches.release`). Es lo único que Plumbward nunca deduce (ADR 0005): se
+     pregunta siempre, sin valor por defecto.
    - Nivel de estrictez, mostrando cuántos errores generaría cada opción **sobre
      su repo real** — el escáner ya tiene los datos para calcularlo.
    - Asistentes de IA en uso.

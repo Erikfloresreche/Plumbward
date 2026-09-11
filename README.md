@@ -43,13 +43,16 @@ Un ciclo típico son tres comandos: `scan` para ver dónde estás, `plan` para v
 qué cambiaría, `apply` para hacerlo. Y si algo no encaja, `rollback` deja el
 repositorio como estaba.
 
-Si estás en una rama de larga duración, `apply` crea antes una rama dedicada
-(`chore/setup-ai-governance`) y trabaja allí. **No hace falta que tu rama se
-llame `main`**: se reconocen las que configures en `.governance/config.yml`, la
-rama por defecto de `origin` y las convenciones habituales (`Prod`, `trunk`,
-`develop`, `producción`…), sin distinguir mayúsculas. También aísla el trabajo
-si tienes HEAD desacoplado. En una rama de trabajo, opera sobre ella y te lo
-dice.
+`apply` sólo escribe directamente en una **rama de trabajo** reconocible por su
+prefijo (`feat/`, `fix/`, `chore/`…). En cualquier otra —`main`, `Prod`, `pro`,
+`live` o un nombre que nadie haya previsto— crea antes una rama dedicada
+(`chore/setup-ai-governance`) y trabaja allí; también con HEAD desacoplado. Ante
+la duda, protege. `--no-branch` desactiva este comportamiento si sabes lo que
+haces.
+
+**Plumbward nunca adivina desde qué rama se despliega.** La CI que genera revisa
+todas las Pull Requests, y el workflow de despliegue sólo existe cuando indicas
+la rama en `.governance/config.yml`.
 
 ## Tres garantías
 

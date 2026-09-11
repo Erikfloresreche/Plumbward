@@ -12,7 +12,7 @@ import {
 import type { ChangePlan, CommandRunner, Operation } from '@plumbward/core'
 import { branchExists } from '@plumbward/scanner'
 import type { GitState } from '@plumbward/scanner'
-import { file, isLongLivedBranch } from '@plumbward/packs-sdk'
+import { file, requiresIsolation } from '@plumbward/packs-sdk'
 import type { Profile } from '@plumbward/packs-sdk'
 import { CLI_VERSION, buildContext, buildRegistry, profileToYaml } from './context.js'
 import { error, renderHealthChecks, renderPlan, renderScan, success, warn } from './render.js'
@@ -100,13 +100,10 @@ export async function runPlan(cwd: string, options: { diff: boolean }): Promise<
 /**
  * Prepara la rama aislada de trabajo. Devuelve la rama de partida.
  *
- * Se aísla el trabajo cuando la rama actual es de larga duración —lo decide
- * `isLongLivedBranch` a partir del perfil, la rama por defecto y una lista de
- * respaldo, sin distinguir mayúsculas— y también **con HEAD desacoplado**: ahí
- * no hay rama que proteger, pero cualquier commit posterior quedaría suelto y
- * se perdería con facilidad.
+ * Qué ramas se aíslan lo decide `requiresIsolation`: todas salvo las ramas de
+ * trabajo reconocibles, y siempre con HEAD desacoplado (ADR 0005).
  */
-export async function prepareBranch(
+async function prepareBranch(
   repoRoot: string,
   git: Pick<GitState, 'branch' | 'detachedHead' | 'defaultBranch'>,
   createBranch: boolean,
@@ -114,10 +111,7 @@ export async function prepareBranch(
 ): Promise<string | null> {
   if (!createBranch) return git.branch
 
-  const needsIsolation =
-    git.detachedHead || (git.branch !== null && isLongLivedBranch(git.branch, profile, git.defaultBranch))
-
-  if (!needsIsolation) {
+  if (!requiresIsolation(git, profile)) {
     log.info(`Se trabajará sobre la rama actual "${git.branch}".`)
     return git.branch
   }

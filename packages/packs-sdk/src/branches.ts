@@ -1,15 +1,53 @@
 import type { Profile } from './contract.js'
 
 /**
+ * Decisiones sobre ramas.
+ *
+ * Todo este fichero sigue un principio (ADR 0005): **lo que se deduce del
+ * repositorio sólo puede ampliar las protecciones, nunca reducirlas ni decidir
+ * una acción.** Tres versiones anteriores intentaron deducir cuál es la rama de
+ * releases a partir de nombres o de la rama por defecto, y cada una arreglaba
+ * unos repositorios y rompía otros. Aquí no se adivina: se protege todo lo que
+ * no sea claramente trabajo, y lo que desencadena acciones se configura.
+ */
+
+/**
+ * Prefijos de las ramas de trabajo.
+ *
+ * Es la lista que se puede cerrar: los prefijos de trabajo son una convención
+ * extendida y estable (Conventional Commits, git-flow, bots de dependencias). Los
+ * nombres de ramas de larga duración, en cambio, no se pueden enumerar —`Prod`,
+ * `pro`, `pre`, `live`, `release/prod`…—, y por eso la decisión se apoya en esta
+ * lista y no en aquélla.
+ *
+ * `release/` no está a propósito: en muchos equipos es de larga duración.
+ */
+export const WORK_BRANCH_PREFIXES: readonly string[] = [
+  'feat',
+  'feature',
+  'fix',
+  'bugfix',
+  'hotfix',
+  'chore',
+  'docs',
+  'refactor',
+  'test',
+  'tests',
+  'build',
+  'ci',
+  'perf',
+  'style',
+  'revert',
+  'dependabot',
+  'renovate',
+]
+
+/**
  * Nombres habituales de ramas de larga duración.
  *
- * Es sólo una red de seguridad, no la fuente de verdad: esa es el perfil. Existe
- * porque hay repositorios sin `config.yml` todavía, y porque la rama por defecto
- * detectada puede estar desfasada (ver `GitState.defaultBranch`).
- *
- * Incluye convenciones en español, con y sin tilde, porque el mercado inicial
- * son agencias españolas y un equipo no debería tener que llamar `main` a su
- * rama para que la herramienta la respete.
+ * Ya no decide qué se protege —eso lo hace `isWorkBranch`—. Sólo se usa para
+ * **ampliar** la lista de ramas en las que la CI generada se ejecuta al hacer
+ * push. Incluye convenciones en español, con y sin tilde.
  */
 export const LONG_LIVED_BRANCH_NAMES: readonly string[] = [
   'main',
@@ -17,7 +55,6 @@ export const LONG_LIVED_BRANCH_NAMES: readonly string[] = [
   'trunk',
   'prod',
   'production',
-  'release',
   'develop',
   'development',
   'dev',
@@ -28,72 +65,23 @@ export const LONG_LIVED_BRANCH_NAMES: readonly string[] = [
   'desarrollo',
 ]
 
-/**
- * Nombres de rama de releases, **por orden de preferencia**. Si un repositorio
- * tiene `Prod` y `main`, la de releases es `Prod`: es el nombre más específico.
- */
-const RELEASE_BRANCH_PRIORITY: readonly string[] = [
-  'prod',
-  'production',
-  'producción',
-  'produccion',
-  'main',
-  'master',
-  'release',
-  'trunk',
-]
-
-/** Nombres de rama de integración, por orden de preferencia. */
-const INTEGRATION_BRANCH_PRIORITY: readonly string[] = ['develop', 'development', 'desarrollo', 'dev']
-
-export interface BranchRoles {
-  /** Rama de releases, con el nombre exacto que tiene en el repositorio. */
-  readonly release: string | null
-  /** Rama de integración, si existe. */
-  readonly integration: string | null
+/** ¿Es una rama de trabajo, de las que se crean para una tarea y se borran? */
+export function isWorkBranch(branch: string): boolean {
+  const slash = branch.indexOf('/')
+  if (slash <= 0 || slash === branch.length - 1) return false
+  return WORK_BRANCH_PREFIXES.includes(branch.slice(0, slash).toLowerCase())
 }
 
-/**
- * Deduce el papel de cada rama a partir de las que **existen** en el
- * repositorio.
- *
- * No usa la rama por defecto del remoto. Esa es la rama por defecto de GitHub,
- * que no tiene por qué ser la de releases: en git-flow es `develop`. Usarla como
- * rama de releases llegó a hacer que la CI generada desplegara a producción
- * desde `develop`.
- */
-export function detectBranchRoles(branches: readonly string[]): BranchRoles {
-  const find = (priority: readonly string[]): string | null => {
-    for (const wanted of priority) {
-      const match = branches.find((name) => name.toLowerCase() === wanted)
-      if (match !== undefined) return match
-    }
-    return null
-  }
-  return { release: find(RELEASE_BRANCH_PRIORITY), integration: find(INTEGRATION_BRANCH_PRIORITY) }
-}
-
-/**
- * Ramas que la herramienta nunca modifica directamente: sobre ellas, `apply`
- * crea antes una rama aislada.
- *
- * Es una **unión** a propósito. Cada fuente puede fallar por su lado —el perfil
- * puede no existir aún, la rama por defecto puede estar desfasada, la lista de
- * respaldo no conoce todas las convenciones— y con una unión un dato erróneo
- * sólo puede añadir protección, nunca quitarla. El coste de un falso positivo es
- * una rama de trabajo innecesaria; el de un falso negativo, escribir sobre
- * producción.
- */
-export function longLivedBranches(
+/** Ramas que el perfil o el remoto señalan explícitamente como de larga duración. */
+export function configuredBranches(
   profile: Pick<Profile, 'branches'>,
   defaultBranch: string | null,
 ): ReadonlySet<string> {
   const candidates = [
-    profile.branches.main,
+    profile.branches.integration,
+    profile.branches.release,
     profile.branches.staging,
-    profile.branches.dev,
     defaultBranch,
-    ...LONG_LIVED_BRANCH_NAMES,
   ]
   return new Set(
     candidates
@@ -102,17 +90,50 @@ export function longLivedBranches(
   )
 }
 
+export interface HeadState {
+  readonly branch: string | null
+  readonly detachedHead: boolean
+  readonly defaultBranch: string | null
+}
+
 /**
- * ¿Es esta rama de larga duración?
+ * ¿Hay que aislar el trabajo en una rama propia antes de escribir?
  *
- * No distingue mayúsculas. Git sí lo hace —`Prod` y `prod` son ramas
- * distintas—, pero aquí la pregunta es "¿parece una rama que no se debe tocar
- * directamente?", y ante la duda la respuesta segura es sí.
+ * Sí, salvo que se esté en una rama de trabajo reconocible que además no figure
+ * como rama de larga duración en el perfil ni sea la rama por defecto. Un nombre
+ * desconocido cae del lado seguro: el peor caso es una rama aislada innecesaria,
+ * frente a escribir directamente sobre producción.
  */
-export function isLongLivedBranch(
-  branch: string,
+export function requiresIsolation(head: HeadState, profile: Pick<Profile, 'branches'>): boolean {
+  if (head.detachedHead) return true
+  if (head.branch === null) return false
+  if (configuredBranches(profile, head.defaultBranch).has(head.branch.toLowerCase())) return true
+  return !isWorkBranch(head.branch)
+}
+
+/**
+ * Ramas en las que la CI generada se ejecuta al hacer push.
+ *
+ * Es una unión que sólo amplía: las del perfil, la rama por defecto y las ramas
+ * existentes que tengan un nombre habitual de larga duración. Ejecutar la CI de
+ * más cuesta minutos; de menos, dejar una rama sin comprobar. Las Pull Requests
+ * no dependen de esto: la CI generada las revisa todas.
+ */
+export function ciPushBranches(
   profile: Pick<Profile, 'branches'>,
   defaultBranch: string | null,
-): boolean {
-  return longLivedBranches(profile, defaultBranch).has(branch.toLowerCase())
+  existingBranches: readonly string[],
+): string[] {
+  const names: string[] = []
+  const add = (name: string | null): void => {
+    if (name && !names.some((n) => n.toLowerCase() === name.toLowerCase())) names.push(name)
+  }
+  add(profile.branches.integration)
+  add(profile.branches.release)
+  add(profile.branches.staging)
+  add(defaultBranch)
+  for (const name of existingBranches) {
+    if (LONG_LIVED_BRANCH_NAMES.includes(name.toLowerCase())) add(name)
+  }
+  return names
 }

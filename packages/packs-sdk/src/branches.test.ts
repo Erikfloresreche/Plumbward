@@ -1,85 +1,80 @@
 import { describe, expect, it } from 'vitest'
-import { detectBranchRoles, isLongLivedBranch, longLivedBranches } from './branches.js'
+import { ciPushBranches, isWorkBranch, requiresIsolation } from './branches.js'
 
 /** Perfil mínimo: sólo importa `branches`. */
-function profileWith(main: string, staging: string | null = null, dev: string | null = null) {
-  return { branches: { main, staging, dev } }
+function profileWith(
+  branches: { integration?: string | null; release?: string | null; staging?: string | null } = {},
+) {
+  return { branches: { integration: null, release: null, staging: null, ...branches } }
 }
 
-/**
- * Nombres que NO están en la lista de respaldo. Las pruebas que los usan son las
- * que de verdad ejercitan cada fuente de la unión: con un nombre de la lista,
- * quitar una fuente no cambia nada y la prueba no detectaría el fallo.
- */
-const UNKNOWN_RELEASE = 'live'
-const UNKNOWN_WORK = 'fix/f0-protected-branches'
+function head(branch: string | null, options: { detached?: boolean; defaultBranch?: string | null } = {}) {
+  return { branch, detachedHead: options.detached ?? false, defaultBranch: options.defaultBranch ?? null }
+}
 
-describe('ramas de larga duración', () => {
-  it('protege una rama configurada en el perfil aunque no esté en ninguna lista', () => {
-    expect(isLongLivedBranch(UNKNOWN_RELEASE, profileWith(UNKNOWN_RELEASE), null)).toBe(true)
-  })
-
-  it('protege la rama por defecto aunque el perfil no la mencione', () => {
-    expect(isLongLivedBranch(UNKNOWN_RELEASE, profileWith('main'), UNKNOWN_RELEASE)).toBe(true)
-  })
-
-  it('protege staging y dev configurados en el perfil', () => {
-    const profile = profileWith('Prod', 'pre', 'integracion')
-    expect(isLongLivedBranch('pre', profile, null)).toBe(true)
-    expect(isLongLivedBranch('integracion', profile, null)).toBe(true)
-  })
-
-  it('no distingue mayúsculas en ninguna de las fuentes', () => {
-    expect(isLongLivedBranch('LIVE', profileWith('live'), null), 'perfil').toBe(true)
-    expect(isLongLivedBranch('Live', profileWith('main'), 'LIVE'), 'rama por defecto').toBe(true)
-    expect(isLongLivedBranch('PROD', profileWith('main'), null), 'lista de respaldo').toBe(true)
-  })
-
-  it('reconoce convenciones en español, con y sin tilde', () => {
-    for (const name of ['produccion', 'producción', 'desarrollo']) {
-      expect(isLongLivedBranch(name, profileWith('main'), null), name).toBe(true)
+describe('ramas de trabajo', () => {
+  it('reconoce los prefijos habituales, sin distinguir mayúsculas', () => {
+    for (const name of ['feat/login', 'fix/f0-protected-branches', 'chore/setup-ai-governance', 'Feature/X', 'hotfix/urgent', 'dependabot/npm/x']) {
+      expect(isWorkBranch(name), name).toBe(true)
     }
   })
 
-  it('una rama por defecto desfasada sólo añade protección, nunca la quita', () => {
-    // Situación real de este repositorio: origin/HEAD apuntaba a `main` tras
-    // renombrar la rama a `Prod`.
-    const protectedNames = longLivedBranches(profileWith('Prod'), 'main')
-    expect(protectedNames.has('prod')).toBe(true)
-    expect(protectedNames.has('main')).toBe(true)
-  })
-
-  it('no protege las ramas de trabajo, ni por prefijo', () => {
-    for (const name of [UNKNOWN_WORK, 'feature/login', 'productivity', 'devtools', 'maintenance']) {
-      expect(isLongLivedBranch(name, profileWith('Prod'), 'Prod'), name).toBe(false)
+  it('no confunde con trabajo ramas de larga duración ni nombres sin prefijo', () => {
+    for (const name of ['Prod', 'pro', 'pre', 'live', 'main', 'release/prod', 'env/production', 'featured', 'feat', 'feat/', '/fix']) {
+      expect(isWorkBranch(name), name).toBe(false)
     }
   })
 })
 
-describe('papel de cada rama', () => {
-  it('en git-flow, la rama de releases es main y la de integración develop', () => {
-    expect(detectBranchRoles(['develop', 'main'])).toEqual({ release: 'main', integration: 'develop' })
+describe('¿hay que aislar el trabajo?', () => {
+  it('sí, en cualquier rama que no sea claramente de trabajo, esté o no en una lista', () => {
+    for (const name of ['Prod', 'pro', 'pre', 'live', 'staging', 'release/prod', 'user-patch-1']) {
+      expect(requiresIsolation(head(name), profileWith()), name).toBe(true)
+    }
   })
 
-  it('prefiere el nombre más específico: Prod antes que main', () => {
-    expect(detectBranchRoles(['main', 'Prod']).release).toBe('Prod')
+  it('no, en una rama de trabajo', () => {
+    expect(requiresIsolation(head('feat/login'), profileWith())).toBe(false)
   })
 
-  it('devuelve el nombre con las mayúsculas que tiene en el repositorio', () => {
-    expect(detectBranchRoles(['PRODUCTION', 'Develop'])).toEqual({
-      release: 'PRODUCTION',
-      integration: 'Develop',
-    })
+  it('sí, con HEAD desacoplado', () => {
+    expect(requiresIsolation(head(null, { detached: true }), profileWith())).toBe(true)
   })
 
-  it('no confunde una rama de trabajo con la de releases', () => {
-    expect(detectBranchRoles(['feature/main-menu', 'productivity'])).toEqual({
-      release: null,
-      integration: null,
-    })
+  it('sí, si el equipo configuró como larga duración una rama con aspecto de trabajo', () => {
+    // Improbable, pero la configuración explícita manda sobre la convención.
+    const profile = profileWith({ integration: 'feat/integration' })
+    expect(requiresIsolation(head('feat/integration'), profile)).toBe(true)
   })
 
-  it('sin ramas reconocibles no inventa ninguna', () => {
-    expect(detectBranchRoles([])).toEqual({ release: null, integration: null })
+  it('sí, si la rama con aspecto de trabajo es la rama por defecto del remoto', () => {
+    expect(requiresIsolation(head('feat/main', { defaultBranch: 'feat/main' }), profileWith())).toBe(true)
+  })
+
+  it('las ramas configuradas se comparan sin distinguir mayúsculas', () => {
+    expect(requiresIsolation(head('FEAT/X'), profileWith({ release: 'feat/x' }))).toBe(true)
+  })
+})
+
+describe('ramas en las que la CI se ejecuta al hacer push', () => {
+  it('reúne las del perfil, la rama por defecto y las existentes con nombre habitual', () => {
+    const branches = ciPushBranches(
+      profileWith({ integration: 'main', release: 'Prod' }),
+      'main',
+      ['main', 'Prod', 'develop', 'feat/x', 'live'],
+    )
+    expect(branches).toEqual(['main', 'Prod', 'develop'])
+  })
+
+  it('no duplica la misma rama escrita con otras mayúsculas', () => {
+    expect(ciPushBranches(profileWith({ release: 'prod' }), null, ['Prod'])).toEqual(['prod'])
+  })
+
+  it('una rama de despliegue sin nombre habitual entra si está configurada', () => {
+    expect(ciPushBranches(profileWith({ release: 'live' }), null, ['live'])).toEqual(['live'])
+  })
+
+  it('sin nada que añadir devuelve una lista vacía, y la CI sólo revisa PRs', () => {
+    expect(ciPushBranches(profileWith(), null, ['feat/x'])).toEqual([])
   })
 })

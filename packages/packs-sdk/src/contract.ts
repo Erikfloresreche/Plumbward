@@ -1,6 +1,5 @@
 import type { Operation } from '@plumbward/core'
 import type { GovernanceMode, RepoScan } from '@plumbward/scanner'
-import { detectBranchRoles } from './branches.js'
 
 /**
  * Contrato público de un StackPack.
@@ -56,10 +55,25 @@ export interface AgentBoundaries {
 export interface Profile {
   readonly strictness: StrictnessLevel
   readonly mode: GovernanceMode
+  /**
+   * Papel de cada rama. Son dos preguntas distintas que una versión anterior
+   * mezclaba en un solo campo, y por eso se equivocaba (ADR 0005).
+   */
   readonly branches: {
-    readonly main: string
+    /**
+     * Rama a la que van las Pull Requests. Se deduce de `origin/HEAD` porque en
+     * GitHub eso es exactamente lo que significa la rama por defecto.
+     */
+    readonly integration: string | null
+    /**
+     * Rama desde la que se despliega a producción. **Nunca se deduce**: queda en
+     * `null` hasta que el equipo la configure. Sin ella no se genera el
+     * workflow de despliegue, porque desplegar desde una rama adivinada es la
+     * clase de error que no se puede deshacer.
+     */
+    readonly release: string | null
+    /** Rama de preproducción, si el equipo la usa. */
     readonly staging: string | null
-    readonly dev: string | null
   }
   readonly deployTarget: DeployTarget
   readonly devcontainer: boolean
@@ -110,20 +124,17 @@ export interface StackPack {
 
 /** Perfil por defecto derivado del escaneo, para el modo no interactivo. */
 export function recommendedProfile(scan: RepoScan): Profile {
-  const roles = detectBranchRoles(scan.git.branches)
   const strictness: StrictnessLevel = scan.sloc.mode === 'greenfield' ? 'strict' : 'moderate'
 
   return {
     strictness,
     mode: scan.sloc.mode,
     branches: {
-      // Se deduce de las ramas que existen, NO de la rama por defecto del
-      // remoto: en git-flow esa es `develop`, y tomarla como rama de releases
-      // hacía que la CI generada desplegara a producción desde develop. Es una
-      // sugerencia que acaba en `config.yml`, revisable en una PR.
-      main: roles.release ?? (scan.git.branch === 'master' ? 'master' : 'main'),
+      // Lo único que se deduce es lo que tiene una fuente fiable. La rama de
+      // despliegue no la tiene, y se deja sin configurar a propósito.
+      integration: scan.git.defaultBranch,
+      release: null,
       staging: null,
-      dev: roles.integration,
     },
     deployTarget: 'none',
     devcontainer: scan.sloc.mode === 'greenfield',
