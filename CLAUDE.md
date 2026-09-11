@@ -209,8 +209,15 @@ no cuesta más por lo que se escribe, sino por todo lo que se arrastra.
 3. **Lecturas dirigidas.** Nunca un fichero grande ni el repositorio entero:
    `grep -n` y rangos de líneas exactos. El plan pasa de 2.000 líneas.
 4. **En una PR abierta sólo se corrigen los bloqueantes.** Los seguimientos van
-   al plan como tarea nueva. Tras la primera revisión completa, las siguientes
-   se limitan al diff de las correcciones.
+   al plan como tarea nueva.
+5. **Revisión proporcional.** La primera revisión es completa, en contexto
+   nuevo. Después, sólo el diff de las correcciones y con un modelo ligero
+   (Haiku o Sonnet), nunca el pesado. Una corrección pequeña ya probada con
+   mutantes no lleva otra ronda. Nunca se relee ni se recompila el repositorio
+   entero para revisar una corrección.
+6. **Cierre manual y sesión nueva.** El asistente deja la tarea lista y entrega
+   los textos. El merge lo hace el desarrollador. Todo lo siguiente, sin
+   excepción, empieza en una sesión nueva: el asistente lo dice al cerrar.
 
 **Por qué:** la sesión de la PR #7 (F0-14) gastó más del 80 % de la ventana de
 uso: cinco rondas de revisión en contexto nuevo, y cada seguimiento corregido

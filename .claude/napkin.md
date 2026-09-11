@@ -54,6 +54,6 @@
 2. **[2026-09-11] Commits, títulos y descripciones de PR, nombres de rama, ficheros e identificadores, en inglés**
    Do instead: prosa (docs, comentarios) en español; todo nombre en inglés.
 3. **[2026-09-11] Toda PR se revisa en contexto nuevo antes del merge**
-   Do instead: lanza la revisión antes de decir que se puede mergear, no después.
+   Do instead: lanza la revisión antes de decir que se puede mergear. Las correcciones, sólo su diff y con modelo ligero.
 4. **[2026-09-11] Una sesión larga cuesta por lo que arrastra, no por lo que escribe**
    Do instead: una tarea por sesión; en una PR abierta sólo bloqueantes, los seguimientos al plan (CLAUDE.md §6).
