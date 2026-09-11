@@ -62,7 +62,7 @@ describe('límites operativos en las reglas de IA generadas', () => {
 
     expect(rules).toContain('Comandos de git que modifican el estado')
     expect(rules).toContain('Comandos de base de datos que escriben')
-    expect(rules).toContain('se redactan siempre en inglés')
+    expect(rules).toContain('se redactan siempre\nen inglés')
   })
 
   it('permite explícitamente los comandos de sólo lectura', () => {
@@ -94,7 +94,17 @@ describe('límites operativos en las reglas de IA generadas', () => {
 
   it('traduce el idioma de los commits cuando el perfil lo cambia', () => {
     const enEspanol = aiRules(scan, withBoundaries({ commitLanguage: 'es' }))
-    expect(enEspanol).toContain('se redactan siempre en español')
+    expect(enEspanol).toContain('se redactan siempre\nen español')
+  })
+
+  it('exige también los nombres de rama en el idioma del historial', () => {
+    const rules = aiRules(scan, base)
+
+    // El nombre de rama queda en el historial igual que el commit: si uno va en
+    // inglés y el otro no, el historial acaba mezclando idiomas.
+    expect(rules).toContain('los nombres de rama se redactan siempre')
+    expect(rules).toContain('fix/protected-branch-detection')
+    expect(copilotInstructions(scan, base)).toContain('los nombres de rama en inglés')
   })
 
   it('lleva los mismos límites a las instrucciones de Copilot', () => {

@@ -38,7 +38,8 @@ Cada tarea tiene identificador, rama, dependencias y criterios de aceptación.
 | `develop` | Integración. Siempre debe estar en verde |
 
 Las ramas de tarea nacen de `develop` y se nombran
-**`<tipo>/f<fase>-<slug>`** — por ejemplo `feat/f2-pack-python`. Tipos
+**`<tipo>/f<fase>-<slug>`**, con el slug **en inglés** — por ejemplo
+`fix/f0-protected-branches`, nunca `fix/f0-ramas-protegidas`. Tipos
 permitidos: `feat`, `fix`, `refactor`, `test`, `docs`, `build`, `ci`, `chore`.
 
 Una rama implementa **exactamente una tarea**. Si aparece trabajo imprevisto, se

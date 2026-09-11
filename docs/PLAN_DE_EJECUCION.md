@@ -5,7 +5,7 @@
 > Cada tarea se cierra actualizando su casilla en este fichero, dentro de la
 > misma Pull Request que la implementa.
 
-**Última actualización:** 2026-09-09
+**Última actualización:** 2026-09-11
 **Estado global:** Fase 0 en curso — F0-1, F0-3, F0-5 y F0-8 completadas. Quedan F0-2, F0-4, F0-6, F0-7 y F0-9 a F0-14.
 **Producto:** Plumbward · https://github.com/Erikfloresreche/Plumbward
 **Modelo de negocio:** suscripción anual por repositorio — ver
@@ -89,7 +89,16 @@ fricción que encontremos aquí es un requisito para esa feature.
 
 ### 3.2 Ramas de tarea
 
-Formato: **`<tipo>/f<fase>-<slug-en-kebab-case>`**
+Formato: **`<tipo>/f<fase>-<slug-en-kebab-case>`**, con el *slug* **en
+inglés**, igual que los mensajes de commit y las descripciones de PR: el nombre
+de rama queda en el historial de git y lo leerá gente que no habla español.
+
+Ejemplo: `fix/f0-protected-branches`, no `fix/f0-ramas-protegidas`.
+
+Las ramas de tareas **ya cerradas** conservan el nombre con el que existieron
+(`ci/f0-pipeline-propio`, `docs/f0-documentacion-base`). Son un hecho del
+historial, y reescribirlas en este documento sería el mismo error que en F0-8
+convirtió el nombre real de un competidor en uno inventado.
 
 Tipos permitidos: `feat`, `fix`, `refactor`, `test`, `docs`, `build`, `ci`, `chore`.
 
@@ -234,7 +243,7 @@ vincula a otra cuenta.
 ---
 
 ### [ ] F0-2 — Una única fuente para el número de versión
-**Rama:** `build/f0-version-unica` · **Depende de:** F0-1
+**Rama:** `build/f0-single-version-source` · **Depende de:** F0-1
 
 **Por qué:** `CLI_VERSION` está hardcodeado como `'0.1.0'` en
 [context.ts](../packages/cli/src/context.ts). En cuanto publiquemos, el journal
@@ -416,7 +425,7 @@ actualizaciones: tiene que poder leer qué cambió en cada una.
 ---
 
 ### [ ] F0-7 — Umbral de cobertura de tests
-**Rama:** `test/f0-cobertura-umbral` · **Depende de:** F0-3
+**Rama:** `test/f0-coverage-threshold` · **Depende de:** F0-3
 
 **Trabajo:**
 1. Activar `coverage` en [vitest.config.ts](../vitest.config.ts) con proveedor `v8`.
@@ -464,7 +473,7 @@ existan cinco packs.
 ---
 
 ### [ ] F0-9 — Guarda de exhaustividad en el simulador y el renderizador
-**Rama:** `fix/f0-exhaustividad-simulate` · **Depende de:** F0-1
+**Rama:** `fix/f0-simulate-exhaustiveness` · **Depende de:** F0-1
 
 **Origen:** revisión de F0-5. El documento de arquitectura afirmaba que añadir un
 tipo de operación nuevo obliga al compilador a tratarlo en todas partes. Sólo es
@@ -514,7 +523,7 @@ través de él. `SECURITY.md` presenta esta función como la barrera principal.
 ---
 
 ### [ ] F0-11 — Reversibilidad de los efectos de la instalación
-**Rama:** `feat/f0-rollback-instalacion` · **Depende de:** F0-1
+**Rama:** `feat/f0-install-rollback` · **Depende de:** F0-1
 
 **Origen:** revisión de F0-5.
 
@@ -541,7 +550,7 @@ desapercibido.
 ---
 
 ### [ ] F0-12 — Convertir en controles los hallazgos de nuestras revisiones
-**Rama:** `test/f0-controles-de-revision` · **Depende de:** F0-3
+**Rama:** `test/f0-review-controls` · **Depende de:** F0-3
 
 **Origen:** las dos revisiones en contexto nuevo de septiembre de 2026
 produjeron 30 hallazgos. Repasándolos, **cinco controles habrían evitado unos
@@ -624,7 +633,7 @@ que se puede ignorar no es un control.
 ---
 
 ### [ ] F0-14 — La detección de ramas protegidas no puede estar cableada
-**Rama:** `fix/f0-ramas-protegidas` · **Depende de:** nada · **Prioridad: alta**
+**Rama:** `fix/f0-protected-branches` · **Depende de:** nada · **Prioridad: alta**
 
 **Origen:** al renombrar la rama de releases de este repositorio a `Prod`,
 quedó a la vista que el CLI no la reconoce.
@@ -677,7 +686,7 @@ pospone, y es exactamente el tipo de deuda que el producto dice combatir.
 ---
 
 ### [ ] F1-1 — Paquete `@plumbward/i18n`
-**Rama:** `feat/f1-paquete-i18n` · **Depende de:** Fase 0 completa
+**Rama:** `feat/f1-i18n-package` · **Depende de:** Fase 0 completa
 
 **Trabajo:**
 1. Paquete nuevo con un catálogo tipado: las claves de `en` derivan del tipo del
@@ -727,7 +736,7 @@ pospone, y es exactamente el tipo de deuda que el producto dice combatir.
 ---
 
 ### [ ] F1-4 — Test de paridad entre idiomas
-**Rama:** `test/f1-paridad-idiomas` · **Depende de:** F1-2, F1-3
+**Rama:** `test/f1-language-parity` · **Depende de:** F1-2, F1-3
 
 **Por qué:** el riesgo real de la i18n no es traducir mal, es que el plan
 **haga cosas distintas** según el idioma. Eso rompería el determinismo.
@@ -743,7 +752,7 @@ pospone, y es exactamente el tipo de deuda que el producto dice combatir.
 
 ---
 ### [ ] F1-5 — Procedencia: cada regla cita su fuente
-**Rama:** `feat/f1-procedencia-de-reglas` · **Depende de:** F1-1
+**Rama:** `feat/f1-rule-provenance` · **Depende de:** F1-1
 
 **Por qué en esta fase:** es la misma lección que la i18n. Hoy hay un pack;
 después de la Fase 2 habrá cinco, y añadir un campo obligatorio al contrato con
@@ -843,7 +852,7 @@ del mundo. Es lo que convierte un "no soportado" en una venta.
 ---
 
 ### [ ] F2-3 — Kit de pruebas de conformidad reutilizable
-**Rama:** `test/f2-kit-conformidad` · **Depende de:** F2-2
+**Rama:** `test/f2-conformance-kit` · **Depende de:** F2-2
 
 **Por qué antes de escribir cuatro packs:** sin esto, cada pack se testea de una
 forma distinta y la calidad diverge. Y cuando abramos el catálogo a terceros
@@ -954,7 +963,7 @@ Y los monorepos son, por tamaño, los clientes de ticket más alto.
 ---
 
 ### [ ] F2-8 — Guía para autores de packs
-**Rama:** `docs/f2-guia-autores-packs` · **Depende de:** F2-7
+**Rama:** `docs/f2-pack-authoring-guide` · **Depende de:** F2-7
 
 **Por qué:** es la palanca de escalado del negocio. Si un cliente enterprise
 puede escribir su propio pack con sus estándares internos, deja de comprar una
@@ -971,7 +980,7 @@ la permanencia.
 
 ---
 ### [ ] F2-12 — Instalar las herramientas de agente que cada stack necesita
-**Rama:** `feat/f2-skills-de-agente` · **Depende de:** F2-2
+**Rama:** `feat/f2-agent-skills` · **Depende de:** F2-2
 
 **Por qué:** hoy generamos ficheros de reglas. Pero un equipo que trabaja con
 Claude Code, Cursor o Copilot necesita más que un `.cursorrules`: necesita las
@@ -999,7 +1008,7 @@ empaquetando esto**, y es de lo más diferenciador que podemos ofrecer.
 ---
 
 ### [ ] F2-13 — Snapshots dorados de lo que genera cada pack
-**Rama:** `test/f2-snapshots-de-packs` · **Depende de:** F2-3, F0-12
+**Rama:** `test/f2-pack-snapshots` · **Depende de:** F2-3, F0-12
 
 **Por qué:** un pack produce ficheros que acaban dentro del repositorio del
 cliente. Hoy nada impide que un refactor cambie un marcador, un identificador de
@@ -1024,7 +1033,7 @@ exactamente lo que pasó en F0-8 con el identificador del bloque de `.gitignore`
 ---
 
 ### [ ] F2-11 — Frontera real para packs de terceros
-**Rama:** `feat/f2-aislamiento-packs` · **Depende de:** F2-8
+**Rama:** `feat/f2-pack-isolation` · **Depende de:** F2-8
 
 **Origen:** revisión de F0-5.
 
@@ -1056,7 +1065,7 @@ máquina del cliente. Esta tarea es **bloqueante para aceptar packs externos**.
 ---
 
 ### [ ] F2-9 — Llevar los límites operativos del asistente al pack base
-**Rama:** `refactor/f2-limites-al-pack-base` · **Depende de:** F2-2
+**Rama:** `refactor/f2-boundaries-to-base-pack` · **Depende de:** F2-2
 
 **Estado:** implementado **sólo** en el pack de Node/TypeScript (sección 7 de las
 reglas generadas, más las instrucciones de Copilot), con el contrato
@@ -1140,7 +1149,7 @@ deja la CI en verde desde el primer día, y aun así impide que empeore.
 ---
 
 ### [ ] F3-3 — CI que audita únicamente el diff de la Pull Request
-**Rama:** `feat/f3-ci-solo-diff` · **Depende de:** F3-2
+**Rama:** `feat/f3-diff-only-ci` · **Depende de:** F3-2
 
 **Por qué:** es la promesa comercial literal del producto — "reducción del 40%
 en tiempos de revisión de PRs" — y hoy no está implementada.
@@ -1159,7 +1168,7 @@ en tiempos de revisión de PRs" — y hoy no está implementada.
 ---
 
 ### [ ] F3-4 — El trinquete: prohibido empeorar
-**Rama:** `feat/f3-trinquete-metricas` · **Depende de:** F3-3
+**Rama:** `feat/f3-ratchet-metrics` · **Depende de:** F3-3
 
 **Por qué:** es la diferencia entre "instalamos linters" y "gobernanza". Y es lo
 que hace que la licencia se renueve: el valor se acumula mes a mes de forma medible.
@@ -1179,15 +1188,22 @@ que hace que la licencia se renueve: el valor se acumula mes a mes de forma medi
 ---
 
 ### [ ] F3-5 — Gobierno del flujo de ramas (feature de producto)
-**Rama:** `feat/f3-gobierno-de-ramas` · **Depende de:** F2-2
+**Rama:** `feat/f3-branch-governance` · **Depende de:** F2-2
 
 **Por qué:** es la pregunta 1 del wizard en el PDF y hoy no existe nada.
 Nosotros estamos usando este flujo internamente (§3): esta tarea convierte esa
 práctica en producto.
 
 **Trabajo:**
-1. El pack `base` genera y documenta la estrategia de ramas elegida en el perfil
-   (`main` / `staging` / `dev`, o `main` + ramas de tarea).
+1. El pack `base` genera y documenta la estrategia de ramas elegida en el perfil,
+   **con los nombres reales del repositorio** —detectados, nunca supuestos:
+   `Prod`, `main`, `trunk` o lo que use el equipo (ver F0-14).
+2. Convención de nombres de rama en el idioma del historial
+   (`agentBoundaries.commitLanguage`, inglés por defecto), con formato
+   `<tipo>/<descripción>`, y **un control que la verifique en CI** leyendo la
+   rama desde `GITHUB_HEAD_REF` —nunca interpolándola en un `run:`, porque el
+   nombre de rama lo controla quien abre la PR—. Las reglas de IA generadas ya lo
+   piden desde el 2026-09-11; falta el control en el repo del cliente.
 2. Genera las **reglas de protección de rama** como fichero declarativo
    (ruleset de GitHub) más las instrucciones para aplicarlas. Aplicarlas
    automáticamente requiere token de administración: se ofrece, **nunca se
@@ -1204,7 +1220,7 @@ práctica en producto.
 ---
 
 ### [ ] F3-6 — Flujo de entrega y revisión asistida en las reglas generadas
-**Rama:** `feat/f3-flujo-de-entrega` · **Depende de:** F3-5
+**Rama:** `feat/f3-delivery-workflow` · **Depende de:** F3-5
 
 **Por qué:** el cuello de botella que el producto promete resolver no es escribir
 el código, es **revisarlo**. Un equipo pequeño, o uno en el que sólo queda una
@@ -1242,7 +1258,7 @@ mirar. Esta tarea convierte en producto el flujo que ya usamos internamente
 ---
 
 ### [ ] F3-7 — Leyes de testing acopladas al cambio
-**Rama:** `feat/f3-leyes-de-testing` · **Depende de:** F3-3
+**Rama:** `feat/f3-test-coupling` · **Depende de:** F3-3
 
 **Por qué:** es la queja número uno sobre el código generado con IA — llega sin
 pruebas— y es **mecánicamente comprobable**, que es lo que la convierte en
@@ -1266,7 +1282,7 @@ control y no en consejo.
 ---
 
 ### [ ] F3-8 — Postura de seguridad, más allá de los secretos
-**Rama:** `feat/f3-postura-de-seguridad` · **Depende de:** F3-3
+**Rama:** `feat/f3-security-posture` · **Depende de:** F3-3
 
 **Por qué:** Gitleaks detecta tokens filtrados. No detecta **puertas abiertas**,
 que es la otra mitad del problema y la que un asistente de IA introduce con más
@@ -1293,7 +1309,7 @@ facilidad porque copia ejemplos de documentación pensados para desarrollo local
 ---
 
 ### [ ] F3-9 — Controles derivados de incidentes
-**Rama:** `feat/f3-controles-derivados` · **Depende de:** F3-7, F0-12
+**Rama:** `feat/f3-incident-derived-controls` · **Depende de:** F3-7, F0-12
 
 **Por qué es la funcionalidad con más foso de todo el plan:** el trinquete
 impide empeorar en métricas. Esto impide **repetir un fallo concreto**. Al año,
@@ -1404,7 +1420,7 @@ los bloques delimitados (`ensureBlock`) existen precisamente para esto.
 ---
 
 ### [ ] F4-4 — Informe comercial `plumbward report`
-**Rama:** `feat/f4-informe-comercial` · **Depende de:** F4-3
+**Rama:** `feat/f4-sales-report` · **Depende de:** F4-3
 
 **Por qué:** el que decide la compra no es quien ejecuta el CLI, y no va a leer
 una salida de terminal. Este informe es la herramienta de venta: se genera
@@ -1425,7 +1441,7 @@ gratis, se comparte por correo y crea la necesidad que el producto resuelve.
 ---
 
 ### [ ] F4-5 — Detectar que hay una versión nueva, sin telemetría
-**Rama:** `feat/f4-deteccion-de-version` · **Depende de:** F4-2
+**Rama:** `feat/f4-version-detection` · **Depende de:** F4-2
 
 **Por qué:** es la primera pieza del motor de recurrencia
 ([MODELO_DE_NEGOCIO.md §6](MODELO_DE_NEGOCIO.md)). Si el cliente no se
@@ -1446,7 +1462,7 @@ entera de que hay algo nuevo, la suscripción no se renueva.
 ---
 
 ### [ ] F4-6 — Changelog dirigido: sólo lo que aplica a este repositorio
-**Rama:** `feat/f4-changelog-dirigido` · **Depende de:** F4-5
+**Rama:** `feat/f4-targeted-changelog` · **Depende de:** F4-5
 
 **Por qué:** esta es la pieza que no hace nadie. Un changelog genérico se ignora.
 Uno que dice *"de los 14 cambios de esta versión, estos 3 te afectan porque usas
@@ -1468,7 +1484,7 @@ Next.js y no tienes contenedores"* se lee entero.
 ---
 
 ### [ ] F4-7 — Catálogo de capacidades y oferta continua
-**Rama:** `feat/f4-catalogo-de-capacidades` · **Depende de:** F4-6
+**Rama:** `feat/f4-capability-catalog` · **Depende de:** F4-6
 
 **Por qué:** es lo que convierte la herramienta de "configurador que se ejecuta
 una vez" en "servicio que mejora tu repositorio cada trimestre". Sin esto, la
@@ -1492,7 +1508,7 @@ suscripción no tiene defensa.
 ---
 
 ### [ ] F4-8 — Flujos guiados, empezando por dockerizar Node/TS
-**Rama:** `feat/f4-flujos-guiados` · **Depende de:** F4-7
+**Rama:** `feat/f4-guided-flows` · **Depende de:** F4-7
 
 **Por qué:** hay capacidades que no se pueden generar a ciegas. Dockerizar exige
 saber qué servicios hay, qué puertos, si existe base de datos y cómo se
@@ -1596,7 +1612,7 @@ revisión de proveedor de un departamento de seguridad corporativo.
 ---
 
 ### [ ] F5-4 — Tolerancia a fallos de red
-**Rama:** `feat/f5-gracia-offline` · **Depende de:** F5-3
+**Rama:** `feat/f5-offline-grace` · **Depende de:** F5-3
 
 **Trabajo:**
 1. Si la API no responde durante un `upgrade`, se usa la licencia firmada en
@@ -1610,7 +1626,7 @@ revisión de proveedor de un departamento de seguridad corporativo.
 ---
 
 ### [ ] F5-5 — Suscripción anual y tramos por volumen
-**Rama:** `feat/f5-suscripcion-anual` · **Depende de:** F5-3
+**Rama:** `feat/f5-annual-subscription` · **Depende de:** F5-3
 
 **Origen:** decisión de negocio del 2026-09-09,
 [ADR 0004](adr/0004-suscripcion-anual.md). Sustituye al modelo de pago
@@ -1647,7 +1663,7 @@ el valor, paga y aplica.
 ---
 
 ### [ ] F6-1 — Publicación en NPM
-**Rama:** `build/f6-publicacion-npm` · **Depende de:** Fase 5 completa
+**Rama:** `build/f6-npm-publishing` · **Depende de:** Fase 5 completa
 
 **Trabajo:**
 1. Scope y organización ya resueltos en F0-8: `@plumbward/*`, organización
@@ -1666,7 +1682,7 @@ el valor, paga y aplica.
 ---
 
 ### [ ] F6-2 — Validación E2E sobre repositorios reales
-**Rama:** `test/f6-e2e-repos-reales` · **Depende de:** F6-1
+**Rama:** `test/f6-real-repo-e2e` · **Depende de:** F6-1
 
 **Por qué:** es la Fase 4 del PDF original y el único filtro que detecta lo que
 los tests sintéticos no ven.
@@ -1690,7 +1706,7 @@ los tests sintéticos no ven.
 ---
 
 ### [ ] F6-3 — Materiales de venta
-**Rama:** `docs/f6-landing-y-demo` · **Depende de:** F6-2
+**Rama:** `docs/f6-landing-and-demo` · **Depende de:** F6-2
 
 **Trabajo:**
 1. Landing con la propuesta de valor, el precio y un `asciinema` de la demo real.
@@ -1704,7 +1720,7 @@ los tests sintéticos no ven.
 ---
 
 ### [ ] F6-4 — Lanzamiento 1.0
-**Rama:** `chore/f6-lanzamiento` · **Depende de:** F6-3
+**Rama:** `chore/f6-launch` · **Depende de:** F6-3
 
 **Trabajo:**
 1. Congelar la API pública de `StackPack`: a partir de 1.0, romperla tiene coste.
