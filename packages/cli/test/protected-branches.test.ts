@@ -1,4 +1,4 @@
-import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 import { execa } from 'execa'
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
@@ -18,21 +18,7 @@ import { runApply } from '../src/commands.js'
 
 const ISOLATED = 'refs/heads/chore/setup-ai-governance'
 const created: string[] = []
-const savedEnv = { global: process.env['GIT_CONFIG_GLOBAL'], system: process.env['GIT_CONFIG_NOSYSTEM'] }
-
-// Aísla git de la configuración de la máquina: con `commit.gpgsign` o un
-// `core.hooksPath` globales, estas pruebas fallaban por motivos ajenos a lo que
-// comprueban. `runApply` hereda estas variables al lanzar git.
-beforeAll(() => {
-  process.env['GIT_CONFIG_GLOBAL'] = '/dev/null'
-  process.env['GIT_CONFIG_NOSYSTEM'] = '1'
-})
-afterAll(() => {
-  for (const [key, value] of [['GIT_CONFIG_GLOBAL', savedEnv.global], ['GIT_CONFIG_NOSYSTEM', savedEnv.system]] as const) {
-    if (value === undefined) delete process.env[key]
-    else process.env[key] = value
-  }
-})
+// El aislamiento de git (configuración global y variables GIT_*) está en vitest.setup.ts.
 
 async function git(cwd: string, ...args: string[]): Promise<string> {
   const { stdout } = await execa('git', args, { cwd })
@@ -135,14 +121,28 @@ describe('apply sí trabaja donde debe', () => {
     expect(await headRef(root)).toBe('refs/heads/Prod')
   })
 
-  it('una segunda ejecución reutiliza la rama aislada sin fallar', async () => {
+  it('si la rama aislada ya existe, aborta sin escribir nada', async () => {
+    // Puede estar desactualizada, y el plan se calculó sobre la rama de partida:
+    // escribir en ella sería aplicar algo distinto de lo que se enseñó.
     const root = await createRepo('Prod')
     await apply(root)
     await git(root, 'add', '-A')
     await git(root, 'commit', '-m', 'governance')
     await git(root, 'checkout', 'Prod')
+    // El journal del primer apply sigue ahí, sin seguimiento en Prod: se compara
+    // el estado antes y después, no contra un árbol vacío.
+    const before = await git(root, 'status', '--porcelain', '--untracked-files=all')
+    const code = await apply(root)
+    expect(code).toBe(1)
+    expect(await headRef(root)).toBe('refs/heads/Prod')
+    expect(await git(root, 'status', '--porcelain', '--untracked-files=all')).toBe(before)
+  })
+
+  it('en una rama creada por un asistente de IA opera sobre ella', async () => {
+    const root = await createRepo('main')
+    await git(root, 'checkout', '-b', 'claude/add-lint')
     await apply(root)
-    expect(await headRef(root)).toBe(ISOLATED)
+    expect(await headRef(root)).toBe('refs/heads/claude/add-lint')
   })
 })
 
@@ -186,6 +186,111 @@ describe('el perfil generado no adivina lo que no se puede deducir', () => {
     // CI generada se ejecuta al hacer push a esa rama.
     const workflow = await readFile(join(root, '.github/workflows/ci-dev.yml'), 'utf8')
     expect(workflow).toMatch(/push:\s*\n\s+branches: \[develop\]/)
+  })
+
+  it('el mismo config.yml genera la misma CI, tenga el repo las referencias que tenga', async () => {
+    // Invariante: la CLI es una función determinista de su configuración. Una
+    // versión anterior metía en el workflow las ramas remotas existentes, y las
+    // referencias huérfanas de cada copia cambiaban el resultado.
+    const config = 'branches:\n  integration: main\n  release: Prod\n'
+    const clean = await createRepo('feat/a')
+    await writeConfig(clean, config)
+    const noisy = await createRepo('feat/a')
+    await writeConfig(noisy, config)
+    for (const ref of ['dev', 'staging', 'develop']) {
+      await git(noisy, 'update-ref', `refs/remotes/origin/${ref}`, 'HEAD')
+    }
+    await apply(clean)
+    await apply(noisy)
+    const cleanWorkflow = await readFile(join(clean, '.github/workflows/ci-dev.yml'), 'utf8')
+    const noisyWorkflow = await readFile(join(noisy, '.github/workflows/ci-dev.yml'), 'utf8')
+    expect(noisyWorkflow).toBe(cleanWorkflow)
+    expect(cleanWorkflow).toMatch(/push:\s*\n\s+branches: \[main, Prod\]/)
+  })
+
+  it('un config.yml sin integration no se completa con el origin/HEAD de cada clon', async () => {
+    // Invariante 2 por la otra vía: con el fichero, lo que no declara queda sin
+    // configurar. Antes se rellenaba con el origin/HEAD local de cada copia.
+    const config = 'deployTarget: vercel\nbranches:\n  release: main\n'
+    const first = await createRepo('feat/a')
+    await writeConfig(first, config)
+    await simulateClone(first, 'main')
+    const second = await createRepo('feat/a')
+    await writeConfig(second, config)
+    await simulateClone(second, 'develop')
+    await apply(first)
+    await apply(second)
+    const firstWorkflow = await readFile(join(first, '.github/workflows/ci-dev.yml'), 'utf8')
+    expect(await readFile(join(second, '.github/workflows/ci-dev.yml'), 'utf8')).toBe(firstWorkflow)
+  })
+
+  it('en un repo creado con git init y push, sin origin/HEAD, la CI se ejecuta en la rama principal', async () => {
+    const root = await createRepo('main')
+    await apply(root)
+    const workflow = await readFile(join(root, '.github/workflows/ci-dev.yml'), 'utf8')
+    expect(workflow).toMatch(/push:\s*\n\s+branches: \[main\]/)
+  })
+
+  it('propone la main existente aunque el primer apply se haga desde una rama de trabajo', async () => {
+    const root = await createRepo('main')
+    await git(root, 'checkout', '-b', 'feat/first')
+    await apply(root)
+    const config = await readFile(join(root, '.governance/config.yml'), 'utf8')
+    expect(config).toMatch(/^\s+integration: main$/m)
+  })
+
+  it('sin ramas configuradas, la CI sólo revisa Pull Requests y no declara push', async () => {
+    const root = await createRepo('feat/nothing')
+    await writeConfig(root, 'branches: {}\n')
+    await apply(root)
+    const workflow = await readFile(join(root, '.github/workflows/ci-dev.yml'), 'utf8')
+    expect(workflow).not.toMatch(/^ {2}push:/m)
+  })
+
+  it('una rama configurada como integración se protege aunque parezca de trabajo', async () => {
+    const root = await createRepo('main')
+    await git(root, 'checkout', '-b', 'feat/integration')
+    await writeConfig(root, 'branches:\n  integration: feat/integration\n')
+    await apply(root)
+    expect(await headRef(root)).toBe(ISOLATED)
+  })
+
+  it('la rama aislada no hereda el upstream de la rama de partida', async () => {
+    // Con branch.autoSetupMerge=inherit, un checkout -b normal copiaría el
+    // upstream de Prod, y un git push sin argumentos iría a producción.
+    const root = await createRepo('Prod')
+    await git(root, 'update-ref', 'refs/remotes/origin/Prod', 'HEAD')
+    await git(root, 'config', 'remote.origin.url', 'https://example.invalid/repo.git')
+    await git(root, 'config', 'remote.origin.fetch', '+refs/heads/*:refs/remotes/origin/*')
+    await git(root, 'branch', '--set-upstream-to=origin/Prod', 'Prod')
+    await git(root, 'config', 'branch.autoSetupMerge', 'inherit')
+    await apply(root)
+    expect(await headRef(root)).toBe(ISOLATED)
+    const upstream = await execa('git', ['rev-parse', '--abbrev-ref', 'chore/setup-ai-governance@{u}'], { cwd: root, reject: false })
+    expect(upstream.exitCode).not.toBe(0)
+  })
+
+  it('la rama de staging configurada genera su workflow y se dispara en ella', async () => {
+    const root = await createRepo('feat/staging')
+    await writeConfig(root, 'branches:\n  staging: pre\n')
+    await apply(root)
+    const workflow = await readFile(join(root, '.github/workflows/ci-staging.yml'), 'utf8')
+    expect(workflow).toMatch(/branches: \[pre\]/)
+  })
+
+  it('una rama de despliegue vacía cuenta como no configurada', async () => {
+    const root = await createRepo('feat/empty')
+    await writeConfig(root, 'deployTarget: vercel\nbranches:\n  release: ""\n')
+    await apply(root)
+    expect(existsSync(join(root, '.github/workflows/ci-prod.yml'))).toBe(false)
+  })
+
+  it('en un config antiguo, un dev nulo no anula el main que sí tenía valor', async () => {
+    const root = await createRepo('feat/legacy-null')
+    await writeConfig(root, 'branches:\n  main: live\n  dev: null\n')
+    await apply(root)
+    const workflow = await readFile(join(root, '.github/workflows/ci-dev.yml'), 'utf8')
+    expect(workflow).toMatch(/push:\s*\n\s+branches: \[live\]/)
   })
 
   it('la CI generada revisa todas las Pull Requests, vayan a la rama que vayan', async () => {

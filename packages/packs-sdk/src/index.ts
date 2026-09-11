@@ -17,7 +17,6 @@ export type { FileOptions } from './dsl.js'
 
 export {
   WORK_BRANCH_PREFIXES,
-  LONG_LIVED_BRANCH_NAMES,
   isWorkBranch,
   configuredBranches,
   requiresIsolation,

@@ -257,9 +257,8 @@ ${setupSteps(manager, false)}
 `
 }
 
-/** Workflow de despliegue a producción, con puerta de aprobación manual. */
 /**
- * Workflow de despliegue a producción. Sólo se llama cuando el equipo ha
+ * Workflow de despliegue a producción, con puerta de aprobación manual. Sólo se llama cuando el equipo ha
  * configurado explícitamente `branches.release`: nunca se despliega desde una
  * rama deducida (ADR 0005).
  */

@@ -19,13 +19,6 @@ export function buildRegistry(): PackRegistry {
 }
 
 /**
- * Carga el perfil desde `.governance/config.yml` o, si no existe, deriva el
- * recomendado del escaneo.
- *
- * El fichero es la fuente de verdad: mientras no cambie, la CLI produce
- * exactamente el mismo plan una y otra vez.
- */
-/**
  * Traduce los nombres de campo de versiones anteriores del perfil.
  *
  * Hasta el 2026-09-11 el perfil tenía `main` y `dev`, que mezclaban dos papeles
@@ -33,20 +26,28 @@ export function buildRegistry(): PackRegistry {
  * era un valor adivinado, y convertirlo en rama de despliegue sería justo el
  * error que el cambio evita. Un `release` explícito, en cambio, se respeta.
  */
-function normaliseBranches(raw: Record<string, unknown> | undefined): Partial<Profile['branches']> {
-  if (!raw) return {}
-  const text = (value: unknown): string | null | undefined =>
-    typeof value === 'string' ? value : value === null ? null : undefined
-  const out: { integration?: string | null; release?: string | null; staging?: string | null } = {}
-  const integration = text(raw['integration']) ?? text(raw['dev'])
-  if (integration !== undefined) out.integration = integration
-  const release = text(raw['release'])
-  if (release !== undefined) out.release = release
-  const staging = text(raw['staging'])
-  if (staging !== undefined) out.staging = staging
-  return out
+function normaliseBranches(raw: Record<string, unknown> | undefined): Profile['branches'] {
+  // Una cadena vacía o de otro tipo cuenta como "sin configurar": `release: ""`
+  // generaba un workflow con `branches: []` que `doctor` daba por bueno.
+  const text = (value: unknown): string | null =>
+    typeof value === 'string' && value.trim() !== '' ? value.trim() : null
+  const source = raw ?? {}
+  return {
+    // La primera clave con valor: la nueva, o las antiguas `dev` y `main`. Un
+    // `dev: null` antiguo no anula el `main` que sí tenía valor.
+    integration: text(source['integration']) ?? text(source['dev']) ?? text(source['main']),
+    release: text(source['release']),
+    staging: text(source['staging']),
+  }
 }
 
+/**
+ * Carga el perfil desde `.governance/config.yml` o, si no existe, deriva el
+ * recomendado del escaneo.
+ *
+ * El fichero es la fuente de verdad: mientras no cambie, la CLI produce
+ * exactamente el mismo plan una y otra vez.
+ */
 export async function loadProfile(scan: RepoScan): Promise<{
   profile: Profile
   fromFile: boolean
@@ -66,11 +67,12 @@ export async function loadProfile(scan: RepoScan): Promise<{
     const profile = {
       ...base,
       ...fromFile,
-      // Mezcla profunda de `branches`: un fichero que sólo declare una rama no
-      // debe borrar las demás.
-      branches: { ...base.branches, ...normaliseBranches(fromFile.branches) },
+      // Con fichero, las ramas salen SÓLO del fichero: una rama que no declare
+      // queda sin configurar, nunca se rellena con el estado local del clon.
+      // Si no, dos clones con el mismo config.yml y distinto origin/HEAD
+      // generaban workflows distintos (invariante 2).
+      branches: normaliseBranches(fromFile.branches),
     } as Profile
-    return { profile, fromFile: true }
     return { profile, fromFile: true }
   } catch (cause) {
     const detail = cause instanceof Error ? cause.message : String(cause)
@@ -110,8 +112,10 @@ export function profileToYaml(profile: Profile): string {
 #   mode          Modo de aplicación derivado del tamaño del repositorio:
 #                 greenfield | ratchet | non-disruptive
 #   branches      Papel de cada rama. Cualquiera puede ser null.
-#                   integration  A qué rama van las Pull Requests. Se deduce
-#                                de la rama por defecto del remoto.
+#                   integration  A qué rama van las Pull Requests. Se propuso
+#                                al crear este fichero a partir del remoto:
+#                                revisa que sea la correcta. Si la borras,
+#                                queda sin configurar; no se vuelve a deducir.
 #                   release      Desde qué rama se despliega a producción.
 #                                NUNCA se deduce: escríbela tú. Sin ella no se
 #                                genera el workflow de despliegue.

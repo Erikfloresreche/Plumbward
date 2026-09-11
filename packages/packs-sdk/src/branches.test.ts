@@ -14,7 +14,7 @@ function head(branch: string | null, options: { detached?: boolean; defaultBranc
 
 describe('ramas de trabajo', () => {
   it('reconoce los prefijos habituales, sin distinguir mayúsculas', () => {
-    for (const name of ['feat/login', 'fix/f0-protected-branches', 'chore/setup-ai-governance', 'Feature/X', 'hotfix/urgent', 'dependabot/npm/x']) {
+    for (const name of ['feat/login', 'fix/f0-protected-branches', 'chore/setup-ai-governance', 'Feature/X', 'hotfix/urgent', 'dependabot/npm/x', 'claude/add-lint', 'copilot/fix-1', 'codex/task', 'cursor/x']) {
       expect(isWorkBranch(name), name).toBe(true)
     }
   })
@@ -52,29 +52,23 @@ describe('¿hay que aislar el trabajo?', () => {
   })
 
   it('las ramas configuradas se comparan sin distinguir mayúsculas', () => {
-    expect(requiresIsolation(head('FEAT/X'), profileWith({ release: 'feat/x' }))).toBe(true)
+    // El nombre configurado va en mayúsculas y la rama en minúsculas: así se
+    // prueba que se normalizan las dos partes, no sólo la rama actual.
+    expect(requiresIsolation(head('feat/x'), profileWith({ release: 'FEAT/X' }))).toBe(true)
   })
 })
 
 describe('ramas en las que la CI se ejecuta al hacer push', () => {
-  it('reúne las del perfil, la rama por defecto y las existentes con nombre habitual', () => {
-    const branches = ciPushBranches(
-      profileWith({ integration: 'main', release: 'Prod' }),
+  it('salen sólo del perfil, en orden y sin duplicados de mayúsculas', () => {
+    expect(ciPushBranches(profileWith({ integration: 'main', release: 'Prod', staging: 'pre' }))).toEqual([
       'main',
-      ['main', 'Prod', 'develop', 'feat/x', 'live'],
-    )
-    expect(branches).toEqual(['main', 'Prod', 'develop'])
+      'Prod',
+      'pre',
+    ])
+    expect(ciPushBranches(profileWith({ integration: 'prod', release: 'Prod' }))).toEqual(['prod'])
   })
 
-  it('no duplica la misma rama escrita con otras mayúsculas', () => {
-    expect(ciPushBranches(profileWith({ release: 'prod' }), null, ['Prod'])).toEqual(['prod'])
-  })
-
-  it('una rama de despliegue sin nombre habitual entra si está configurada', () => {
-    expect(ciPushBranches(profileWith({ release: 'live' }), null, ['live'])).toEqual(['live'])
-  })
-
-  it('sin nada que añadir devuelve una lista vacía, y la CI sólo revisa PRs', () => {
-    expect(ciPushBranches(profileWith(), null, ['feat/x'])).toEqual([])
+  it('sin ramas configuradas devuelve una lista vacía, y la CI sólo revisa PRs', () => {
+    expect(ciPushBranches(profileWith())).toEqual([])
   })
 })

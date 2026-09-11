@@ -30,7 +30,9 @@ export interface GitState {
   readonly detachedHead: boolean
   /**
    * Nombres de todas las ramas conocidas, locales y de seguimiento remoto, sin
-   * prefijo y sin duplicados. Sirven para deducir qué papel tiene cada una.
+   * prefijo y sin duplicados. Sólo sirven para **proponer** el `config.yml`
+   * inicial; nada generado depende de ellas una vez existe el fichero
+   * (ADR 0005). Pueden incluir referencias huérfanas.
    */
   readonly branches: readonly string[]
   /**

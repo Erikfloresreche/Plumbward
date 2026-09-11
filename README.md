@@ -44,15 +44,16 @@ qué cambiaría, `apply` para hacerlo. Y si algo no encaja, `rollback` deja el
 repositorio como estaba.
 
 `apply` sólo escribe directamente en una **rama de trabajo** reconocible por su
-prefijo (`feat/`, `fix/`, `chore/`…). En cualquier otra —`main`, `Prod`, `pro`,
-`live` o un nombre que nadie haya previsto— crea antes una rama dedicada
-(`chore/setup-ai-governance`) y trabaja allí; también con HEAD desacoplado. Ante
-la duda, protege. `--no-branch` desactiva este comportamiento si sabes lo que
-haces.
+prefijo (`feat/`, `fix/`, `chore/`…, y las de asistentes como `claude/` o
+`copilot/`). En cualquier otra —`main`, `Prod`, `pro`, `live` o un nombre que
+nadie haya previsto— crea antes una rama dedicada (`chore/setup-ai-governance`)
+y trabaja allí; también con HEAD desacoplado. Si esa rama ya existe, se detiene
+sin escribir nada. Ante la duda, protege. `--no-branch` desactiva este
+comportamiento si sabes lo que haces.
 
 **Plumbward nunca adivina desde qué rama se despliega.** La CI que genera revisa
-todas las Pull Requests, y el workflow de despliegue sólo existe cuando indicas
-la rama en `.governance/config.yml`.
+todas las Pull Requests, y el workflow de despliegue sólo se genera cuando
+indicas la rama en `.governance/config.yml`.
 
 ## Tres garantías
 

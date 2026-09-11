@@ -20,6 +20,7 @@ import {
   preCommitHook,
 } from './templates/tooling.js'
 import { gobernanzaDoc } from './templates/docs.js'
+import { workflowChecks } from './workflow-checks.js'
 
 const PACK_VERSION = '0.1.0'
 const DEFAULT_NODE_VERSION = '22'
@@ -143,7 +144,7 @@ export const nodeTsPack: StackPack = {
           manager,
           profile.mode,
           profile,
-          ciPushBranches(profile, scan.git.defaultBranch, scan.git.branches),
+          ciPushBranches(profile),
         ),
         'Valida cada Pull Request antes de que la revise una persona.',
       ),
@@ -306,7 +307,7 @@ export const nodeTsPack: StackPack = {
     return operations
   },
 
-  validate(context: RepoContext): HealthCheck[] {
+  async validate(context: RepoContext): Promise<HealthCheck[]> {
     const files = new Set(context.scan.files)
 
     const checks: HealthCheck[] = [
@@ -354,21 +355,8 @@ export const nodeTsPack: StackPack = {
       },
     ]
 
-    // Hay destino de despliegue pero no rama desde la que desplegar: el
-    // workflow de producción no se ha generado. Se avisa en lugar de callarlo.
-    const { deployTarget, branches } = context.profile
-    if (deployTarget !== 'none') {
-      checks.push({
-        id: 'release-branch',
-        label: 'Rama de despliegue configurada',
-        ok: branches.release !== null,
-        detail:
-          branches.release !== null
-            ? `Se despliega a producción desde "${branches.release}".`
-            : `Hay un destino de despliegue (${deployTarget}) pero ninguna rama de despliegue: no se ha generado el workflow de producción.`,
-        fixHint: 'Indica en `.governance/config.yml` la rama desde la que se despliega (`branches.release`). Plumbward no la deduce: desplegar desde una rama adivinada no se puede deshacer.',
-      })
-    }
+    // Workflows leídos tal como están en disco: ver workflow-checks.ts.
+    checks.push(...(await workflowChecks(context)))
 
     return checks
   },

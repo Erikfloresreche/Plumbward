@@ -3,12 +3,12 @@ import type { Profile } from './contract.js'
 /**
  * Decisiones sobre ramas.
  *
- * Todo este fichero sigue un principio (ADR 0005): **lo que se deduce del
- * repositorio sólo puede ampliar las protecciones, nunca reducirlas ni decidir
- * una acción.** Tres versiones anteriores intentaron deducir cuál es la rama de
- * releases a partir de nombres o de la rama por defecto, y cada una arreglaba
- * unos repositorios y rompía otros. Aquí no se adivina: se protege todo lo que
- * no sea claramente trabajo, y lo que desencadena acciones se configura.
+ * Todo este fichero sigue un principio (ADR 0005): **cuando una deducción
+ * falla, debe fallar hacia más protección, nunca hacia una acción.** Tres
+ * versiones anteriores intentaron deducir cuál es la rama de releases, y cada
+ * una arreglaba unos repositorios y rompía otros. Aquí la única deducción que
+ * decide es "¿es esto una rama de trabajo?", y su fallo cae del lado seguro: un
+ * nombre que no se reconoce se aísla.
  */
 
 /**
@@ -40,29 +40,12 @@ export const WORK_BRANCH_PREFIXES: readonly string[] = [
   'revert',
   'dependabot',
   'renovate',
-]
-
-/**
- * Nombres habituales de ramas de larga duración.
- *
- * Ya no decide qué se protege —eso lo hace `isWorkBranch`—. Sólo se usa para
- * **ampliar** la lista de ramas en las que la CI generada se ejecuta al hacer
- * push. Incluye convenciones en español, con y sin tilde.
- */
-export const LONG_LIVED_BRANCH_NAMES: readonly string[] = [
-  'main',
-  'master',
-  'trunk',
-  'prod',
-  'production',
-  'develop',
-  'development',
-  'dev',
-  'staging',
-  'stage',
-  'produccion',
-  'producción',
-  'desarrollo',
+  // Ramas que crean los propios asistentes de IA. Son usuarios directos de
+  // este producto, y aislar su trabajo en otra rama lo desordenaría.
+  'claude',
+  'copilot',
+  'codex',
+  'cursor',
 ]
 
 /** ¿Es una rama de trabajo, de las que se crean para una tarea y se borran? */
@@ -114,26 +97,19 @@ export function requiresIsolation(head: HeadState, profile: Pick<Profile, 'branc
 /**
  * Ramas en las que la CI generada se ejecuta al hacer push.
  *
- * Es una unión que sólo amplía: las del perfil, la rama por defecto y las ramas
- * existentes que tengan un nombre habitual de larga duración. Ejecutar la CI de
- * más cuesta minutos; de menos, dejar una rama sin comprobar. Las Pull Requests
- * no dependen de esto: la CI generada las revisa todas.
+ * Salen **sólo del perfil**, y con `config.yml` el perfil de ramas sale sólo del
+ * fichero: el estado local del repositorio únicamente se usa para proponer el
+ * fichero inicial, nunca al regenerar. Una versión
+ * anterior añadía las ramas remotas existentes, y dos copias del mismo
+ * repositorio con el mismo `config.yml` generaban workflows distintos según las
+ * referencias huérfanas que tuviera cada una: rompía el invariante de que la CLI
+ * es una función determinista de su configuración. Las Pull Requests no
+ * dependen de esto: la CI generada las revisa todas.
  */
-export function ciPushBranches(
-  profile: Pick<Profile, 'branches'>,
-  defaultBranch: string | null,
-  existingBranches: readonly string[],
-): string[] {
+export function ciPushBranches(profile: Pick<Profile, 'branches'>): string[] {
   const names: string[] = []
-  const add = (name: string | null): void => {
+  for (const name of [profile.branches.integration, profile.branches.release, profile.branches.staging]) {
     if (name && !names.some((n) => n.toLowerCase() === name.toLowerCase())) names.push(name)
-  }
-  add(profile.branches.integration)
-  add(profile.branches.release)
-  add(profile.branches.staging)
-  add(defaultBranch)
-  for (const name of existingBranches) {
-    if (LONG_LIVED_BRANCH_NAMES.includes(name.toLowerCase())) add(name)
   }
   return names
 }

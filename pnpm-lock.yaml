@@ -80,6 +80,9 @@ importers:
 
   packages/packs/node-ts:
     dependencies:
+      '@plumbward/ast':
+        specifier: workspace:*
+        version: link:../../ast
       '@plumbward/core':
         specifier: workspace:*
         version: link:../../core
