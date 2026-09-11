@@ -48,7 +48,8 @@ if (!matriz) {
 // nunca se cumple no falla: desaparece.
 if (matriz) {
   const versiones = matriz[1].split(',').map((v) => v.trim().replace(/'/g, ''))
-  for (const m of ci.matchAll(/matrix\.node\s*==\s*'([^']+)'/g)) {
+  // Sólo líneas `if:` reales: un comentario que cite el patrón no cuenta.
+  for (const m of ci.matchAll(/^\s*if:.*matrix\.node\s*==\s*'([^']+)'/gm)) {
     if (!versiones.includes(m[1])) {
       fallo(
         'condicion-de-matriz',
@@ -159,10 +160,13 @@ try {
 // caracteres no ASCII y palabras españolas frecuentes en nuestros nombres. No
 // sustituye a la revisión; atrapa el caso típico, que es el que se repite.
 const FORMATO_RAMA = /^(feat|fix|refactor|test|docs|build|ci|chore)\/f\d+-[a-z0-9]+(-[a-z0-9]+)*$/
+// `control` NO está en la lista: es también una palabra inglesa, y rechazaba
+// nombres válidos como `fix/f0-branch-control-review`. La heurística completa se
+// rehace con un corpus de prueba en F0-15.
 const PALABRAS_ES = new Set([
   'de', 'del', 'la', 'las', 'el', 'los', 'y', 'con', 'para', 'por', 'al', 'sin',
   'rama', 'ramas', 'regla', 'reglas', 'prueba', 'pruebas', 'paquete', 'informe',
-  'guia', 'flujo', 'flujos', 'control', 'controles', 'propio', 'documentacion',
+  'guia', 'flujo', 'flujos', 'controles', 'propio', 'documentacion',
 ])
 
 /** @returns {string | undefined} el motivo por el que el nombre no vale */

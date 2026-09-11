@@ -6,7 +6,7 @@
 > misma Pull Request que la implementa.
 
 **Última actualización:** 2026-09-11
-**Estado global:** Fase 0 en curso — F0-1, F0-3, F0-5, F0-8 y F0-14 completadas. Quedan F0-2, F0-4, F0-6, F0-7 y F0-9 a F0-13.
+**Estado global:** Fase 0 en curso — F0-1, F0-3, F0-5, F0-8 y F0-14 completadas. Quedan F0-2, F0-4, F0-6, F0-7, F0-9 a F0-13 y F0-15.
 **Producto:** Plumbward · https://github.com/Erikfloresreche/Plumbward
 **Modelo de negocio:** suscripción anual por repositorio — ver
 [MODELO_DE_NEGOCIO.md](MODELO_DE_NEGOCIO.md)
@@ -619,7 +619,8 @@ que se puede ignorar no es un control.
 2. Ruleset sobre `Prod` y `develop`: prohibir push directo, exigir Pull Request
    y exigir los checks en verde.
 3. Los nombres de check obligatorios son `Node 22.13`, `Node 24`, `Node 26`,
-   `Escaneo de secretos` y `Ciclo completo sobre repositorios reales`.
+   `Tipos y coherencia`, `Escaneo de secretos` y `Ciclo completo sobre
+   repositorios reales`.
    **Cuidado:** vienen del campo `name` de cada job, así que **cualquier cambio
    en la matriz invalida la lista**. Un check obligatorio que ya no existe
    bloquea todas las PRs para siempre.
@@ -696,9 +697,107 @@ demás ramas configuradas en el perfil también se protegen, no sólo la de
 releases. Antes, `apply` en `develop` escribía directamente sobre la rama de
 integración, que CONTRIBUTING dice que debe estar siempre en verde.
 
+**Viaja en la misma PR, a propósito: la CI no comprobaba los tipos.** La
+revisión posterior al merge de la PR #6 descubrió que, desde que la matriz pasó
+de `'22'` a `'22.13'`, los pasos de typecheck y de coherencia tenían
+`if: matrix.node == '22'` y se saltaban en todas las ejecuciones. La CI verde de
+`develop` no incluía ninguno de los dos. Se corrige aquí porque sin ello la CI
+de esta PR tampoco comprobaría los tipos del código que cambia. Ahora son un job
+propio, `Tipos y coherencia`, sin condiciones que puedan desajustarse, y el
+script de coherencia falla si alguna condición `if` apunta a una versión que no
+está en la matriz o si el job desaparece.
+
 **Pendiente, anotado para `doctor` (F4-3):** avisar cuando `origin/HEAD` pueda
 estar desfasado y sugerir `git remote set-head origin --auto`. La herramienta no
 debe ejecutarlo sola: modifica el estado de git y necesita red.
+
+---
+
+### [ ] F0-15 — Corregir el control de nombres de rama tras la revisión de la PR #6
+**Rama:** `fix/f0-branch-control-review` · **Depende de:** F0-14
+
+**Origen:** la PR #6 se mergeó sin revisión y se revisó después, en contexto
+nuevo. El hallazgo más grave —la CI nunca ejecutaba el control— se corrigió en
+F0-14. Quedan estos, y su conclusión general es incómoda: **el control de
+nombres de rama, tal como está, es más frágil de lo que parece.**
+
+**Trabajo:**
+
+1. **No bloquear las ramas legítimas.** En cuanto el control corre en CI, una PR
+   de `develop` a `Prod` —una release— falla, porque `develop` no sigue el
+   formato de rama de tarea. También fallarían `revert-*` (el botón *Revert* de
+   GitHub) y `<usuario>-patch-*` (el editor web, que usarán colaboradores
+   externos al ser el repositorio público). Además, el prefijo `dependabot/` es
+   una puerta trasera: `dependabot/../fix/f0-ramas` lo supera. Exención por
+   **autor** (`github.actor`), no por nombre, y lista explícita de ramas
+   permanentes.
+
+2. **La heurística de idioma falla en los dos sentidos.** Deja pasar 15 de los 33
+   nombres españoles que la propia PR renombró (`version-unica`,
+   `cobertura-umbral`, `trinquete-metricas`, `suscripcion-anual`…) y rechaza
+   nombres ingleses válidos (`access-control`, `de-duplicate`, `y-axis`).
+   `control` era especialmente mala señal: rechazó el nombre de rama de **esta
+   misma tarea** en cuanto se escribió en el plan. Se retiró de la lista en
+   F0-14 para poder mergearla; el resto se rehace aquí.
+   El formato acepta `f00` y `f999`. Rehacerla con un **corpus de prueba**: los
+   33 nombres renombrados como positivos y una lista de nombres ingleses reales
+   como negativos. Si no alcanza una precisión aceptable, **quitarla** y dejar
+   sólo el formato: una heurística que falla la mitad de las veces es peor que
+   ninguna, porque da una falsa sensación de control.
+
+3. **El analizador del plan falla en silencio.** Se salta líneas de rama con
+   formatos ligeramente distintos, acepta un plan vacío, no reconoce `### [X]`
+   con mayúscula y no reinicia el estado en cabeceras que no son tareas. Añadir
+   una aserción de mínimo: si encuentra menos ramas de las que hay tareas, falla.
+
+4. **El control no tiene tests.** Los cinco casos de la PR se probaron a mano.
+   Además el script no se puede testear tal como está: todo se ejecuta al cargar
+   y termina con `process.exit`. Separar la lógica en funciones exportadas y
+   cubrirla con tests unitarios.
+
+5. **La plantilla para clientes se contradice en español.** Con
+   `commitLanguage: 'es'` dice que las ramas van en español y pone como ejemplo
+   `fix/protected-branch-detection`, en inglés fijo. El test sólo cubre `en`, y
+   dos aserciones incluyen un salto de línea literal que se romperá al
+   reajustar el párrafo. Con `git: false` sigue diciendo "la persona que ejecuta
+   git".
+
+6. **Documentación de configuración desactualizada.** La cabecera que se escribe
+   en el `config.yml` del cliente y el JSDoc de `commitLanguage` siguen diciendo
+   que sólo afecta a commits y PRs; ahora también a ramas y títulos.
+
+7. **El argumento está mal formulado, y destapa una decisión pendiente.** Se
+   justifica la regla con "el nombre de rama queda en el historial de git". Con
+   *squash merge* y borrado de rama, que es lo que dice el §3.2, no queda. Sólo
+   queda porque en la práctica se está mergeando con *merge commit*. Hay que
+   decidir cuál de las dos es la regla y reformular el argumento: el nombre de
+   rama se ve en la PR, en la CI y en el mensaje del merge, y lo lee todo el
+   equipo.
+
+8. **La sección 0 de `CLAUDE.md` no funciona literalmente en un clon limpio.**
+   Le falta `pnpm install`, usa `git branch --show-current` que no está en la
+   lista de comandos de sólo lectura permitidos del §1, dice "primera sesión en
+   esta conversación" y el fichero afirma rondar las 130 líneas cuando tiene
+   190.
+
+9. **Restos en el plan.** El diagrama del §3.2 sigue diciendo
+   `docs/f2-guia-packs` y `main (release)`; F3-5 tiene dos puntos numerados
+   `2.`; la lista de "ya entregado" de F0-12 no incluye los controles 4 y 5.
+
+10. **Ámbito y proceso.** Un commit `docs:` metió un cambio de producto (las
+    reglas de IA generadas) y un control nuevo de CI, y la descripción de la PR
+    se saltó los apartados de criterios y Definition of Done de la plantilla.
+    Nada que corregir en el código; queda registrado para no repetirlo.
+
+**Qué se convierte en control mecánico:** los puntos 2, 3 y 4 (corpus y tests),
+y el 9 si el control de nombres de rama se extiende al diagrama del §3.2. El 7 es
+una decisión, no un control. El 10 es de proceso: la defensa es la revisión.
+
+**Criterios de aceptación:**
+- Una PR de `develop` a `Prod` pasa el control.
+- El corpus de nombres está en el repositorio y el control lo pasa.
+- El script de coherencia tiene tests que se ejecutan en `test:unit`.
+- La sección 0 de `CLAUDE.md` funciona copiando y pegando en un clon limpio.
 
 ---
 
