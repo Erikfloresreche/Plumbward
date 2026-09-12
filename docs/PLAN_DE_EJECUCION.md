@@ -6,7 +6,7 @@
 > misma Pull Request que la implementa.
 
 **Última actualización:** 2026-09-12
-**Estado global:** Fase 0 en curso — F0-1, F0-3, F0-5, F0-8, F0-13, F0-14, F0-15, F0-17 y F0-24 completadas. Quedan F0-2, F0-4, F0-6, F0-7, F0-9 a F0-12, F0-16, F0-18 a F0-23 y F0-25 a F0-31.
+**Estado global:** Fase 0 en curso — F0-1, F0-3, F0-5, F0-8, F0-13, F0-14, F0-15, F0-17, F0-24 y F0-27 completadas. Quedan F0-2, F0-4, F0-6, F0-7, F0-9 a F0-12, F0-16, F0-18 a F0-23, F0-25, F0-26 y F0-28 a F0-31.
 **Producto:** Plumbward · https://github.com/Erikfloresreche/Plumbward
 **Modelo de negocio:** suscripción anual por repositorio — ver
 [MODELO_DE_NEGOCIO.md](MODELO_DE_NEGOCIO.md)
@@ -1313,7 +1313,7 @@ caras: **la herramienta mira un dato, no lo entiende, y sigue como si nada.**
 
 ---
 
-### [ ] F0-27 — Ejecutar `check:mutations` en CI
+### [x] F0-27 — Ejecutar `check:mutations` en CI
 **Rama:** `ci/f0-mutation-job` · **Depende de:** F0-15
 
 **Origen:** punto 8 de las revisiones de la PR #7, separado de F0-24 (ver allí
@@ -1327,7 +1327,12 @@ PRs que tocan `branches.ts`, `context.ts`, `commands.ts` o las plantillas de CI.
 Así deja de ejecutarse dentro de la sesión del asistente, que es lo que más
 tarda (§6.2 de `CLAUDE.md`).
 
-**Qué se convierte en control mecánico:** el propio job.
+**Qué se convierte en control mecánico:** el propio job, y uno más que hizo
+falta al montarlo: el filtro `paths:` que decide cuándo corre es una lista
+escrita a mano, y la de mutaciones crece. Si una mutación nueva toca un fichero
+que el filtro no nombra, el job deja de ejecutarse sin ponerse en rojo —no se
+ejecuta, no falla—. `check:coherencia` deriva la lista de `check-mutations.mjs`
+y compara (`scripts/mutation-paths.mjs`, con su test).
 
 **Criterios de aceptación:**
 - `check:mutations` corre en CI y una mutación superviviente pone la PR en rojo.
