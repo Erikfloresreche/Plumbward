@@ -7,9 +7,14 @@
  * algún test falla. Si una mutación sobrevive, esa pieza no está cubierta.
  *
  * Existe para que "N mutaciones detectadas" sea algo que cualquiera puede
- * reproducir, no una afirmación en una PR. Es lento, así que no corre en cada PR:
+ * reproducir, no una afirmación en una PR. Desde F0-27 lo ejecuta
+ * `.github/workflows/mutations.yml`, sólo en las PRs que tocan lo que muta;
+ * es lento, así que no va en `ci.yml`. A mano:
  *
  *     pnpm check:mutations
+ *
+ * Antes de mutar nada comprueba que la batería pasa en seco: un entorno que no
+ * puede ejecutar los tests daría "todas detectadas" sin haber probado nada.
  *
  * Todo se ejecuta con una configuración de git hostil —firma de commits con un
  * gpg que siempre falla, en la configuración global y también inyectada por
@@ -25,6 +30,7 @@ import { readFileSync, writeFileSync, mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { esFallo, etiqueta, mutationOutcome } from './mutation-outcome.mjs'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const TESTS = [
@@ -83,6 +89,38 @@ const MUTATIONS = [
 const hostile = join(mkdtempSync(join(tmpdir(), 'plumbward-hostile-')), 'gitconfig')
 writeFileSync(hostile, '[commit]\n\tgpgsign = true\n[tag]\n\tgpgSign = true\n[gpg]\n\tprogram = false\n')
 
+const entorno = {
+  ...process.env,
+  GIT_CONFIG_GLOBAL: hostile,
+  GIT_CONFIG_COUNT: '2',
+  GIT_CONFIG_KEY_0: 'commit.gpgsign',
+  GIT_CONFIG_VALUE_0: 'true',
+  GIT_CONFIG_KEY_1: 'gpg.program',
+  GIT_CONFIG_VALUE_1: 'false',
+}
+
+const ejecutarTests = () =>
+  spawnSync('pnpm', ['vitest', 'run', ...TESTS], {
+    cwd: root,
+    encoding: 'utf8',
+    env: entorno,
+    timeout: 300_000,
+  })
+
+// Arranque en seco: la batería tiene que pasar SIN mutar nada. Sin esto, un
+// entorno que no puede ejecutar los tests daba "todas detectadas" y verde, que
+// es el veredicto más peligroso posible: dice que todo está cubierto
+// precisamente cuando no se ha comprobado nada.
+const seco = ejecutarTests()
+if (seco.status !== 0) {
+  console.error(
+    seco.error || seco.status === null
+      ? `  NO EJECUTADA  la batería no se pudo ejecutar sin mutar: ${seco.error?.message ?? 'timeout'}`
+      : '  ROJA DE BASE  la batería falla sin mutar nada. Arregla los tests antes de medir mutaciones.',
+  )
+  process.exit(1)
+}
+
 let restoring = null
 process.on('SIGINT', () => {
   if (restoring) writeFileSync(restoring.path, restoring.content)
@@ -106,23 +144,9 @@ for (const [name, file, from, to, extra] of selected) {
   restoring = { path, content: original }
   writeFileSync(path, mutated)
   try {
-    const result = spawnSync('pnpm', ['vitest', 'run', ...TESTS], {
-      cwd: root,
-      encoding: 'utf8',
-      env: {
-        ...process.env,
-        GIT_CONFIG_GLOBAL: hostile,
-        GIT_CONFIG_COUNT: '2',
-        GIT_CONFIG_KEY_0: 'commit.gpgsign',
-        GIT_CONFIG_VALUE_0: 'true',
-        GIT_CONFIG_KEY_1: 'gpg.program',
-        GIT_CONFIG_VALUE_1: 'false',
-      },
-      timeout: 300_000,
-    })
-    const caught = result.status !== 0
-    if (!caught) survivors++
-    console.log(`  ${caught ? 'DETECTADA   ' : 'SOBREVIVE   '}  ${name}`)
+    const veredicto = mutationOutcome(ejecutarTests())
+    if (esFallo(veredicto)) survivors++
+    console.log(`  ${etiqueta(veredicto)}  ${name}`)
   } finally {
     writeFileSync(path, original)
     restoring = null

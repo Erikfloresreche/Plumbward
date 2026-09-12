@@ -20,6 +20,26 @@
  */
 
 /**
+ * ¿Este literal es una ruta de fichero y no un valor cualquiera?
+ *
+ * El nombre de la constante no sirve para distinguirlo: se reconoce cualquier
+ * identificador, porque limitarlo a mayúsculas puras dejaba fuera el `CX2` que
+ * escribe quien añade la segunda mutación sobre un fichero ya usado —las
+ * abreviaturas de dos letras están agotadas— y el fichero desaparecía de la
+ * lista sin que nada fallara.
+ *
+ * Tampoco se filtra por extensión conocida: eso reabriría el mismo agujero en
+ * cuanto se mute un `.yml` o un `.json`. Basta con que tenga forma de ruta
+ * —una barra, o una extensión cualquiera—, que es lo que separa
+ * `packages/a/b.ts` de `pnpm`. Un falso positivo aquí falla en voz alta; un
+ * falso negativo no falla nunca, y por eso el corte se pone de este lado.
+ *
+ * @param {string} valor literal de la constante
+ * @returns {boolean}
+ */
+const pareceRuta = (valor) => valor.includes('/') || /\.[A-Za-z0-9]+$/.test(valor)
+
+/**
  * Ficheros que `check-mutations.mjs` muta o ejecuta como test.
  *
  * Tres fuentes, porque el script usa las tres: las constantes de fichero
@@ -32,7 +52,9 @@
 export function mutationInputs(scriptText) {
   const files = new Set()
 
-  for (const m of scriptText.matchAll(/^const [A-Z]+ = '([^']+)'$/gm)) files.add(m[1])
+  for (const m of scriptText.matchAll(/^const [A-Za-z_$][\w$]* = '([^']+)'$/gm)) {
+    if (pareceRuta(m[1])) files.add(m[1])
+  }
 
   const tests = /const TESTS = \[([\s\S]*?)\]/.exec(scriptText)
   if (tests) for (const m of tests[1].matchAll(/'([^']+)'/g)) files.add(m[1])
@@ -52,17 +74,32 @@ export function mutationInputs(scriptText) {
  */
 export function workflowPaths(workflowText) {
   const lines = workflowText.split('\n')
-  const start = lines.findIndex((line) => /^\s+paths:\s*$/.test(line))
+  const sangria = (linea) => /^(\s*)/.exec(linea)[1].length
+
+  // El filtro que importa es el de `pull_request`, no el primer `paths:` del
+  // fichero: un disparador `push:` con su propia lista por delante secuestraba
+  // el control, que validaba esa lista y nunca miraba la que filtra las PRs.
+  const pr = lines.findIndex((line) => /^\s+pull_request:\s*$/.test(line))
+  if (pr === -1) return []
+
+  let start = -1
+  for (let i = pr + 1; i < lines.length; i++) {
+    if (lines[i].trim() === '') continue
+    if (sangria(lines[i]) <= sangria(lines[pr])) break
+    if (/^\s+paths:\s*$/.test(lines[i])) {
+      start = i
+      break
+    }
+  }
   if (start === -1) return []
 
-  const indent = /^(\s*)/.exec(lines[start])[1].length
+  const indent = sangria(lines[start])
   const paths = []
   for (const line of lines.slice(start + 1)) {
     if (line.trim() === '') continue
 
     // Una línea que no está más indentada que `paths:` ya es otra clave.
-    const sangria = /^(\s*)/.exec(line)[1].length
-    if (sangria <= indent) break
+    if (sangria(line) <= indent) break
 
     // Los comentarios no interrumpen la lista: el filtro lleva uno en medio
     // para separar los ficheros mutados de los que gobiernan la ejecución.

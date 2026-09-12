@@ -28,6 +28,27 @@ describe('ficheros que el script muta o ejecuta', () => {
     expect(mutationInputs(con)).toEqual(['packages/a/b.ts'])
   })
 
+  it('lee una constante con dígitos o guion bajo en el nombre', () => {
+    // Las abreviaturas de dos letras están agotadas: la siguiente mutación
+    // sobre un fichero ya usado se llamará `CX2` o `WF_2`. Si el nombre no se
+    // reconoce, el fichero desaparece de la lista y el control da verde.
+    expect(mutationInputs("const CX2 = 'packages/nuevo/a.ts'")).toEqual(['packages/nuevo/a.ts'])
+    expect(mutationInputs("const WF_2 = 'packages/nuevo/b.ts'")).toEqual(['packages/nuevo/b.ts'])
+    expect(mutationInputs("const Br = 'packages/nuevo/c.ts'")).toEqual(['packages/nuevo/c.ts'])
+  })
+
+  it('no toma por fichero una constante que no es una ruta', () => {
+    expect(mutationInputs("const CMD = 'pnpm'")).toEqual([])
+  })
+
+  it('lee un fichero mutado que no es TypeScript', () => {
+    // La lista de mutaciones no promete tocar sólo `.ts`: filtrar por extensión
+    // conocida reabriría el mismo agujero para un `.yml` o un `.json`.
+    expect(mutationInputs("const TP = 'packages/packs/node-ts/src/templates/ci.yml'")).toEqual([
+      'packages/packs/node-ts/src/templates/ci.yml',
+    ])
+  })
+
   it('no repite un fichero que aparece como constante y como test', () => {
     const dup = "const BR = 'packages/a/b.ts'\nconst TESTS = [\n  'packages/a/b.ts',\n]"
     expect(mutationInputs(dup)).toEqual(['packages/a/b.ts'])
@@ -46,8 +67,22 @@ describe('rutas del filtro paths del workflow', () => {
   })
 
   it('termina la lista al llegar a otra clave', () => {
-    const wf = "    paths:\n      - 'a.ts'\n  workflow_dispatch:\n      - 'no.ts'\n"
+    const wf =
+      "on:\n  pull_request:\n    paths:\n      - 'a.ts'\n  workflow_dispatch:\n      - 'no.ts'\n"
     expect(workflowPaths(wf)).toEqual(['a.ts'])
+  })
+
+  it('lee el filtro de pull_request, no el primer paths del fichero', () => {
+    // Un disparador `push:` con su propia lista por delante secuestraba el
+    // control: validaba esa lista y nunca miraba la que filtra las PRs.
+    const wf =
+      "on:\n  push:\n    paths:\n      - 'todo.ts'\n  pull_request:\n    paths:\n      - 'solo-uno.ts'\n"
+    expect(workflowPaths(wf)).toEqual(['solo-uno.ts'])
+  })
+
+  it('no confunde paths-ignore con el filtro', () => {
+    const wf = "on:\n  pull_request:\n    paths-ignore:\n      - 'docs/**'\n"
+    expect(workflowPaths(wf)).toEqual([])
   })
 
   it('devuelve una lista vacía si no hay filtro', () => {

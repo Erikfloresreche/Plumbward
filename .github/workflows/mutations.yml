@@ -11,8 +11,9 @@
 #   - Tarda del orden de diez minutos: dentro de `ci.yml` retrasaría la
 #     retroalimentación rápida que ese workflow existe para dar.
 #   - El filtro `paths:` es del workflow entero. Como job con `if:` aparecería
-#     como *Skipped* en todas las demás PRs —lo que F0-23 quitó del escaneo de
-#     historial— y una condición `if` se desajusta en silencio (napkin).
+#     como *Skipped* en todas las demás PRs —el ruido que F0-27 evita aquí y
+#     que F0-23, aún pendiente, quitará del escaneo de historial— y una
+#     condición `if` se desajusta en silencio (napkin).
 #
 # CUIDADO AL HACERLO OBLIGATORIO: con un filtro `paths:`, una PR que no toque
 # esos ficheros no dispara este workflow, y un check obligatorio que no llega
@@ -46,6 +47,7 @@ on:
       # El propio control y lo que decide cómo corren los tests.
       - 'scripts/check-mutations.mjs'
       - 'scripts/mutation-paths.mjs'
+      - 'scripts/mutation-outcome.mjs'
       - '.github/workflows/mutations.yml'
       - 'vitest.config.ts'
   workflow_dispatch:
