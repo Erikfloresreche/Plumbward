@@ -114,6 +114,7 @@ describe('ciclo completo sobre un repositorio real', () => {
       repoRoot: root,
       version: VERSION,
       writtenOnBranch: 'main',
+      writtenOnCommit: null,
       startedOnBranch: 'main',
       runCommands: false,
     })
@@ -132,7 +133,7 @@ describe('ciclo completo sobre un repositorio real', () => {
     // El comentario del tsconfig del cliente sigue ahí.
     expect(await readFile(join(root, 'tsconfig.json'), 'utf8')).toContain('Comentario del cliente')
 
-    await rollbackLastApply(root, { currentBranch: 'main' })
+    await rollbackLastApply(root, { currentBranch: 'main', currentCommit: null })
 
     expect(await gitStatus(root)).toBe('')
     expect(await readFile(join(root, 'package.json'), 'utf8')).toBe(paqueteOriginal)
@@ -144,6 +145,7 @@ describe('ciclo completo sobre un repositorio real', () => {
       repoRoot: root,
       version: VERSION,
       writtenOnBranch: 'main',
+      writtenOnCommit: null,
       startedOnBranch: 'main',
       runCommands: false,
     })
@@ -157,6 +159,7 @@ describe('ciclo completo sobre un repositorio real', () => {
       repoRoot: root,
       version: VERSION,
       writtenOnBranch: 'main',
+      writtenOnCommit: null,
       startedOnBranch: 'main',
       runCommands: false,
     })
@@ -185,6 +188,7 @@ describe('ciclo completo sobre un repositorio real', () => {
         repoRoot: root,
         version: VERSION,
         writtenOnBranch: 'main',
+        writtenOnCommit: null,
         startedOnBranch: 'main',
         runCommands: false,
       }),
@@ -221,6 +225,7 @@ describe('ciclo completo sobre un repositorio real', () => {
         repoRoot: root,
         version: VERSION,
         writtenOnBranch: 'main',
+        writtenOnCommit: null,
         startedOnBranch: 'main',
         runCommands: false,
       }),

@@ -157,7 +157,7 @@ export interface JournalEntry {
 }
 
 export interface Journal {
-  readonly version: 2
+  readonly version: 3
   readonly startedAt: string
   readonly repoRoot: string
   /**
@@ -173,6 +173,22 @@ export interface Journal {
    * niega porque no puede comprobar que sigue en el mismo sitio.
    */
   readonly writtenOnBranch: string | null
+  /**
+   * Commit al que apuntaba HEAD cuando `apply` escribió. `null` en un
+   * repositorio sin ningún commit todavía.
+   *
+   * El nombre de la rama dice dónde estás, no si es el mismo sitio: una rama
+   * borrada y recreada con el mismo nombre sobre otro commit, o un commit hecho
+   * en la rama aislada después del `apply`, pasan una comprobación por nombre y
+   * pierden datos igual. Los snapshots son del árbol que había en este commit.
+   *
+   * Es también el commit de partida, y por eso no hay un segundo campo:
+   * `headMoved` aborta si HEAD se mueve entre el plan y la confirmación, y
+   * `prepareBranch` crea la rama aislada desde HEAD sin commitear. El aviso de
+   * vuelta lo usa para nombrar adónde volver cuando se empezó con HEAD
+   * desacoplado.
+   */
+  readonly writtenOnCommit: string | null
   /**
    * Rama desde la que se lanzó `apply`, antes de aislar. `null` si ya estaba
    * con HEAD desacoplado.

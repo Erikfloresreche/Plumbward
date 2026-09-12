@@ -6,7 +6,7 @@
 > misma Pull Request que la implementa.
 
 **Última actualización:** 2026-09-12
-**Estado global:** Fase 0 en curso — F0-1, F0-3, F0-5, F0-8, F0-13, F0-14, F0-15, F0-17, F0-24 y F0-27 completadas. Quedan F0-2, F0-4, F0-6, F0-7, F0-9 a F0-12, F0-16, F0-18 a F0-23, F0-25, F0-26 y F0-28 a F0-32.
+**Estado global:** Fase 0 en curso — F0-1, F0-3, F0-5, F0-8, F0-13, F0-14, F0-15, F0-17, F0-24, F0-27 y F0-30 completadas. Quedan F0-2, F0-4, F0-6, F0-7, F0-9 a F0-12, F0-16, F0-18 a F0-23, F0-25, F0-26, F0-28, F0-29, F0-31 y F0-32.
 **Producto:** Plumbward · https://github.com/Erikfloresreche/Plumbward
 **Modelo de negocio:** suscripción anual por repositorio — ver
 [MODELO_DE_NEGOCIO.md](MODELO_DE_NEGOCIO.md)
@@ -1403,7 +1403,7 @@ La retirada de la promesa ya tiene el suyo en `rollback-branch.test.ts`.
 
 ---
 
-### [ ] F0-30 — El journal identifica el sitio por commit, no sólo por nombre
+### [x] F0-30 — El journal identifica el sitio por commit, no sólo por nombre
 **Rama:** `feat/f0-journal-commit-identity` · **Depende de:** F0-24
 
 **Origen:** hallazgos 3 y 4 de la revisión en contexto nuevo de la PR #11.

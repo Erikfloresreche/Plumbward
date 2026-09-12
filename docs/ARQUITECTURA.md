@@ -140,6 +140,23 @@ rama que anotar, `apply` lo dice al terminar en vez de prometer un `rollback`
 que no va a poder hacer. Qué hacer con esa combinación, además de no prometerla,
 es la tarea **F0-29**.
 
+**El nombre de la rama dice dónde estás, no si es el mismo sitio.** Una rama
+borrada y recreada con el mismo nombre sobre otro commit, o un commit hecho en
+la rama aislada después del `apply`, pasan una comprobación por nombre y pierden
+datos igual: las fotografías son del árbol que había en aquel commit. Por eso el
+journal guarda además `writtenOnCommit`, leído a la vez que `writtenOnBranch`, y
+`rollback` exige las dos cosas. Ese commit es también el de partida —`headMoved`
+aborta si HEAD se mueve entre el plan y la confirmación, y la rama aislada se
+crea desde HEAD sin commitear—, así que no hay un segundo campo que mantener, y
+el aviso de vuelta lo usa para nombrar adónde volver cuando se empezó con HEAD
+desacoplado.
+
+Los journals de versiones anteriores no se revierten: la v1 guardaba la rama de
+partida y la v2 no guardaba el commit, y en ninguna de las dos se puede
+comprobar que se sigue en el mismo sitio. `readJournal` lanza
+`OutdatedJournalError` y remite a git, en la misma dirección que la ADR 0005:
+ante la duda, menos acción.
+
 Revertir tampoco deshace el `checkout`: los ficheros vuelven, la rama no. Por
 eso el journal guarda también `startedOnBranch`, y tanto `rollback` como la
 reversión automática de un `apply` fallido dicen en qué rama queda el

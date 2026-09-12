@@ -148,3 +148,87 @@ describe('rollback fuera de la rama en la que apply escribió', () => {
     expect(await git(root, 'status', '--porcelain')).toBe('')
   })
 })
+
+/**
+ * F0-30: el nombre de la rama dice dónde estás, no si es el mismo sitio.
+ *
+ * `assertSameBranch` (F0-24) compara nombres, y `revertEntries` escribe en
+ * cuanto el nombre coincide. Una rama borrada y recreada sobre otro commit
+ * lleva el mismo nombre y no es el mismo sitio: los snapshots del journal son
+ * de la rama vieja, y restaurarlos ahí es la misma pérdida de datos que F0-24
+ * arregló para el caso fácil.
+ */
+describe('rollback en una rama del mismo nombre creada sobre otro commit', () => {
+  it('no restaura el snapshot viejo sobre el trabajo de la rama nueva', async () => {
+    const root = await createRepo('Prod')
+
+    expect(await apply(root)).toBe(0)
+    expect(await currentBranch(root)).toBe(GOVERNANCE_BRANCH)
+
+    // Se tira la rama aislada y se sigue en Prod. El journal, ignorado por git,
+    // sobrevive: está en `.governance/`, que no se borra con el checkout.
+    await git(root, 'checkout', '-f', 'Prod')
+    await writeFile(join(root, 'package.json'), manifest('2.0.0'))
+    await git(root, 'add', 'package.json')
+    await git(root, 'commit', '-m', 'bump version')
+    await git(root, 'branch', '-D', GOVERNANCE_BRANCH)
+
+    // Más tarde se vuelve a crear una rama con el mismo nombre, sobre el commit
+    // nuevo. Para el guardián de F0-24 es indistinguible de la original.
+    await git(root, 'checkout', '-b', GOVERNANCE_BRANCH)
+
+    const exitCode = await runRollback(root)
+
+    expect(await readManifest(root)).toBe(manifest('2.0.0'))
+    expect(exitCode).toBe(1)
+  })
+
+  it('tampoco revierte si se ha commiteado en la rama aislada después del apply', async () => {
+    const root = await createRepo('Prod')
+
+    expect(await apply(root)).toBe(0)
+    await git(root, 'add', '.')
+    await git(root, 'commit', '-m', 'governance')
+    await writeFile(join(root, 'package.json'), manifest('3.0.0'))
+
+    const exitCode = await runRollback(root)
+
+    expect(await readManifest(root)).toBe(manifest('3.0.0'))
+    expect(exitCode).toBe(1)
+  })
+
+  /**
+   * El commit anotado es a la vez el de partida: `headMoved` aborta si HEAD se
+   * mueve entre el plan y la confirmación, y `prepareBranch` crea la rama desde
+   * HEAD sin commitear. Este test fija esa igualdad, que es la razón de que el
+   * journal guarde un commit y no dos.
+   */
+  it('el journal guarda el commit sobre el que se escribió, que es el de partida', async () => {
+    const root = await createRepo('Prod')
+    await git(root, 'checkout', '--detach')
+    const commitDePartida = await git(root, 'rev-parse', 'HEAD')
+
+    expect(await apply(root)).toBe(0)
+
+    const journal: unknown = JSON.parse(
+      await readFile(join(root, '.governance/journal.json'), 'utf8'),
+    )
+    expect((journal as { writtenOnCommit: string | null }).writtenOnCommit).toBe(commitDePartida)
+  })
+
+  it('el aviso de vuelta nombra el commit de partida, no un hueco que rellenar', async () => {
+    const root = await createRepo('Prod')
+    await git(root, 'checkout', '--detach')
+    const commitDePartida = await git(root, 'rev-parse', 'HEAD')
+
+    expect(await apply(root)).toBe(0)
+    expect(await currentBranch(root)).toBe(GOVERNANCE_BRANCH)
+
+    const output = captureOutput()
+    expect(await runRollback(root)).toBe(0)
+    const printed = output()
+
+    expect(printed).toContain(`git checkout ${commitDePartida}`)
+    expect(printed).not.toContain('git checkout <commit>')
+  })
+})

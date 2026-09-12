@@ -15,6 +15,15 @@ export interface BranchNoticeInput {
   readonly currentBranch: string | null
   /** Rama desde la que se lanzó `apply`. `null` si ya estaba desacoplado. */
   readonly startedOnBranch: string | null
+  /**
+   * Commit en el que se empezó, para poder nombrarlo cuando no hay rama que
+   * nombrar. `null` sólo en un repositorio sin ningún commit.
+   *
+   * Sale del journal (`writtenOnCommit`): sin él, el consejo era `git checkout
+   * <commit>` y dejaba al usuario rellenar un hueco que ya no puede rellenar,
+   * porque HEAD está en otro sitio desde que `apply` aisló.
+   */
+  readonly startedOnCommit: string | null
   /** Nombre de la rama aislada, para reconocerla y avisar de que sobra. */
   readonly isolatedBranch: string
   /**
@@ -31,11 +40,21 @@ export interface BranchNoticeInput {
 }
 
 /**
+ * Cómo volver cuando se empezó sin rama. Con el commit anotado se nombra; sin
+ * él —repositorio sin ningún commit— no hay nada adonde volver con `checkout`.
+ */
+function returnToCommit(startedOnCommit: string | null): string {
+  return startedOnCommit === null
+    ? '`git checkout --detach` desde donde quieras: el repositorio no tenía ningún commit al empezar'
+    : `\`git checkout ${startedOnCommit}\``
+}
+
+/**
  * Líneas a imprimir, sin color y sin sangrar. Vacío cuando no hay nada que
  * decir: el repositorio ha quedado donde estaba.
  */
 export function branchReturnNotice(input: BranchNoticeInput): readonly string[] {
-  const { currentBranch, startedOnBranch, isolatedBranch, pendingRollback } = input
+  const { currentBranch, startedOnBranch, startedOnCommit, isolatedBranch, pendingRollback } = input
 
   if (currentBranch === startedOnBranch) return []
 
@@ -49,7 +68,7 @@ export function branchReturnNotice(input: BranchNoticeInput): readonly string[] 
     lines.push(
       'No vuelvas todavía: quedan ficheros a medias, y un `git checkout` los arrastraría contigo.',
       startedOnBranch === null
-        ? 'Ejecuta `plumbward rollback` aquí; cuando termine, vuelve al commit en el que empezaste.'
+        ? `Ejecuta \`plumbward rollback\` aquí; cuando termine, vuelve con ${returnToCommit(startedOnCommit)}.`
         : `Ejecuta \`plumbward rollback\` aquí; cuando termine, vuelve con \`git checkout ${startedOnBranch}\`.`,
     )
     if (currentBranch === isolatedBranch) {
@@ -63,7 +82,7 @@ export function branchReturnNotice(input: BranchNoticeInput): readonly string[] 
 
   lines.push(
     startedOnBranch === null
-      ? 'Empezaste con HEAD desacoplado, así que no hay rama que nombrar: vuelve con `git checkout <commit>`.'
+      ? `Empezaste con HEAD desacoplado, así que no hay rama que nombrar: vuelve con ${returnToCommit(startedOnCommit)}.`
       : `Vuelve a la tuya con \`git checkout ${startedOnBranch}\`.`,
   )
 
