@@ -144,6 +144,16 @@ async function readHead(repoRoot: string): Promise<HeadSnapshot> {
 }
 
 /**
+ * Nombre de rama de un HEAD, o `null` si está desacoplado.
+ *
+ * Sale de `symbolic-ref` sin abreviar a propósito: `rev-parse --abbrev-ref HEAD`
+ * devuelve `heads/X` cuando existe una etiqueta llamada `X`.
+ */
+function branchNameOf(head: HeadSnapshot): string | null {
+  return head.ref === null ? null : head.ref.replace(/^refs\/heads\//, '')
+}
+
+/**
  * ¿Ha cambiado HEAD desde que se calculó el plan?
  *
  * La confirmación puede tardar, y mientras tanto alguien puede cambiar de rama
@@ -250,11 +260,15 @@ export async function runApply(cwd: string, options: ApplyOptions): Promise<numb
 
   await prepareBranch(scan.repoRoot, scan.git, options.branch, context.context.profile)
 
+  // Después de `prepareBranch`, no antes: es la rama que de verdad se escribe, y
+  // es la única en la que `rollback` puede restaurar sin destruir trabajo.
+  const writtenOnBranch = branchNameOf(await readHead(scan.repoRoot))
+
   try {
     const result = await applyPlan(plan, {
       repoRoot: scan.repoRoot,
       version: CLI_VERSION,
-      branch: scan.git.branch,
+      writtenOnBranch,
       runCommands: options.install,
       runner,
       onProgress: ({ operation, status, note }) => {
@@ -308,7 +322,10 @@ export async function runRollback(cwd: string): Promise<number> {
   const { scan } = await buildContext(cwd)
 
   try {
-    const result = await rollbackLastApply(scan.repoRoot)
+    // Con `readHead`, la misma fuente que usó `apply` al anotar la rama.
+    const result = await rollbackLastApply(scan.repoRoot, {
+      currentBranch: branchNameOf(await readHead(scan.repoRoot)),
+    })
     console.log(
       success(
         `Revertidas ${result.operationsReverted} operaciones (${result.restoredFiles} ficheros restaurados).`,

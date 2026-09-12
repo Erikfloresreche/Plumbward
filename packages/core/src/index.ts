@@ -36,8 +36,8 @@ export type { ApplyOptions, CommandRunner, ProgressEvent } from './apply.js'
 export { simulatePlan } from './simulate.js'
 export type { SimulatedChange, SimulationResult } from './simulate.js'
 
-export { rollbackLastApply, readJournal, RollbackError } from './rollback.js'
-export type { RollbackResult } from './rollback.js'
+export { rollbackLastApply, readJournal, RollbackError, OutdatedJournalError } from './rollback.js'
+export type { RollbackResult, RollbackOptions } from './rollback.js'
 
 export {
   resolveInRepo,

@@ -127,6 +127,16 @@ contenidos y borra los ficheros que no existían. El criterio de éxito es
 literal: tras un `apply --no-install`, `git status --porcelain` debe quedar
 vacío.
 
+**El journal recuerda en qué rama se escribió, y `rollback` sólo actúa ahí.**
+`apply` aísla los cambios en `chore/setup-ai-governance`, y el journal entra en
+el `.gitignore` que instala el pack, así que sobrevive a los checkouts. Un
+journal que recordase la rama de *partida* haría que `rollback` en `Prod`
+restaurase en `Prod` fotografías tomadas en la rama aislada: no revierte nada,
+borra lo que `Prod` tuviera desde entonces. Por eso `writtenOnBranch` se lee
+**después** de cambiar de rama, y en cualquier otra rama —o con HEAD
+desacoplado, donde no hay nombre que comprobar— `rollback` se niega sin escribir
+y conserva el journal para poder revertir desde el sitio correcto.
+
 **Hueco conocido:** las operaciones `execCommand` no registran snapshots. Lo que
 el gestor de paquetes escriba en el lockfile y en `node_modules` durante la
 instalación queda fuera del journal, y `rollback` no lo deshace. Tarea **F0-11**.
