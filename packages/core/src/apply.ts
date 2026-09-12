@@ -42,7 +42,14 @@ export interface ApplyOptions {
   readonly repoRoot: string
   /** Versión de la CLI, sellada en las cabeceras de los ficheros gestionados. */
   readonly version: string
-  readonly branch: string | null
+  /**
+   * Rama sobre la que se va a escribir, leída **después** de cambiar de rama.
+   * Pasar aquí la rama de partida es el fallo que hacía que `rollback`
+   * sobrescribiera `Prod` con los snapshots de la rama aislada.
+   */
+  readonly writtenOnBranch: string | null
+  /** Rama desde la que se lanzó `apply`, para poder decir cómo volver a ella. */
+  readonly startedOnBranch: string | null
   /** Si es `false`, los `execCommand` se registran pero no se ejecutan. */
   readonly runCommands: boolean
   readonly runner?: CommandRunner
@@ -94,10 +101,11 @@ export async function applyPlan(
   const startedAt = new Date().toISOString()
   const entries: JournalEntry[] = []
   const journal = (): Journal => ({
-    version: 1,
+    version: 2,
     startedAt,
     repoRoot: options.repoRoot,
-    branch: options.branch,
+    writtenOnBranch: options.writtenOnBranch,
+    startedOnBranch: options.startedOnBranch,
     entries: [...entries],
   })
 

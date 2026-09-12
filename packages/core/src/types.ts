@@ -157,10 +157,31 @@ export interface JournalEntry {
 }
 
 export interface Journal {
-  readonly version: 1
+  readonly version: 2
   readonly startedAt: string
   readonly repoRoot: string
-  readonly branch: string | null
+  /**
+   * Rama sobre la que `apply` escribió de verdad, no la de partida.
+   *
+   * La distinción es la que separa revertir de perder trabajo: `apply` aísla
+   * los cambios en `chore/setup-ai-governance`, y el journal está en el
+   * `.gitignore` que instala el pack, así que sobrevive a los checkouts. Un
+   * journal que recuerde la rama de partida hace que `rollback` en `Prod`
+   * restaure en `Prod` ficheros fotografiados en la rama aislada.
+   *
+   * `null` con HEAD desacoplado: ahí no hay rama que nombrar, y `rollback` se
+   * niega porque no puede comprobar que sigue en el mismo sitio.
+   */
+  readonly writtenOnBranch: string | null
+  /**
+   * Rama desde la que se lanzó `apply`, antes de aislar. `null` si ya estaba
+   * con HEAD desacoplado.
+   *
+   * No decide nada: es la que `rollback` nombra al decir cómo volver. Sin ella
+   * el consejo tenía que ser `git checkout -`, que depende de cuál fuera el ref
+   * anterior y acierta sólo si nadie ha cambiado de rama por el camino.
+   */
+  readonly startedOnBranch: string | null
   readonly entries: readonly JournalEntry[]
 }
 
