@@ -36,6 +36,7 @@ function journalWritingReadme(writtenOnBranch: string | null, version = 2): unkn
     startedAt: '2026-09-12T00:00:00.000Z',
     repoRoot: '/irrelevante',
     writtenOnBranch,
+    startedOnBranch: writtenOnBranch,
     entries: [
       {
         index: 0,

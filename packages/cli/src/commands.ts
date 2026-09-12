@@ -16,6 +16,7 @@ import { file, requiresIsolation } from '@plumbward/packs-sdk'
 import type { Profile } from '@plumbward/packs-sdk'
 import { CLI_VERSION, buildContext, buildRegistry, profileToYaml } from './context.js'
 import { error, renderHealthChecks, renderPlan, renderScan, success, warn } from './render.js'
+import { branchReturnNotice } from './branch-notice.js'
 
 /**
  * Rama aislada donde se integran los cambios. Nunca se trabaja directamente
@@ -144,6 +145,21 @@ async function readHead(repoRoot: string): Promise<HeadSnapshot> {
 }
 
 /**
+ * Imprime, si hace falta, en qué rama ha quedado el repositorio y cómo volver.
+ *
+ * La rama actual se lee ahora, no del escaneo: entre medias `apply` ha podido
+ * crear y activar la rama aislada, que es justo el caso que hay que avisar.
+ */
+async function printBranchNotice(repoRoot: string, startedOnBranch: string | null): Promise<void> {
+  const notice = branchReturnNotice({
+    currentBranch: branchNameOf(await readHead(repoRoot)),
+    startedOnBranch,
+    isolatedBranch: GOVERNANCE_BRANCH,
+  })
+  for (const line of notice) console.log(pc.dim(`  ${line}`))
+}
+
+/**
  * Nombre de rama de un HEAD, o `null` si está desacoplado.
  *
  * Sale de `symbolic-ref` sin abreviar a propósito: `rev-parse --abbrev-ref HEAD`
@@ -269,6 +285,7 @@ export async function runApply(cwd: string, options: ApplyOptions): Promise<numb
       repoRoot: scan.repoRoot,
       version: CLI_VERSION,
       writtenOnBranch,
+      startedOnBranch: scan.git.branch,
       runCommands: options.install,
       runner,
       onProgress: ({ operation, status, note }) => {
@@ -308,9 +325,11 @@ export async function runApply(cwd: string, options: ApplyOptions): Promise<numb
       console.log(`\n${error(cause.message)}`)
       console.log(
         cause.rolledBack
-          ? pc.dim('  Los cambios se han revertido automáticamente: el repositorio está intacto.')
+          ? pc.dim('  Los cambios se han revertido automáticamente: los ficheros están como estaban.')
           : pc.red('  ATENCIÓN: no se pudo revertir del todo. Ejecuta `plumbward rollback`.'),
       )
+      // Los ficheros sí, la rama no: revertir no deshace el checkout.
+      await printBranchNotice(scan.repoRoot, scan.git.branch)
       return 1
     }
     throw cause
@@ -332,13 +351,7 @@ export async function runRollback(cwd: string): Promise<number> {
       ),
     )
     console.log(pc.dim('  Comprueba con `git status --porcelain` que el árbol está limpio.'))
-    if (scan.git.branch === GOVERNANCE_BRANCH) {
-      console.log(
-        pc.dim(
-          `  Sigues en la rama "${GOVERNANCE_BRANCH}"; vuelve a la tuya con \`git checkout -\`.`,
-        ),
-      )
-    }
+    await printBranchNotice(scan.repoRoot, result.journal.startedOnBranch)
     return 0
   } catch (cause) {
     console.log(error(cause instanceof Error ? cause.message : String(cause)))

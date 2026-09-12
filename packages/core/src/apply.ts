@@ -48,6 +48,8 @@ export interface ApplyOptions {
    * sobrescribiera `Prod` con los snapshots de la rama aislada.
    */
   readonly writtenOnBranch: string | null
+  /** Rama desde la que se lanzó `apply`, para poder decir cómo volver a ella. */
+  readonly startedOnBranch: string | null
   /** Si es `false`, los `execCommand` se registran pero no se ejecutan. */
   readonly runCommands: boolean
   readonly runner?: CommandRunner
@@ -103,6 +105,7 @@ export async function applyPlan(
     startedAt,
     repoRoot: options.repoRoot,
     writtenOnBranch: options.writtenOnBranch,
+    startedOnBranch: options.startedOnBranch,
     entries: [...entries],
   })
 

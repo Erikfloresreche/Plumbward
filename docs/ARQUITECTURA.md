@@ -137,6 +137,11 @@ borra lo que `Prod` tuviera desde entonces. Por eso `writtenOnBranch` se lee
 desacoplado, donde no hay nombre que comprobar— `rollback` se niega sin escribir
 y conserva el journal para poder revertir desde el sitio correcto.
 
+Revertir tampoco deshace el `checkout`: los ficheros vuelven, la rama no. Por
+eso el journal guarda también `startedOnBranch`, y tanto `rollback` como la
+reversión automática de un `apply` fallido dicen en qué rama queda el
+repositorio y con qué comando volver a la de partida.
+
 **Hueco conocido:** las operaciones `execCommand` no registran snapshots. Lo que
 el gestor de paquetes escriba en el lockfile y en `node_modules` durante la
 instalación queda fuera del journal, y `rollback` no lo deshace. Tarea **F0-11**.

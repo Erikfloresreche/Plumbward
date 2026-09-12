@@ -113,7 +113,7 @@ describe('ciclo completo sobre un repositorio real', () => {
     const resultado = await applyPlan(plan, {
       repoRoot: root,
       version: VERSION,
-      writtenOnBranch: 'main',
+      writtenOnBranch: 'main', startedOnBranch: 'main',
       runCommands: false,
     })
 
@@ -142,7 +142,7 @@ describe('ciclo completo sobre un repositorio real', () => {
     await applyPlan(await construirPlan(root), {
       repoRoot: root,
       version: VERSION,
-      writtenOnBranch: 'main',
+      writtenOnBranch: 'main', startedOnBranch: 'main',
       runCommands: false,
     })
 
@@ -154,7 +154,7 @@ describe('ciclo completo sobre un repositorio real', () => {
     const segundo = await applyPlan(segundoPlan, {
       repoRoot: root,
       version: VERSION,
-      writtenOnBranch: 'main',
+      writtenOnBranch: 'main', startedOnBranch: 'main',
       runCommands: false,
     })
     expect(segundo.applied).toBe(0)
@@ -178,7 +178,7 @@ describe('ciclo completo sobre un repositorio real', () => {
     }
 
     await expect(
-      applyPlan(roto, { repoRoot: root, version: VERSION, writtenOnBranch: 'main', runCommands: false }),
+      applyPlan(roto, { repoRoot: root, version: VERSION, writtenOnBranch: 'main', startedOnBranch: 'main', runCommands: false }),
     ).rejects.toThrow(/no existe el fichero/)
 
     // Requisito de resiliencia operativa: el repositorio queda intacto.
@@ -208,7 +208,7 @@ describe('ciclo completo sobre un repositorio real', () => {
     }
 
     await expect(
-      applyPlan(malicioso, { repoRoot: root, version: VERSION, writtenOnBranch: 'main', runCommands: false }),
+      applyPlan(malicioso, { repoRoot: root, version: VERSION, writtenOnBranch: 'main', startedOnBranch: 'main', runCommands: false }),
     ).rejects.toThrow(/escapa de la raíz/)
   })
 })

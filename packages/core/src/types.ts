@@ -173,6 +173,15 @@ export interface Journal {
    * niega porque no puede comprobar que sigue en el mismo sitio.
    */
   readonly writtenOnBranch: string | null
+  /**
+   * Rama desde la que se lanzó `apply`, antes de aislar. `null` si ya estaba
+   * con HEAD desacoplado.
+   *
+   * No decide nada: es la que `rollback` nombra al decir cómo volver. Sin ella
+   * el consejo tenía que ser `git checkout -`, que depende de cuál fuera el ref
+   * anterior y acierta sólo si nadie ha cambiado de rama por el camino.
+   */
+  readonly startedOnBranch: string | null
   readonly entries: readonly JournalEntry[]
 }
 
