@@ -15,6 +15,7 @@ import { createHash } from 'node:crypto'
 import { join, dirname, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { checkPlan, checkPullRequestBranch } from './branch-names.mjs'
+import { uncoveredMutationInputs } from './mutation-paths.mjs'
 
 const raiz = join(dirname(fileURLToPath(import.meta.url)), '..')
 const leer = (p) => readFileSync(join(raiz, p), 'utf8')
@@ -129,7 +130,12 @@ try {
     .filter(Boolean)
 
   if (remotas.length > 0) {
-    for (const wf of ['.github/workflows/ci.yml', '.github/workflows/e2e.yml']) {
+    // Todos los workflows, no una lista escrita a mano: un workflow nuevo
+    // con un disparador sobre una rama inexistente no tendría control.
+    const workflows = readdirSync(join(raiz, '.github/workflows'))
+      .filter((f) => f.endsWith('.yml') || f.endsWith('.yaml'))
+      .map((f) => `.github/workflows/${f}`)
+    for (const wf of workflows) {
       const texto = leer(wf)
       for (const m of texto.matchAll(/branches: \[([^\]]+)\]/g)) {
         for (const rama of m[1].split(',').map((r) => r.trim())) {
@@ -154,6 +160,23 @@ try {
 } catch {
   // Sin red o sin remoto: no se puede comprobar, y no es motivo para fallar.
   console.warn('  (aviso: no se han podido listar las ramas remotas; control omitido)')
+}
+
+// ── 4 bis. El filtro del workflow de mutaciones cubre lo que se muta ────
+// `mutations.yml` sólo corre en las PRs que tocan los ficheros que
+// `check-mutations.mjs` muta o ejecuta. Esa lista está escrita a mano en el
+// workflow y la de mutaciones crece: si una mutación nueva toca un fichero que
+// el filtro no nombra, el job deja de ejecutarse en las PRs que lo cambian sin
+// ponerse en rojo —no se ejecuta, no falla—. La lógica vive en
+// `scripts/mutation-paths.mjs`, cubierta por su test. Tarea F0-27.
+for (const fichero of uncoveredMutationInputs(
+  leer('scripts/check-mutations.mjs'),
+  leer('.github/workflows/mutations.yml'),
+)) {
+  fallo(
+    'filtro-de-mutaciones',
+    `check-mutations.mjs muta o ejecuta "${fichero}", pero el filtro paths: de .github/workflows/mutations.yml no lo nombra. Una PR que cambie ese fichero no lanzaría las mutaciones.`,
+  )
 }
 
 // ── 5. Los nombres de rama van en inglés y con el formato del plan ───────

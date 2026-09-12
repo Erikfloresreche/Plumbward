@@ -1,0 +1,89 @@
+# ---------------------------------------------------------------------------
+# Pruebas de mutación de la lógica de ramas protegidas.
+#
+# `check:mutations` deshace a propósito cada pieza de la lógica de ramas y
+# comprueba que algún test falla. Hasta F0-27 no se ejecutaba en ninguna parte:
+# dependía de que alguien se acordara de lanzarlo, así que no era un control,
+# era una recomendación. Aquí ya no depende de nadie.
+#
+# Va en su propio workflow, no como job de `ci.yml`, por dos razones:
+#
+#   - Tarda del orden de diez minutos: dentro de `ci.yml` retrasaría la
+#     retroalimentación rápida que ese workflow existe para dar.
+#   - El filtro `paths:` es del workflow entero. Como job con `if:` aparecería
+#     como *Skipped* en todas las demás PRs —el ruido que F0-27 evita aquí y
+#     que F0-23, aún pendiente, quitará del escaneo de historial— y una
+#     condición `if` se desajusta en silencio (napkin).
+#
+# CUIDADO AL HACERLO OBLIGATORIO: con un filtro `paths:`, una PR que no toque
+# esos ficheros no dispara este workflow, y un check obligatorio que no llega
+# se queda *pending* para siempre y bloquea el merge. Si entra en el ruleset,
+# hay que quitar el filtro antes.
+# ---------------------------------------------------------------------------
+name: Mutaciones
+
+on:
+  pull_request:
+    branches: [develop, Prod]
+    # Sólo las PRs que tocan lo que el script muta o ejecuta. La lista la
+    # verifica `pnpm check:coherencia` contra `scripts/check-mutations.mjs`:
+    # si una mutación nueva toca un fichero que no está aquí, la CI lo dice.
+    paths:
+      - 'packages/cli/src/commands.ts'
+      - 'packages/cli/src/context.ts'
+      - 'packages/cli/test/e2e.test.ts'
+      - 'packages/cli/test/head-moved.test.ts'
+      - 'packages/cli/test/protected-branches.test.ts'
+      - 'packages/packs-sdk/src/branches.test.ts'
+      - 'packages/packs-sdk/src/branches.ts'
+      - 'packages/packs-sdk/src/contract.ts'
+      - 'packages/packs/node-ts/src/index.ts'
+      - 'packages/packs/node-ts/src/templates/ci.ts'
+      - 'packages/packs/node-ts/src/validate.test.ts'
+      - 'packages/packs/node-ts/src/workflow-checks.ts'
+      - 'packages/scanner/src/git.ts'
+      - 'packages/scanner/test/default-branch.test.ts'
+      - 'vitest.setup.ts'
+      # El propio control y lo que decide cómo corren los tests.
+      - 'scripts/check-mutations.mjs'
+      - 'scripts/mutation-paths.mjs'
+      - 'scripts/mutation-outcome.mjs'
+      - '.github/workflows/mutations.yml'
+      - 'vitest.config.ts'
+  workflow_dispatch:
+
+concurrency:
+  group: mutations-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  mutaciones:
+    name: Mutaciones de la lógica de ramas
+    # Job propio, sin matriz y sin condiciones `if`: lo que decide si esto
+    # corre es el filtro `paths:` de arriba, en un solo sitio.
+    runs-on: ubuntu-latest
+    # Treinta mutaciones, cada una una batería de tests completa. En local son
+    # unos tres minutos; el margen es para un runner lento, no para el caso
+    # normal. El script tiene además su propio tope de 5 minutos por mutación.
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          # El suelo declarado basta: esto prueba cobertura de los tests, no
+          # compatibilidad entre versiones de Node.
+          node-version: '22.13'
+          cache: pnpm
+
+      - name: Instalar dependencias
+        run: pnpm install --frozen-lockfile
+
+      # No se compila: los tests importan `src` por los alias de vitest.
+      # El script inyecta su propia configuración de git hostil (firma que
+      # siempre falla), así que aquí no se configura identidad alguna.
+      - name: Pruebas de mutación
+        run: pnpm check:mutations

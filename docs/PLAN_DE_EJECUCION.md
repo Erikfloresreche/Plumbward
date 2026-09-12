@@ -6,7 +6,7 @@
 > misma Pull Request que la implementa.
 
 **Última actualización:** 2026-09-12
-**Estado global:** Fase 0 en curso — F0-1, F0-3, F0-5, F0-8, F0-13, F0-14, F0-15, F0-17 y F0-24 completadas. Quedan F0-2, F0-4, F0-6, F0-7, F0-9 a F0-12, F0-16, F0-18 a F0-23 y F0-25 a F0-31.
+**Estado global:** Fase 0 en curso — F0-1, F0-3, F0-5, F0-8, F0-13, F0-14, F0-15, F0-17, F0-24 y F0-27 completadas. Quedan F0-2, F0-4, F0-6, F0-7, F0-9 a F0-12, F0-16, F0-18 a F0-23, F0-25, F0-26 y F0-28 a F0-32.
 **Producto:** Plumbward · https://github.com/Erikfloresreche/Plumbward
 **Modelo de negocio:** suscripción anual por repositorio — ver
 [MODELO_DE_NEGOCIO.md](MODELO_DE_NEGOCIO.md)
@@ -1313,7 +1313,7 @@ caras: **la herramienta mira un dato, no lo entiende, y sigue como si nada.**
 
 ---
 
-### [ ] F0-27 — Ejecutar `check:mutations` en CI
+### [x] F0-27 — Ejecutar `check:mutations` en CI
 **Rama:** `ci/f0-mutation-job` · **Depende de:** F0-15
 
 **Origen:** punto 8 de las revisiones de la PR #7, separado de F0-24 (ver allí
@@ -1327,7 +1327,19 @@ PRs que tocan `branches.ts`, `context.ts`, `commands.ts` o las plantillas de CI.
 Así deja de ejecutarse dentro de la sesión del asistente, que es lo que más
 tarda (§6.2 de `CLAUDE.md`).
 
-**Qué se convierte en control mecánico:** el propio job.
+**Qué se convierte en control mecánico:** el propio job, y uno más que hizo
+falta al montarlo: el filtro `paths:` que decide cuándo corre es una lista
+escrita a mano, y la de mutaciones crece. Si una mutación nueva toca un fichero
+que el filtro no nombra, el job deja de ejecutarse sin ponerse en rojo —no se
+ejecuta, no falla—. `check:coherencia` deriva la lista de `check-mutations.mjs`
+y compara (`scripts/mutation-paths.mjs`, con su test).
+
+Y un tercero, de la revisión: el script daba "detectada" para cualquier salida
+distinta de 0, y `spawnSync` devuelve `status: null` cuando no puede lanzar el
+proceso o salta el timeout. Un entorno roto —`pnpm` ausente, un `install` a
+medias, un runner sin memoria— producía "30 de 30 detectadas" en verde sin
+ejecutar un test. Ahora el veredicto es explícito (`scripts/mutation-outcome.mjs`,
+con su test) y la batería se ejecuta antes en seco, sin mutar nada.
 
 **Criterios de aceptación:**
 - `check:mutations` corre en CI y una mutación superviviente pone la PR en rojo.
@@ -1434,6 +1446,65 @@ segura, pero es un cambio de contrato de API pública. Hoy el único consumidor 
 **Qué se convierte en control mecánico:** nada por sí mismo. Ningún control
 puede ver que un consumidor futuro esperaba el contrato viejo; la defensa es
 que esté escrito donde se lee.
+
+---
+
+### [ ] F0-32 — Seguimientos de la revisión de la PR de F0-27
+**Rama:** `fix/f0-mutation-control-followups` · **Depende de:** F0-27
+
+**Origen:** revisión en contexto nuevo de la PR de F0-27. Los tres bloqueantes
+—constantes con dígito invisibles para el control, veredicto verde sin ejecutar
+un test, y el filtro leído del bloque `paths:` equivocado— se corrigieron dentro
+de la PR. Estos son los no bloqueantes (§6.4 de `CLAUDE.md`).
+
+Todos comparten una forma: el control de mutaciones mide con parsers propios
+—expresiones regulares sobre YAML y sobre JavaScript— y cada hueco del parser
+es un verde que no significa nada.
+
+**Trabajo:**
+1. **Prioridad alta.** El control prohíbe la salida de emergencia que el propio
+   workflow documenta: `mutations.yml` avisa de que, si el job entra en el
+   ruleset, hay que quitar el filtro `paths:`; sin filtro, `workflowPaths`
+   devuelve `[]` y `check:coherencia` se pone en rojo con quince ficheros sin
+   cubrir. Un workflow sin filtro corre siempre y es estrictamente más seguro:
+   hay que distinguir "no hay filtro" de "el filtro se deja ficheros fuera".
+2. Dos mutantes sobreviven a `scripts/mutation-paths.test.mjs`: quitar
+   `if (sangria(line) <= indent) break` y cambiar `if (!entrada) break` por
+   `continue`. En ambos casos el test pasa porque otro camino corta la lista
+   igual. La diferencia entre truncar la lista y saltarse una entrada mal
+   formada es perder una ruta o perderlas todas.
+3. El `readdirSync` del directorio de workflows cayó dentro del `try` que
+   diagnostica fallos de red: si `.github/workflows` no se puede leer, el
+   control 4 entero se desactiva imprimiendo "no se han podido listar las ramas
+   remotas", que es falso.
+4. `mutationInputs` lee `TESTS` con `/const TESTS = \[([\s\S]*?)\]/`: una ruta
+   comentada dentro del array cuenta como fichero —exige en el filtro algo que
+   ya no se ejecuta, falso rojo— y un `]` dentro de un comentario corta el
+   array y pierde las rutas siguientes en silencio —falso verde—.
+5. En el filtro del workflow, una entrada con comillas dobles se devuelve con
+   las comillas dentro, y un comentario al final de la línea corta la lista
+   ahí. Ambos fallan hacia rojo, pero acusan al fichero equivocado.
+6. El control 1b (`if: matrix.node`) sigue mirando sólo `ci.yml`, mientras el
+   control 4 pasó a recorrer el directorio en F0-27. Un workflow futuro con
+   matriz no tendría ese control. Hoy no duele: `mutations.yml` no tiene matriz.
+
+**No mecanizable, y por eso se escribe aquí:** el filtro cubre los ficheros que
+se mutan, no todos los que pueden hacer sobrevivir una mutación. Las `TESTS`
+importan producción que no está en el filtro —`packages/core/src/`,
+`packages/cli/src/apply.ts`—, así que un cambio ahí puede dejar una mutación
+viva sin que el job llegue a ejecutarse. Cumple lo que F0-27 pide —"al menos"
+esas PRs—, pero el control derivado da una impresión de completitud que no
+tiene. Cerrarlo de verdad exige el grafo de importaciones, no una lista.
+
+**Qué se convierte en control mecánico:** los puntos 1 a 6, cada uno con su
+test. El párrafo anterior, no: queda escrito donde se lee.
+
+**Criterios de aceptación:**
+- Quitar el filtro `paths:` de `mutations.yml` deja `check:coherencia` en verde.
+- Los dos mutantes del punto 2 mueren: `pnpm check:mutations` no es el control
+  de este fichero, así que se comprueban a mano mutando y ejecutando.
+- Hay un test por cada uno de los puntos 3 a 6, y falla al revertir su
+  corrección.
 
 **Criterios de aceptación:**
 - El JSDoc de `readJournal` dice qué lanza y en qué casos.
