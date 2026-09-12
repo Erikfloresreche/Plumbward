@@ -6,7 +6,7 @@
 > misma Pull Request que la implementa.
 
 **Última actualización:** 2026-09-12
-**Estado global:** Fase 0 en curso — F0-1, F0-3, F0-5, F0-8, F0-13, F0-14, F0-15 y F0-17 completadas. Quedan F0-2, F0-4, F0-6, F0-7, F0-9 a F0-12, F0-16 y F0-18 a F0-25.
+**Estado global:** Fase 0 en curso — F0-1, F0-3, F0-5, F0-8, F0-13, F0-14, F0-15, F0-17 y F0-24 completadas. Quedan F0-2, F0-4, F0-6, F0-7, F0-9 a F0-12, F0-16, F0-18 a F0-23 y F0-25 a F0-28.
 **Producto:** Plumbward · https://github.com/Erikfloresreche/Plumbward
 **Modelo de negocio:** suscripción anual por repositorio — ver
 [MODELO_DE_NEGOCIO.md](MODELO_DE_NEGOCIO.md)
@@ -850,8 +850,8 @@ nombres de rama, tal como está, es más frágil de lo que parece.**
 La revisión dejó catorce puntos, y sólo cinco son el control de nombres de rama.
 Los demás —la plantilla de cliente, la decisión de estrategia de merge, los
 restos del plan y los seguimientos de las revisiones de F0-14 y de la PR #7— se
-han repartido en F0-19 a F0-24: una rama implementa exactamente una tarea (§3 de
-`CLAUDE.md`).
+han repartido en F0-19 a F0-24 y F0-26 a F0-28: una rama implementa exactamente
+una tarea (§3 de `CLAUDE.md`).
 
 **Trabajo:**
 
@@ -1106,7 +1106,7 @@ mensaje del merge, y lo lee todo el equipo.
 
 **Qué se convierte en control mecánico:** nada por sí mismo; es una decisión. Si
 se elige *squash merge*, el consejo `git branch -d` de la CLI deja de funcionar
-y eso sí es un control (queda en F0-24).
+y eso sí es un control (queda en F0-28, que depende de esta decisión).
 
 **Criterios de aceptación:**
 - El §3.2 y `CLAUDE.md` dicen la misma estrategia de merge.
@@ -1192,11 +1192,20 @@ regla nueva que vigilar.
 
 ---
 
-### [ ] F0-24 — Seguimientos de las revisiones de la PR #7
+### [x] F0-24 — `rollback` y mensajes fuera de la rama en la que se escribió
 **Rama:** `fix/f0-pr7-review-followups` · **Depende de:** F0-15
 
 **Origen:** puntos 13 y 14 de F0-15, de la tercera y la cuarta revisión previas
 al merge de la PR #7.
+
+**Por qué está dividida:** la revisión dejó ocho seguimientos sin relación entre
+sí, y uno de ellos —el consejo `git branch -d`— no se puede hacer hasta que
+F0-20 decida la estrategia de merge, así que la tarea entera quedaba bloqueada
+por su punto más pequeño. Se reparten en F0-24, F0-26, F0-27 y F0-28: una rama
+implementa exactamente una tarea (§3 de `CLAUDE.md`), y una PR de ocho arreglos
+inconexos fuerza justo la revisión gigante que §6 pide evitar. Aquí quedan los
+dos que comparten código: los dos son "`apply` escribió en otra rama y nadie se
+ha enterado".
 
 **Trabajo:**
 1. **Prioridad alta.** `rollback` en `Prod` sobrescribe ficheros de `Prod` con
@@ -1210,31 +1219,16 @@ al merge de la PR #7.
    está intacto". Los ficheros lo están, pero la rama actual ya no es la de
    partida. El mensaje debe decir en qué rama queda y cómo volver. Lo mismo tras
    `rollback`.
-3. `doctor` da por revisadas todas las PRs con `branches-ignore` o `paths` en
-   `pull_request`, y avisa en falso con `on: pull_request` y
-   `on: [push, pull_request]`.
-4. Con una rama llamada `chore`, `apply` falla tras confirmar con un error crudo
-   de git (`refs/heads/chore' exists`). No escribe nada, pero la comprobación
-   previa no lo detecta.
-5. Un valor no textual en `branches` (`release: 2024`) se descarta sin avisar.
-6. El consejo `git branch -d` no funciona tras un *squash merge* (depende de
-   F0-20).
-7. `ciPushBranches` deduplica sin distinguir mayúsculas, y los filtros de GitHub
-   sí distinguen: `integration: prod` y `release: Prod` dejan fuera `Prod`.
-8. `pnpm check:mutations` no se ejecuta en CI, así que todavía no es un control:
-   depende de que alguien lo lance. Añadirlo como job, al menos en las PRs que
-   tocan `branches.ts`, `context.ts`, `commands.ts` o las plantillas de CI. Así
-   deja de ejecutarse dentro de la sesión del asistente, que es lo que más tarda.
+Los otros seis seguimientos de esta revisión están en F0-26 (validación y
+detección), F0-27 (el job de mutaciones) y F0-28 (el consejo `git branch -d`).
 
 **Qué se convierte en control mecánico:** un test por punto; el del `rollback`,
-reproduciendo el caso de la revisión. El 8 es el propio job de mutaciones.
+reproduciendo el caso de la revisión.
 
 **Criterios de aceptación:**
 - `rollback` se niega a actuar en una rama distinta de aquella en la que
   `apply` escribió, y hay un test que reproduce el caso de `Prod`.
-- Hay un test por cada uno de los puntos 2 a 7, y falla al revertir su
-  corrección.
-- `check:mutations` corre en CI.
+- Hay un test del punto 2, y falla al revertir su corrección.
 
 ---
 
@@ -1289,6 +1283,78 @@ porque una persona ha empujado a ella.
   nueve mutantes ya probados a mano: comando en prosa, en bloque, en tabla,
   con `-C` y con `-c`, permitido con `=`, subcomando ilegible, `gitlab`/`legit`
   que no son comandos, y la lista de la §1 recortada.
+
+---
+
+### [ ] F0-26 — Validación y detección: `doctor`, nombres de rama y `branches`
+**Rama:** `fix/f0-branch-config-validation` · **Depende de:** F0-15
+
+**Origen:** puntos 3, 4, 5 y 7 de las revisiones de la PR #7, separados de F0-24
+(ver allí el porqué de la división). Los cuatro son el mismo fallo con cuatro
+caras: **la herramienta mira un dato, no lo entiende, y sigue como si nada.**
+
+**Trabajo:**
+1. `doctor` da por revisadas todas las PRs con `branches-ignore` o `paths` en
+   `pull_request`, y avisa en falso con `on: pull_request` y
+   `on: [push, pull_request]`.
+2. Con una rama llamada `chore`, `apply` falla tras confirmar con un error crudo
+   de git (`refs/heads/chore' exists`). No escribe nada, pero la comprobación
+   previa no lo detecta.
+3. Un valor no textual en `branches` (`release: 2024`) se descarta sin avisar.
+4. `ciPushBranches` deduplica sin distinguir mayúsculas, y los filtros de GitHub
+   sí distinguen: `integration: prod` y `release: Prod` dejan fuera `Prod`.
+
+**Qué se convierte en control mecánico:** un test por punto.
+
+**Criterios de aceptación:**
+- Hay un test por cada uno de los cuatro puntos, y falla al revertir su
+  corrección.
+- Ningún valor de `branches` se descarta en silencio: o se usa, o se avisa.
+
+---
+
+### [ ] F0-27 — Ejecutar `check:mutations` en CI
+**Rama:** `ci/f0-mutation-job` · **Depende de:** F0-15
+
+**Origen:** punto 8 de las revisiones de la PR #7, separado de F0-24 (ver allí
+el porqué de la división). Va solo porque no toca código de producto: es
+infraestructura, y mezclarlo con arreglos de comportamiento obliga a revisar dos
+cosas distintas en la misma PR.
+
+**Trabajo:** `pnpm check:mutations` no se ejecuta en CI, así que todavía no es
+un control: depende de que alguien lo lance. Añadirlo como job, al menos en las
+PRs que tocan `branches.ts`, `context.ts`, `commands.ts` o las plantillas de CI.
+Así deja de ejecutarse dentro de la sesión del asistente, que es lo que más
+tarda (§6.2 de `CLAUDE.md`).
+
+**Qué se convierte en control mecánico:** el propio job.
+
+**Criterios de aceptación:**
+- `check:mutations` corre en CI y una mutación superviviente pone la PR en rojo.
+- El job va en uno propio, sin `if:` de matriz (napkin: un `if` de matriz
+  desaparece sin fallar).
+
+---
+
+### [ ] F0-28 — El consejo `git branch -d` tras la estrategia de merge elegida
+**Rama:** `fix/f0-delete-branch-advice` · **Depende de:** F0-20
+
+**Origen:** punto 6 de las revisiones de la PR #7, separado de F0-24 (ver allí
+el porqué de la división). **Es el que bloqueaba la tarea entera:** no se puede
+arreglar hasta que F0-20 decida si se mergea con *squash* o con *merge commit*,
+y tenerlo dentro dejaba los otros siete esperando a una decisión ajena.
+
+**Trabajo:** el consejo `git branch -d` que imprime `isolatedBranchBlocks` no
+funciona tras un *squash merge*: git no reconoce la rama como integrada y se
+niega a borrarla, así que el mensaje manda al usuario a un comando que falla.
+Ajustarlo a lo que F0-20 decida.
+
+**Qué se convierte en control mecánico:** un test del texto del consejo, atado a
+la estrategia escrita en F0-20.
+
+**Criterios de aceptación:**
+- El comando que imprime la CLI funciona con la estrategia de merge elegida.
+- Hay un test que falla si el consejo vuelve a la forma que no funciona.
 
 ---
 
