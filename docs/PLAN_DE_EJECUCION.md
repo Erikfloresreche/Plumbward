@@ -6,7 +6,7 @@
 > misma Pull Request que la implementa.
 
 **Última actualización:** 2026-09-12
-**Estado global:** Fase 0 en curso — F0-1, F0-3, F0-5, F0-8, F0-13, F0-14, F0-15, F0-17 y F0-24 completadas. Quedan F0-2, F0-4, F0-6, F0-7, F0-9 a F0-12, F0-16, F0-18 a F0-23 y F0-25 a F0-28.
+**Estado global:** Fase 0 en curso — F0-1, F0-3, F0-5, F0-8, F0-13, F0-14, F0-15, F0-17 y F0-24 completadas. Quedan F0-2, F0-4, F0-6, F0-7, F0-9 a F0-12, F0-16, F0-18 a F0-23 y F0-25 a F0-31.
 **Producto:** Plumbward · https://github.com/Erikfloresreche/Plumbward
 **Modelo de negocio:** suscripción anual por repositorio — ver
 [MODELO_DE_NEGOCIO.md](MODELO_DE_NEGOCIO.md)
@@ -1355,6 +1355,88 @@ la estrategia escrita en F0-20.
 **Criterios de aceptación:**
 - El comando que imprime la CLI funciona con la estrategia de merge elegida.
 - Hay un test que falla si el consejo vuelve a la forma que no funciona.
+
+---
+
+### [ ] F0-29 — `apply` no puede prometer un `rollback` que no va a poder hacer
+**Rama:** `fix/f0-unrevertable-journal` · **Depende de:** F0-24
+
+**Origen:** hallazgo 2 de la revisión en contexto nuevo de la PR #11. **Es una
+regresión que introdujo F0-24**, no un hueco antiguo.
+
+**El síntoma:** con `--no-branch` y HEAD desacoplado, `prepareBranch` sale
+pronto, `apply` escribe sobre el HEAD desacoplado y `writtenOnBranch` queda
+`null`. El guardián de F0-24 se niega siempre, así que ese journal no se puede
+revertir nunca. Antes de F0-24 ese `rollback` funcionaba.
+
+**Ya hecho en F0-24, y no es esta tarea:** retirar la promesa falsa. El paso 4
+de la salida de éxito ya no dice "`plumbward rollback` lo deja todo como estaba"
+cuando el journal no se va a poder revertir; lo dice, y remite a git. Eso era
+reparar una mentira que introdujo la propia PR, no diseño.
+
+**Trabajo:** decidir qué hace `apply` con esa combinación, más allá de no
+mentir. Dos vías: rechazarla antes de escribir, o aceptarla dejando claro el
+coste. Guardar el commit de partida (F0-30) abre una tercera y mejor:
+identificar el sitio por commit en vez de por nombre, con lo que el `rollback`
+vuelve a ser posible con HEAD desacoplado y la regresión desaparece en lugar de
+documentarse.
+
+**Qué se convierte en control mecánico:** un test de la decisión que se tome.
+La retirada de la promesa ya tiene el suyo en `rollback-branch.test.ts`.
+
+**Criterios de aceptación:**
+- La decisión está escrita, con la alternativa descartada y el porqué.
+- `apply --no-branch` con HEAD desacoplado hace lo que esa decisión diga, y hay
+  un test que lo fija.
+
+---
+
+### [ ] F0-30 — El journal identifica el sitio por commit, no sólo por nombre
+**Rama:** `feat/f0-journal-commit-identity` · **Depende de:** F0-24
+
+**Origen:** hallazgos 3 y 4 de la revisión en contexto nuevo de la PR #11.
+
+**Por qué importa:** F0-24 compara **nombres de rama**, y `revertEntries` escribe
+a ciegas en cuanto el nombre coincide. Una rama borrada y recreada con el mismo
+nombre sobre otro commit, o trabajo hecho en la rama aislada después del `apply`,
+pasan el guardián y pierden datos igual. El nombre dice dónde estás, no si es el
+mismo sitio.
+
+**Trabajo:**
+1. Guardar en el journal el commit sobre el que se escribió. `readHead` ya lo
+   devuelve; hoy se tira.
+2. `rollback` lo compara además del nombre, y se niega si el sitio ha cambiado.
+3. Guardar también el commit de partida. Hoy, si se empezó con HEAD desacoplado,
+   el aviso dice `git checkout <commit>` y deja al usuario rellenar un hueco que
+   no puede rellenar: el commit se conoce en `runApply` (`headBefore.commit`) y
+   no se guarda.
+
+**Qué se convierte en control mecánico:** un test por punto; el del 2, borrando
+y recreando la rama sobre otro commit.
+
+**Criterios de aceptación:**
+- `rollback` se niega en una rama del mismo nombre creada sobre otro commit, y
+  hay un test que lo reproduce.
+- El aviso de vuelta nombra el commit de partida en lugar de `<commit>`.
+
+---
+
+### [ ] F0-31 — Anotar el contrato de `readJournal`
+**Rama:** `docs/f0-read-journal-contract` · **Depende de:** F0-24
+
+**Origen:** hallazgo 5 de la revisión en contexto nuevo de la PR #11.
+
+**Trabajo:** `readJournal` se exporta en `packages/core/src/index.ts` y ahora
+lanza `OutdatedJournalError` donde antes devolvía el journal. La dirección es la
+segura, pero es un cambio de contrato de API pública. Hoy el único consumidor es
+`rollbackLastApply`; anotarlo en el JSDoc antes de que haya otro.
+
+**Qué se convierte en control mecánico:** nada por sí mismo. Ningún control
+puede ver que un consumidor futuro esperaba el contrato viejo; la defensa es
+que esté escrito donde se lee.
+
+**Criterios de aceptación:**
+- El JSDoc de `readJournal` dice qué lanza y en qué casos.
 
 ---
 

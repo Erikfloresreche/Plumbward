@@ -17,6 +17,17 @@ export interface BranchNoticeInput {
   readonly startedOnBranch: string | null
   /** Nombre de la rama aislada, para reconocerla y avisar de que sobra. */
   readonly isolatedBranch: string
+  /**
+   * `true` cuando queda un `rollback` pendiente: `apply` falló y la reversión
+   * automática **también**, así que el árbol tiene ficheros a medias y el
+   * journal sigue vivo.
+   *
+   * Cambia el consejo entero, no un matiz. Con trabajo a medias, `git checkout`
+   * arrastra esos ficheros a la otra rama, y borrar la rama aislada deja el
+   * `rollback` imposible para siempre: `assertSameBranch` exige estar en ella y
+   * ya no existe.
+   */
+  readonly pendingRollback: boolean
 }
 
 /**
@@ -24,7 +35,7 @@ export interface BranchNoticeInput {
  * decir: el repositorio ha quedado donde estaba.
  */
 export function branchReturnNotice(input: BranchNoticeInput): readonly string[] {
-  const { currentBranch, startedOnBranch, isolatedBranch } = input
+  const { currentBranch, startedOnBranch, isolatedBranch, pendingRollback } = input
 
   if (currentBranch === startedOnBranch) return []
 
@@ -33,6 +44,22 @@ export function branchReturnNotice(input: BranchNoticeInput): readonly string[] 
       ? 'HEAD ha quedado desacoplado, no en la rama en la que empezaste.'
       : `Sigues en la rama "${currentBranch}", no en la que empezaste.`,
   ]
+
+  if (pendingRollback) {
+    lines.push(
+      'No vuelvas todavía: quedan ficheros a medias, y un `git checkout` los arrastraría contigo.',
+      startedOnBranch === null
+        ? 'Ejecuta `plumbward rollback` aquí; cuando termine, vuelve al commit en el que empezaste.'
+        : `Ejecuta \`plumbward rollback\` aquí; cuando termine, vuelve con \`git checkout ${startedOnBranch}\`.`,
+    )
+    if (currentBranch === isolatedBranch) {
+      lines.push(
+        `No borres "${isolatedBranch}" hasta entonces: \`rollback\` sólo revierte desde la rama en ` +
+          'la que se escribió. Como `apply` no commitea, git la borra sin avisar de que aún hacía falta.',
+      )
+    }
+    return lines
+  }
 
   lines.push(
     startedOnBranch === null

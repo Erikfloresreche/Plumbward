@@ -135,12 +135,19 @@ restaurase en `Prod` fotografías tomadas en la rama aislada: no revierte nada,
 borra lo que `Prod` tuviera desde entonces. Por eso `writtenOnBranch` se lee
 **después** de cambiar de rama, y en cualquier otra rama —o con HEAD
 desacoplado, donde no hay nombre que comprobar— `rollback` se niega sin escribir
-y conserva el journal para poder revertir desde el sitio correcto.
+y conserva el journal para poder revertir desde el sitio correcto. Cuando no hay
+rama que anotar, `apply` lo dice al terminar en vez de prometer un `rollback`
+que no va a poder hacer. Qué hacer con esa combinación, además de no prometerla,
+es la tarea **F0-29**.
 
 Revertir tampoco deshace el `checkout`: los ficheros vuelven, la rama no. Por
 eso el journal guarda también `startedOnBranch`, y tanto `rollback` como la
 reversión automática de un `apply` fallido dicen en qué rama queda el
-repositorio y con qué comando volver a la de partida.
+repositorio y con qué comando volver a la de partida. Si la reversión automática
+**tampoco** pudo, el consejo cambia entero: quedan ficheros a medias, así que
+primero se revierte donde se está y sólo después se vuelve. Ni se propone el
+`checkout` todavía, ni se da el comando que borra la rama aislada: borrarla
+dejaría el `rollback` imposible, porque sólo revierte desde ella.
 
 **Hueco conocido:** las operaciones `execCommand` no registran snapshots. Lo que
 el gestor de paquetes escriba en el lockfile y en `node_modules` durante la

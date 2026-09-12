@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { execa } from 'execa'
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -57,8 +57,22 @@ async function currentBranch(root: string): Promise<string> {
 }
 
 afterEach(async () => {
+  vi.restoreAllMocks()
   await Promise.all(created.splice(0).map((root) => rm(root, { recursive: true, force: true })))
 })
+
+/** Todo lo que la CLI ha impreso, sin colores. */
+function captureOutput(): () => string {
+  const lines: string[] = []
+  const ansi = new RegExp(String.fromCharCode(27) + '\\[[0-9;]*m', 'g')
+  const spy = vi.spyOn(console, 'log').mockImplementation((...args: unknown[]) => {
+    lines.push(args.map(String).join(' '))
+  })
+  return () => {
+    spy.mockRestore()
+    return lines.join('\n').replace(ansi, '')
+  }
+}
 
 describe('rollback fuera de la rama en la que apply escribió', () => {
   it('no sobrescribe el package.json de Prod con el snapshot de la rama aislada', async () => {
@@ -89,6 +103,38 @@ describe('rollback fuera de la rama en la que apply escribió', () => {
       await readFile(join(root, '.governance/journal.json'), 'utf8'),
     )
     expect((journal as { writtenOnBranch: string | null }).writtenOnBranch).toBe(GOVERNANCE_BRANCH)
+  })
+
+  /**
+   * Hallazgo 2 de la revisión de la PR #11. Con `--no-branch` y HEAD
+   * desacoplado, `prepareBranch` sale pronto, se escribe sobre el HEAD
+   * desacoplado y `writtenOnBranch` queda `null`, así que `rollback` se negará
+   * siempre. Antes de esta PR ese `rollback` funcionaba: es una regresión que
+   * introduce esta rama, y el paso 4 seguía prometiendo lo contrario.
+   *
+   * Aquí sólo se retira la promesa falsa. Qué hacer con esa combinación —avisar
+   * o rechazarla— es diseño, y es F0-29.
+   */
+  it('apply no promete un rollback que no va a poder hacer', async () => {
+    const root = await createRepo('Prod')
+    await git(root, 'checkout', '--detach')
+    const output = captureOutput()
+
+    expect(await runApply(root, { yes: true, install: false, branch: false })).toBe(0)
+    const printed = output()
+
+    expect(printed).not.toContain('`plumbward rollback` lo deja todo como estaba')
+    expect(printed).toContain('no se podrá revertir')
+  })
+
+  it('sí promete el rollback cuando de verdad va a poder hacerlo', async () => {
+    const root = await createRepo('Prod')
+    const output = captureOutput()
+
+    expect(await apply(root)).toBe(0)
+    const printed = output()
+
+    expect(printed).toContain('`plumbward rollback` lo deja todo como estaba')
   })
 
   it('sigue revirtiendo con normalidad en la rama en la que apply escribió', async () => {
