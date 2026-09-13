@@ -1805,7 +1805,9 @@ is read the most: every task starts by reading its own.
    and remove the plan from the F0-41 pending list.
 4. Because of its size, over several sessions: one batch per part of the plan,
    each with its own commit on the same branch and `pnpm check:coherence` green.
-   It is still one task and one PR.
+   It is still one task, in two PRs: the translation is merged first, so that
+   F0-48 starts from a `develop` that has its own plan entry; the close goes in
+   a second PR from the same branch name, once F0-48 is merged.
 
 **Progress:**
 - [x] Batch 1: the format read by the two controls, across the whole plan
