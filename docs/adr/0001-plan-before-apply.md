@@ -1,58 +1,59 @@
-# ADR 0001 — Separar el plan de la ejecución
+# ADR 0001 — Separate the plan from the execution
 
-- **Estado:** aceptada
-- **Fecha:** 2026-09-08
-- **Afecta a:** todo el núcleo
+- **Status:** accepted
+- **Date:** 2026-09-08
+- **Affects:** the whole core
 
-## Contexto
+## Context
 
-La especificación original describía un `init` monolítico: analizar el
-repositorio e ir escribiendo la configuración. Es lo que hacen la mayoría de
-generadores de proyectos, y es lo que un desarrollador espera.
+The original specification described a monolithic `init`: analyse the
+repository and write the configuration as it goes. That is what most project
+generators do, and it is what a developer expects.
 
-Pero nuestro comprador no es un desarrollador probando una herramienta en su
-proyecto personal. Es una empresa que va a ejecutar un binario descargado con
-`npx` sobre un repositorio de producción con años de historia.
+But our buyer is not a developer trying out a tool on a personal project. It is
+a company that is going to run a binary downloaded with `npx` on a production
+repository with years of history.
 
-## Decisión
+## Decision
 
-Ningún módulo escribe en disco. Todos declaran su intención emitiendo
-`Operation[]`, que se agregan en un `ChangePlan`. El plan se puede renderizar
-sin tocar nada, y sólo `applyPlan` materializa, dejando rastro en un journal.
+No module writes to disk. They all declare their intent by emitting
+`Operation[]`, which are aggregated into a `ChangePlan`. The plan can be
+rendered without touching anything, and only `applyPlan` materialises it,
+leaving a trace in a journal.
 
-Las operaciones son una unión cerrada de seis tipos. Añadir un séptimo obliga al
-compilador a exigir su tratamiento en el simulador, el ejecutor, el rollback y
-el renderizador.
+Operations are a closed union of six types. Adding a seventh forces the
+compiler to demand its handling in the simulator, the executor, the rollback
+and the renderer.
 
-## Alternativa descartada
+## Discarded alternative
 
-Escribir directamente, con una opción `--dry-run` que imprima lo que *habría*
-hecho.
+Write directly, with a `--dry-run` option that prints what it *would* have
+done.
 
-Se descarta porque un `--dry-run` implementado aparte del camino real **miente
-tarde o temprano**: son dos rutas de código que divergen en cuanto alguien
-añade un caso especial. Aquí no hay dos rutas: `plan` y `apply` consumen el
-mismo `ChangePlan`, y la simulación calcula el resultado leyendo los ficheros
-reales.
+It is discarded because a `--dry-run` implemented apart from the real path
+**lies sooner or later**: they are two code paths that diverge as soon as
+someone adds a special case. Here there are not two paths: `plan` and `apply`
+consume the same `ChangePlan`, and the simulation computes the result by
+reading the real files.
 
-## Consecuencias
+## Consequences
 
-**A favor:**
+**In favour:**
 
-- `plan` puede existir de verdad y ser auditable en una Pull Request. Sin esto
-  no hay venta enterprise.
-- `apply` es reversible, porque cada operación se ejecuta una a una y se sabe
-  qué fichero toca antes de tocarlo.
-- Un pack de terceros no tiene acceso al sistema de ficheros: sólo puede pedir.
-  Esto es lo que hará viable abrir el catálogo.
-- El resultado es determinista y por tanto ejecutable en CI.
+- `plan` can really exist and be auditable in a Pull Request. Without this
+  there is no enterprise sale.
+- `apply` is reversible, because each operation is executed one at a time and
+  the file it touches is known before touching it.
+- A third-party pack has no access to the file system: it can only ask. This
+  is what will make opening the catalogue viable.
+- The result is deterministic and therefore runnable in CI.
 
-**El coste que asumimos:**
+**The cost we accept:**
 
-- Más código y más indirección que escribir con `fs.writeFile`.
-- Toda capacidad nueva hay que expresarla como operación. Si mañana hiciera
-  falta, por ejemplo, renombrar ficheros, no basta con llamar a `fs.rename`:
-  hay que añadir el tipo de operación y hacerlo reversible.
+- More code and more indirection than writing with `fs.writeFile`.
+- Every new capability has to be expressed as an operation. If tomorrow it
+  were needed, for example, to rename files, calling `fs.rename` would not be
+  enough: the operation type has to be added and made reversible.
 
-Ese coste es exactamente el punto. Es lo que impide que la herramienta adquiera
-capacidades que no se pueden deshacer.
+That cost is exactly the point. It is what prevents the tool from acquiring
+capabilities that cannot be undone.
