@@ -24,8 +24,8 @@ describe('ficheros que el script muta o ejecuta', () => {
   })
 
   it('no confunde el texto de una mutación con un fichero', () => {
-    const con = "const BR = 'packages/a/b.ts'\nconst MUTATIONS = [\n  ['Algo', BR, '  if (x) return true\\n', ''],\n]"
-    expect(mutationInputs(con)).toEqual(['packages/a/b.ts'])
+    const withLiteral = "const BR = 'packages/a/b.ts'\nconst MUTATIONS = [\n  ['Algo', BR, '  if (x) return true\\n', ''],\n]"
+    expect(mutationInputs(withLiteral)).toEqual(['packages/a/b.ts'])
   })
 
   it('lee una constante con dígitos o guion bajo en el nombre', () => {
@@ -96,16 +96,16 @@ describe('cobertura del filtro', () => {
   })
 
   it('delata una mutación nueva sobre un fichero que el filtro no nombra', () => {
-    const conNueva = script.replace(
+    const withNewMutation = script.replace(
       "const VS = 'vitest.setup.ts'",
       "const VS = 'vitest.setup.ts'\nconst NW = 'packages/nuevo/src/pieza.ts'",
     )
-    expect(conNueva).not.toBe(script)
-    expect(uncoveredMutationInputs(conNueva, workflow)).toEqual(['packages/nuevo/src/pieza.ts'])
+    expect(withNewMutation).not.toBe(script)
+    expect(uncoveredMutationInputs(withNewMutation, workflow)).toEqual(['packages/nuevo/src/pieza.ts'])
   })
 
   it('no acepta un patrón amplio en lugar de la ruta exacta', () => {
-    const amplio = "on:\n  pull_request:\n    paths:\n      - 'packages/**'\n"
-    expect(uncoveredMutationInputs(script, amplio).length).toBeGreaterThan(0)
+    const broad = "on:\n  pull_request:\n    paths:\n      - 'packages/**'\n"
+    expect(uncoveredMutationInputs(script, broad).length).toBeGreaterThan(0)
   })
 })

@@ -2,7 +2,7 @@
 
 ## Antes de nada
 
-Lee [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md). El proyecto tiene tres
+Lee [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). El proyecto tiene tres
 invariantes que no son estilo, son la razón de existir del producto, y una
 contribución que los rompa se rechaza aunque funcione:
 
@@ -27,7 +27,7 @@ pnpm test
 
 ## Flujo de trabajo
 
-El desarrollo se guía por [docs/PLAN_DE_EJECUCION.md](docs/PLAN_DE_EJECUCION.md).
+El desarrollo se guía por [docs/EXECUTION_PLAN.md](docs/EXECUTION_PLAN.md).
 Cada tarea tiene identificador, rama, dependencias y criterios de aceptación.
 
 ### Ramas
@@ -100,7 +100,7 @@ controles que no se pueden saltar.
 ## Definition of Done
 
 **La lista canónica y completa está en el §4 de
-[docs/PLAN_DE_EJECUCION.md](docs/PLAN_DE_EJECUCION.md).** Si esta copia y aquélla
+[docs/EXECUTION_PLAN.md](docs/EXECUTION_PLAN.md).** Si esta copia y aquélla
 difieren, manda el plan. En resumen, una tarea no está terminada hasta que
 cumple todo esto, además de sus criterios propios:
 

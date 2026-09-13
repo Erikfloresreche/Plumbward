@@ -1,5 +1,5 @@
 /**
- * Veredicto de una ejecución de la batería de tests contra una mutación.
+ * Outcome de una ejecución de la batería de tests contra una mutación.
  *
  * Existe porque `result.status !== 0` daba "la mutación está cazada" también
  * cuando los tests no llegaban a ejecutarse: `spawnSync` devuelve
@@ -14,28 +14,28 @@
  */
 
 /**
- * @typedef {'detectada' | 'sobrevive' | 'no-ejecutada'} Veredicto
+ * @typedef {'detected' | 'survived' | 'not-run'} Outcome
  */
 
 /**
  * Clasifica el resultado de `spawnSync`.
  *
- * - `detectada`: los tests corrieron y alguno falló. La pieza está cubierta.
- * - `sobrevive`: los tests corrieron y pasaron todos. La pieza no está cubierta.
- * - `no-ejecutada`: no se sabe nada. No es una detección, y no puede contarse
+ * - `detected`: los tests corrieron y alguno falló. La pieza está cubierta.
+ * - `survived`: los tests corrieron y pasaron todos. La pieza no está cubierta.
+ * - `not-run`: no se sabe nada. No es una detección, y no puede contarse
  *   como tal: cuenta como fallo para que la CI se ponga en rojo.
  *
  * @param {{ status: number | null, error?: Error }} result resultado de `spawnSync`
- * @returns {Veredicto}
+ * @returns {Outcome}
  */
 export function mutationOutcome(result) {
-  if (result.error || result.status === null) return 'no-ejecutada'
-  return result.status === 0 ? 'sobrevive' : 'detectada'
+  if (result.error || result.status === null) return 'not-run'
+  return result.status === 0 ? 'survived' : 'detected'
 }
 
-/** Un veredicto que no sea `detectada` deja la CI en rojo. */
-export const esFallo = (veredicto) => veredicto !== 'detectada'
+/** Un veredicto que no sea `detected` deja la CI en rojo. */
+export const isFailure = (outcome) => outcome !== 'detected'
 
 /** Etiqueta de doce caracteres para alinear la salida del script. */
-export const etiqueta = (veredicto) =>
-  ({ detectada: 'DETECTADA   ', sobrevive: 'SOBREVIVE   ', 'no-ejecutada': 'NO EJECUTADA' })[veredicto]
+export const label = (outcome) =>
+  ({ detected: 'DETECTADA   ', survived: 'SOBREVIVE   ', 'not-run': 'NO EJECUTADA' })[outcome]

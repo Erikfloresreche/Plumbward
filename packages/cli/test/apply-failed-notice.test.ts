@@ -100,14 +100,14 @@ describe('apply que falla y tampoco puede revertir', () => {
   it('nombra el commit de partida si se empezó con HEAD desacoplado', async () => {
     const root = await createRepo()
     await git(root, 'checkout', '--detach')
-    const commitDePartida = await git(root, 'rev-parse', 'HEAD')
+    const startCommit = await git(root, 'rev-parse', 'HEAD')
     applyPlanMock.mockRejectedValue(new ApplyFailedError('EACCES al escribir', undefined, true))
     const output = captureOutput()
 
     expect(await runApply(root, { yes: true, install: false, branch: true })).toBe(1)
     const printed = output()
 
-    expect(printed).toContain(`git checkout ${commitDePartida}`)
+    expect(printed).toContain(`git checkout ${startCommit}`)
     expect(printed).not.toContain('no tenía ningún commit')
   })
 

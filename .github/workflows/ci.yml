@@ -34,7 +34,7 @@ permissions:
   contents: read
 
 jobs:
-  verificar:
+  verify:
     name: Node ${{ matrix.node }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -79,7 +79,7 @@ jobs:
         run: pnpm test:unit
 
 
-  calidad:
+  quality:
     name: Tipos y coherencia
     # Job propio, fuera de la matriz y sin condiciones `if`. Antes eran pasos
     # de la matriz con `if: matrix.node == '22'`; al cambiar la matriz a
@@ -104,9 +104,9 @@ jobs:
         run: pnpm typecheck
 
       - name: Coherencia entre lo que declaramos y lo que probamos
-        run: pnpm check:coherencia
+        run: pnpm check:coherence
 
-  secretos:
+  secrets:
     name: Escaneo de secretos
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -124,9 +124,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  historial:
+  history:
     name: Escaneo de secretos sobre todo el historial
-    # El job `secretos` sólo mira los commits de la Pull Request. El historial
+    # El job `secrets` sólo mira los commits de la Pull Request. El historial
     # anterior a este workflow nunca se ha revisado, y el repositorio es
     # público: una credencial en el commit de importación sería visible para
     # cualquiera. Esto lo cubre, semanalmente y bajo demanda.

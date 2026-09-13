@@ -19,7 +19,7 @@ import {
   makefile,
   preCommitHook,
 } from './templates/tooling.js'
-import { gobernanzaDoc } from './templates/docs.js'
+import { governanceDoc } from './templates/docs.js'
 import { workflowChecks } from './workflow-checks.js'
 
 const PACK_VERSION = '0.1.0'
@@ -250,8 +250,8 @@ export const nodeTsPack: StackPack = {
     // --- Documentación ------------------------------------------------------
     operations.push(
       file(
-        'GOBERNANZA.md',
-        gobernanzaDoc(scan, profile),
+        'GOVERNANCE.md',
+        governanceDoc(scan, profile),
         'Explica al equipo qué se ha instalado y cómo convivir con ello.',
         { managed: false },
       ),

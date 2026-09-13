@@ -34,12 +34,14 @@
    Do instead: create branches from an updated local `develop`: `git checkout develop && git pull && git checkout -b X`.
 5. **[2026-09-11] Local `origin/HEAD` is not updated when the default branch is renamed on GitHub**
    Do instead: do not use it as the only source; `git remote set-head origin --auto` fixes it (a person runs it).
+6. **[2026-09-13] zsh does not word-split an unquoted `$FILES`, and runs backticks inside double quotes**
+   Do instead: `rg -l -0 ... | xargs -0 perl -pi -e '...'`, with the perl program in single quotes.
 
 ## Domain guardrails
 1. **[2026-09-11] Every heuristic to infer the release branch breaks some repository**
    Do instead: ADR 0005: inference must fail towards more protection; `branches.release` is never inferred.
 2. **[2026-09-11] An `if: matrix.node == 'X'` drifts when the matrix changes and the step disappears without failing**
-   Do instead: steps that must always run go in their own job without conditions. `check:coherencia` watches it.
+   Do instead: steps that must always run go in their own job without conditions. `check:coherence` watches it.
 3. **[2026-09-11] A global brand replace rewrites facts: third-party names, dated records**
    Do instead: exclude historical facts from the replace and review them by hand.
 4. **[2026-09-11] Tests that create git repositories depend on the global configuration (gpgsign, hooks)**

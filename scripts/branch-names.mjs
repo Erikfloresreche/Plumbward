@@ -1,7 +1,7 @@
 /**
  * Control de nombres de rama: formato, idioma y exenciones.
  *
- * Vive fuera de `verificar-coherencia.mjs` porque aquel script ejecuta todo al
+ * Vive fuera de `check-coherence.mjs` porque aquel script ejecuta todo al
  * cargarse y termina en `process.exit`: no se podía probar. Aquí sólo hay
  * funciones puras, y `scripts/branch-names.test.mjs` las cubre con el corpus
  * de `branch-names-corpus.json`.

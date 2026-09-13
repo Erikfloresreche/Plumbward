@@ -55,10 +55,10 @@ describe('patchJson', () => {
   })
 
   it('respeta la indentación original del fichero', () => {
-    const cuatroEspacios = `{\n    "name": "demo"\n}\n`
-    expect(detectIndent(cuatroEspacios)).toBe(4)
+    const fourSpaces = `{\n    "name": "demo"\n}\n`
+    expect(detectIndent(fourSpaces)).toBe(4)
 
-    const result = patchJson(cuatroEspacios, [
+    const result = patchJson(fourSpaces, [
       { pointer: '/version', value: '1.0.0', strategy: 'set' },
     ])
     expect(result.text).toContain('\n    "version"')

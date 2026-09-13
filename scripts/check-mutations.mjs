@@ -30,7 +30,7 @@ import { readFileSync, writeFileSync, mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { esFallo, etiqueta, mutationOutcome } from './mutation-outcome.mjs'
+import { isFailure, label, mutationOutcome } from './mutation-outcome.mjs'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const TESTS = [
@@ -89,7 +89,7 @@ const MUTATIONS = [
 const hostile = join(mkdtempSync(join(tmpdir(), 'plumbward-hostile-')), 'gitconfig')
 writeFileSync(hostile, '[commit]\n\tgpgsign = true\n[tag]\n\tgpgSign = true\n[gpg]\n\tprogram = false\n')
 
-const entorno = {
+const testEnv = {
   ...process.env,
   GIT_CONFIG_GLOBAL: hostile,
   GIT_CONFIG_COUNT: '2',
@@ -99,11 +99,11 @@ const entorno = {
   GIT_CONFIG_VALUE_1: 'false',
 }
 
-const ejecutarTests = () =>
+const runTests = () =>
   spawnSync('pnpm', ['vitest', 'run', ...TESTS], {
     cwd: root,
     encoding: 'utf8',
-    env: entorno,
+    env: testEnv,
     timeout: 300_000,
   })
 
@@ -111,11 +111,11 @@ const ejecutarTests = () =>
 // entorno que no puede ejecutar los tests daba "todas detectadas" y verde, que
 // es el veredicto más peligroso posible: dice que todo está cubierto
 // precisamente cuando no se ha comprobado nada.
-const seco = ejecutarTests()
-if (seco.status !== 0) {
+const dryRun = runTests()
+if (dryRun.status !== 0) {
   console.error(
-    seco.error || seco.status === null
-      ? `  NO EJECUTADA  la batería no se pudo ejecutar sin mutar: ${seco.error?.message ?? 'timeout'}`
+    dryRun.error || dryRun.status === null
+      ? `  NO EJECUTADA  la batería no se pudo ejecutar sin mutar: ${dryRun.error?.message ?? 'timeout'}`
       : '  ROJA DE BASE  la batería falla sin mutar nada. Arregla los tests antes de medir mutaciones.',
   )
   process.exit(1)
@@ -144,9 +144,9 @@ for (const [name, file, from, to, extra] of selected) {
   restoring = { path, content: original }
   writeFileSync(path, mutated)
   try {
-    const veredicto = mutationOutcome(ejecutarTests())
-    if (esFallo(veredicto)) survivors++
-    console.log(`  ${etiqueta(veredicto)}  ${name}`)
+    const outcome = mutationOutcome(runTests())
+    if (isFailure(outcome)) survivors++
+    console.log(`  ${label(outcome)}  ${name}`)
   } finally {
     writeFileSync(path, original)
     restoring = null

@@ -111,6 +111,6 @@ describe('cola de ejecución del plan', () => {
   })
 
   it('la cola del plan real describe el plan', () => {
-    expect(checkQueue(read('../docs/PLAN_DE_EJECUCION.md'))).toEqual([])
+    expect(checkQueue(read('../docs/EXECUTION_PLAN.md'))).toEqual([])
   })
 })

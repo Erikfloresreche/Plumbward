@@ -6,10 +6,10 @@
 > misma Pull Request que la implementa.
 
 **Última actualización:** 2026-09-13
-**Estado global:** Fase 0 en curso — F0-1, F0-3, F0-5, F0-8, F0-13, F0-14, F0-15, F0-17, F0-24, F0-27, F0-29, F0-30, F0-40 y F0-41 completadas. Quedan F0-2, F0-4, F0-6, F0-7, F0-9 a F0-12, F0-16, F0-18 a F0-23, F0-25, F0-26, F0-28, F0-31 a F0-39 y F0-42 a F0-45.
+**Estado global:** Fase 0 en curso — F0-1, F0-3, F0-5, F0-8, F0-13, F0-14, F0-15, F0-16, F0-17, F0-24, F0-27, F0-29, F0-30, F0-40 y F0-41 completadas. Quedan F0-2, F0-4, F0-6, F0-7, F0-9 a F0-12, F0-18 a F0-23, F0-25, F0-26, F0-28, F0-31 a F0-39 y F0-42 a F0-45.
 **Producto:** Plumbward · https://github.com/Erikfloresreche/Plumbward
 **Modelo de negocio:** suscripción anual por repositorio — ver
-[MODELO_DE_NEGOCIO.md](MODELO_DE_NEGOCIO.md)
+[BUSINESS_MODEL.md](BUSINESS_MODEL.md)
 
 ---
 
@@ -64,7 +64,7 @@ Están implementados y **no se revierten sin una ADR que lo justifique**:
 | Reglas descargadas en runtime desde una API | Todo local en el paquete NPM | Un equipo de seguridad corporativo veta la ejecución de lógica remota descargada. Bloquea la venta enterprise. |
 | Inyectar `@tu-empresa/ci-guard` que rompe los pipelines del cliente | No se inyecta nada que pueda hacer fallar CI ajena | Es un sabotaje contractual desde el punto de vista del cliente; destruye la confianza que el producto vende. |
 | `init` monolítico | `scan` → `plan` → `apply` → `rollback` | Permite regalar `scan` como gancho comercial y hace la herramienta auditable en la PR. |
-| Pago único de 1.500-2.500 € con 12 meses de actualizaciones | Suscripción anual por repositorio | Con licencia perpetua, el mes 13 la herramienta sigue funcionando y nadie renueva. Obligaría a degradar lo instalado, que contradice la ADR 0002. Ver [ADR 0004](adr/0004-suscripcion-anual.md). |
+| Pago único de 1.500-2.500 € con 12 meses de actualizaciones | Suscripción anual por repositorio | Con licencia perpetua, el mes 13 la herramienta sigue funcionando y nadie renueva. Obligaría a degradar lo instalado, que contradice la ADR 0002. Ver [ADR 0004](adr/0004-annual-subscription.md). |
 
 ### 2.4 Huecos conocidos que este plan cierra
 
@@ -173,7 +173,7 @@ F2-4 — Python pack
 ## What changes and why
 
 ## Acceptance criteria
-- [ ] (copied from docs/PLAN_DE_EJECUCION.md)
+- [ ] (copied from docs/EXECUTION_PLAN.md)
 
 ## How this was verified
 ```
@@ -331,7 +331,7 @@ para las acciones de GitHub.
   argumento comercial de que el código es auditable. Consecuencia que hay que
   asumir: **todo el historial anterior es visible para cualquiera**, y el
   escaneo de secretos por PR sólo mira los commits de esa PR. De ahí el job
-  `historial`, que revisa el historial completo semanalmente.
+  `history`, que revisa el historial completo semanalmente.
 - Si el repositorio se mueve a una **organización** de GitHub,
   `gitleaks-action` pasa a exigir un secreto `GITLEAKS_LICENSE`. Mientras sea
   una cuenta personal es gratuita. Está anotado en el propio workflow.
@@ -372,9 +372,9 @@ donde detectar que una regla molesta más de lo que aporta.
 2. `LICENSE` — decidir y documentar el modelo (ver §Riesgos: afecta a Fase 5).
 3. `CONTRIBUTING.md` — flujo de ramas de §3, cómo correr los tests, cómo escribir un pack.
 4. `SECURITY.md` — canal de reporte de vulnerabilidades. Lo piden en compras enterprise.
-5. `docs/ARQUITECTURA.md` — el diagrama de flujo `scan → plan → apply` y por qué
+5. `docs/ARCHITECTURE.md` — el diagrama de flujo `scan → plan → apply` y por qué
    nadie escribe en disco.
-6. `docs/adr/0001-plan-antes-de-aplicar.md` y `0002-licenciamiento-local-first.md` —
+6. `docs/adr/0001-plan-before-apply.md` y `0002-local-first-licensing.md` —
    las dos decisiones que más nos van a cuestionar; conviene tener la respuesta escrita.
 7. `.github/PULL_REQUEST_TEMPLATE.md` con la plantilla de §3.4.
 
@@ -384,12 +384,12 @@ donde detectar que una regla molesta más de lo que aporta.
 
 **Cerrada el 2026-09-09.** Entregado: `README.md` reescrito para un CTO,
 `LICENSE` (BUSL-1.1), `CONTRIBUTING.md`, `SECURITY.md`,
-[ARQUITECTURA.md](ARQUITECTURA.md) con el porqué de cada fichero del monorepo, y
+[ARCHITECTURE.md](ARCHITECTURE.md) con el porqué de cada fichero del monorepo, y
 `.github/PULL_REQUEST_TEMPLATE.md`.
 
 Se escribieron **tres** ADR en lugar de dos: la licencia del código resultó ser
 una decisión distinta de la del licenciamiento técnico y merecía la suya
-([0003](adr/0003-licencia-busl.md)).
+([0003](adr/0003-busl-license.md)).
 
 **Revisión en contexto nuevo (2026-09-09).** La PR se sometió al flujo de F3-6 y
 la revisión encontró 12 hallazgos reales, tres de ellos afirmaciones falsas sobre
@@ -518,7 +518,7 @@ través de él. `SECURITY.md` presenta esta función como la barrera principal.
 2. Decidir la política ante un symlink que apunta fuera: rechazar y reportarlo
    como conflicto, nunca seguirlo en silencio.
 3. Tests con un symlink a un directorio externo y con uno interno legítimo.
-4. Actualizar `SECURITY.md` y `ARQUITECTURA.md` cuando el hueco esté cerrado.
+4. Actualizar `SECURITY.md` y `ARCHITECTURE.md` cuando el hueco esté cerrado.
 
 **Criterios de aceptación:**
 - Escribir a través de un symlink que sale del repositorio se rechaza.
@@ -545,7 +545,7 @@ desapercibido.
 2. Decidir qué hacer con `node_modules`: probablemente no restaurarlo, pero sí
    **decirlo con claridad** en la salida de `rollback` en lugar de callarlo.
 3. Test E2E con instalación real que verifique el ciclo completo.
-4. Al cerrar la tarea, retirar la advertencia del README y de `ARQUITECTURA.md`.
+4. Al cerrar la tarea, retirar la advertencia del README y de `ARCHITECTURE.md`.
 
 **Criterios de aceptación:**
 - `apply` con instalación seguido de `rollback` deja el lockfile como estaba.
@@ -595,7 +595,7 @@ vende el producto, aplicada a nosotros.
 que existe una frontera de seguridad que el código no implementa. Ningún linter
 detecta eso. Para esa clase, la única defensa es la revisión en contexto nuevo.
 
-**Ya entregado (en F0-3):** `scripts/verificar-coherencia.mjs`, que comprueba
+**Ya entregado (en F0-3):** `scripts/check-coherence.mjs`, que comprueba
 que el suelo de Node declarado en `package.json` coincide con el más bajo que
 prueba la CI, que README y CONTRIBUTING dicen esa misma versión, y que cada
 paquete publicable declara su propio `engines`. Nació de tres hallazgos de la
@@ -903,7 +903,7 @@ entre dos secciones del mismo fichero, y sólo se ve leyendo las dos a la vez.
 
 **Cómo ha quedado:**
 - La lógica vive en `scripts/branch-names.mjs`: funciones puras, sin
-  `process.exit`. `scripts/verificar-coherencia.mjs` sólo conecta las entradas.
+  `process.exit`. `scripts/check-coherence.mjs` sólo conecta las entradas.
 - El corpus está en `scripts/branch-names-corpus.json`: 33 nombres españoles, 43
   ingleses. La heurística nueva detecta 32 de 33 y no rechaza ninguno de los 43;
   la anterior dejaba pasar 15 y rechazaba 2. El único no detectado,
@@ -940,12 +940,12 @@ la revisión en contexto nuevo. Queda registrado para no repetirlo.
 - [x] El script de coherencia tiene tests que se ejecutan en `test:unit`
   (`scripts/branch-names.test.mjs`, 97 casos).
 - [x] La sección 0 de `CLAUDE.md` funciona copiando y pegando en un clon limpio,
-  y un control lo vigila: `check:coherencia` falla si la §0 propone un comando
+  y un control lo vigila: `check:coherence` falla si la §0 propone un comando
   `git` que la §1 no permite. Probado con el mutante.
 
 ---
 
-### [ ] F0-16 — Nombres de ficheros e identificadores en inglés
+### [x] F0-16 — Nombres de ficheros e identificadores en inglés
 **Rama:** `refactor/f0-english-names` · **Depende de:** F0-41
 
 **Origen:** decisión del 2026-09-11, ampliada el 2026-09-13: el inglés pasa a
@@ -959,17 +959,39 @@ detección de renombrados en el diff.
    `docs/PLAN_DE_EJECUCION.md`, `docs/ARQUITECTURA.md`, `docs/MODELO_DE_NEGOCIO.md`,
    las ADR 0001 a 0004 y el `GOBERNANZA.md` que genera el pack de Node— y
    **actualizar en el mismo cambio todos los enlaces y referencias**, incluidas
-   las rutas que leen los scripts de `check:coherencia` y la lista de pendientes
+   las rutas que leen los scripts de `check:coherence` y la lista de pendientes
    del control de F0-41.
 2. Pasar a inglés las variables y funciones con nombre en español.
 3. **El control, no sólo la regla.** En la misma sesión en que se acordó, se creó
    un fichero nuevo con nombre en español (`0005-lo-inferido-solo-amplia.md`,
    corregido antes de commitear). Una regla recién escrita se incumple con
-   facilidad: `check:coherencia` debe fallar ante un fichero nuevo cuyo nombre
+   facilidad: `check:coherence` debe fallar ante un fichero nuevo cuyo nombre
    parezca español, y ante enlaces rotos tras el renombrado.
 
 El idioma de lo que el producto genera para el cliente, que antes estaba aquí,
 es F0-45.
+
+**Result (2026-09-13):**
+- Renamed: `scripts/check-coherence.mjs`, `docs/EXECUTION_PLAN.md`,
+  `docs/ARCHITECTURE.md`, `docs/BUSINESS_MODEL.md`, ADRs
+  `0001-plan-before-apply`, `0002-local-first-licensing`, `0003-busl-license`
+  and `0004-annual-subscription`, and the generated `GOVERNANCE.md`. Also the
+  names that are identifiers without being files: the `check:coherence` script,
+  the CI job ids (`verify`, `quality`, `secrets`, `history`, `full-cycle`,
+  `mutations`), the control ids of `check-coherence.mjs` and the mutation
+  verdicts (`detected`, `survived`, `not-run`). Identifiers were renamed on the
+  syntax tree, so comments and strings were not touched: their translation is
+  F0-43 and F0-44.
+- Controls: `scripts/english-only.mjs` fails for a path that looks Spanish
+  (accents, the branch-name heuristic on each segment, and the two words of the
+  old names that heuristic missed), with no list to escape to.
+  `scripts/doc-links.mjs` fails for a relative Markdown link to a path that
+  does not exist.
+- Not mechanisable: a Spanish name made only of words English also has passes,
+  since the heuristic is not a dictionary; link anchors are not checked; an
+  identifier is only caught by the content scan once its file leaves `pending`.
+- Left to F0-45: the job ids and texts of the CI the Node pack generates for the
+  client (`calidad`, `secretos`, `gobernanza`), which are client output.
 
 **Criterios de aceptación:**
 - Ningún fichero ni identificador en español.
@@ -996,7 +1018,7 @@ dentro de la PR provocaba otra ronda. Caveman sólo recorta la salida, menos del
    lee `.agents/`— y runbook versionado en `.claude/napkin.md`.
 3. Documentar caveman como plugin opcional de cada desarrollador, y prohibir su
    gateway en la nube (`caveman-setup`) por la ADR 0002.
-4. **El control, no sólo la regla.** `check:coherencia` falla si una skill no
+4. **El control, no sólo la regla.** `check:coherence` falla si una skill no
    coincide con el hash del lock, si falta en el lock, si falta su enlace en
    `.claude/skills/`, o si el runbook incumple sus reglas de curación.
 5. Llevar el protocolo al producto: ampliar F2-9 y F2-12.
@@ -1005,7 +1027,7 @@ dentro de la PR provocaba otra ronda. Caveman sólo recorta la salida, menos del
 - [x] `CLAUDE.md` recoge el protocolo y cómo se usan napkin y caveman.
 - [x] Claude Code carga la skill napkin desde `.claude/skills/`. Verificado en
   una sesión nueva: las skills se descubren al arrancar.
-- [x] `check:coherencia` falla al editar la skill, meter un enlace simbólico en
+- [x] `check:coherence` falla al editar la skill, meter un enlace simbólico en
   ella, borrar el enlace de `.claude/skills/`, añadir una skill sin lock, quitar
   un "Do instead", quitar una fecha o pasar de 10 entradas en una categoría.
   Probado con los mutantes.
@@ -1043,7 +1065,7 @@ descartadas, nombres propios y citas literales se conservan tal cual.
    son de F0-41; el plan, de F0-42.
 2. Sacar cada fichero traducido de la lista de pendientes del control de F0-41.
 3. Si no cabe en una sesión: una tanda por fichero, cada una con su commit en la
-   misma rama y `pnpm check:coherencia` en verde. Sigue siendo una tarea y una PR.
+   misma rama y `pnpm check:coherence` en verde. Sigue siendo una tarea y una PR.
 
 **Qué se convierte en control mecánico:** el de F0-41, con estos ficheros fuera
 de su lista de pendientes.
@@ -1119,7 +1141,7 @@ sigue diciendo que `CLAUDE.md` "ronda las 130 líneas" cuando pasa de 250.
 
 **Qué se convierte en control mecánico:** extender el control de nombres de rama
 al diagrama del §3.2, que hoy no mira. El recuento de controles de F0-12 se
-deriva de `verificar-coherencia.mjs` en vez de escribirse a mano, que es lo que
+deriva de `check-coherence.mjs` en vez de escribirse a mano, que es lo que
 lo deja caducado cada vez que se añade uno. El resto es corrección puntual.
 
 **Criterios de aceptación:**
@@ -1137,7 +1159,7 @@ lo deja caducado cada vez que se añade uno. El resto es corrección puntual.
 **Origen:** revisión de la PR #7, punto 11 de F0-15.
 
 **Trabajo:**
-1. El control de que existe el job `calidad` se ejecuta **dentro de ese mismo
+1. El control de que existe el job `quality` se ejecuta **dentro de ese mismo
    job**: con `if: false`, `continue-on-error: true` o quitándole los pasos, el
    control desaparece con él. Debe comprobarse desde otro job, o mejor, que el
    job sea un check obligatorio (lo es desde F0-13) y verificar que lo sigue
@@ -1159,7 +1181,7 @@ en `config.yml` **no** es mecanizable —depende de que el equipo lea el fichero
 y lo resuelve la confirmación del wizard (F4-1).
 
 **Criterios de aceptación:**
-- Vaciar el job `calidad` hace fallar la CI desde otro job.
+- Vaciar el job `quality` hace fallar la CI desde otro job.
 - Hay un test por cada uno de los puntos 2 a 5, y falla al revertir su
   corrección.
 
@@ -1323,7 +1345,7 @@ tarda (§6.2 de `CLAUDE.md`).
 falta al montarlo: el filtro `paths:` que decide cuándo corre es una lista
 escrita a mano, y la de mutaciones crece. Si una mutación nueva toca un fichero
 que el filtro no nombra, el job deja de ejecutarse sin ponerse en rojo —no se
-ejecuta, no falla—. `check:coherencia` deriva la lista de `check-mutations.mjs`
+ejecuta, no falla—. `check:coherence` deriva la lista de `check-mutations.mjs`
 y compara (`scripts/mutation-paths.mjs`, con su test).
 
 Y un tercero, de la revisión: el script daba "detectada" para cualquier salida
@@ -1397,7 +1419,7 @@ journal sin rama **y** sin commit —que `apply` no escribe— se sigue negando.
 Descartadas: rechazar la combinación antes de escribir, porque castiga un uso
 legítimo (las CI hacen checkout desacoplado) para proteger lo que el commit ya
 protege; y aceptarla sin `rollback`, porque deja irreversible lo que antes de
-F0-24 se revertía. Escrita en `assertSameBranch` y en `docs/ARQUITECTURA.md`.
+F0-24 se revertía. Escrita en `assertSameBranch` y en `docs/ARCHITECTURE.md`.
 
 **Criterios de aceptación:**
 - La decisión está escrita, con la alternativa descartada y el porqué.
@@ -1468,7 +1490,7 @@ es un verde que no significa nada.
 1. **Prioridad alta.** El control prohíbe la salida de emergencia que el propio
    workflow documenta: `mutations.yml` avisa de que, si el job entra en el
    ruleset, hay que quitar el filtro `paths:`; sin filtro, `workflowPaths`
-   devuelve `[]` y `check:coherencia` se pone en rojo con quince ficheros sin
+   devuelve `[]` y `check:coherence` se pone en rojo con quince ficheros sin
    cubrir. Un workflow sin filtro corre siempre y es estrictamente más seguro:
    hay que distinguir "no hay filtro" de "el filtro se deja ficheros fuera".
 2. Dos mutantes sobreviven a `scripts/mutation-paths.test.mjs`: quitar
@@ -1503,7 +1525,7 @@ tiene. Cerrarlo de verdad exige el grafo de importaciones, no una lista.
 test. El párrafo anterior, no: queda escrito donde se lee.
 
 **Criterios de aceptación:**
-- Quitar el filtro `paths:` de `mutations.yml` deja `check:coherencia` en verde.
+- Quitar el filtro `paths:` de `mutations.yml` deja `check:coherence` en verde.
 - Los dos mutantes del punto 2 mueren: `pnpm check:mutations` no es el control
   de este fichero, así que se comprueban a mano mutando y ejecutando.
 - Hay un test por cada uno de los puntos 3 a 6, y falla al revertir su
@@ -1689,7 +1711,7 @@ siguiente tarea obtiene la misma respuesta: la primera de la cola. Cambiar una
 prioridad es mover una entrada, con su motivo. `CLAUDE.md` §0 lo dice.
 
 **Qué se convierte en control mecánico:** `scripts/execution-queue.mjs`, conectado
-a `check:coherencia` y cubierto por `scripts/execution-queue.test.mjs`. Falla si
+a `check:coherence` y cubierto por `scripts/execution-queue.test.mjs`. Falla si
 una tarea pendiente no está en la cola, si una completada sigue, si hay
 duplicados o identificadores inexistentes, o si una tarea va antes que una
 dependencia pendiente, incluidas las de "Fase N completa".
@@ -1718,7 +1740,7 @@ documentación, y abre F0-42 a F0-45.
 
 **Trabajo:**
 1. **Primero el control, para que no entre español nuevo.** Una comprobación en
-   `check:coherencia` —lógica pura en `scripts/`, con su test— que detecta español
+   `check:coherence` —lógica pura en `scripts/`, con su test— que detecta español
    en los ficheros versionados (comentarios, cadenas, Markdown, YAML), reutilizando
    las palabras inequívocas de `branch-names.mjs` más los caracteres propios del
    español (`ñ`, `¿`, `¡`, vocales con tilde). Con dos listas explícitas:
@@ -1740,7 +1762,7 @@ de cada PR de traducción, comparando con el original.
 
 **Criterios de aceptación:**
 - Añadir un comentario o un párrafo en español a un fichero que no está en ninguna
-  lista pone `check:coherencia` en rojo.
+  lista pone `check:coherence` en rojo.
 - Un fichero de la lista de pendientes que ya está en inglés también lo pone en rojo.
 - `CLAUDE.md`, el runbook y la plantilla de PR están en inglés y fijan el inglés
   como idioma de todo el repositorio.
@@ -1762,7 +1784,7 @@ que más se lee: cada tarea empieza leyendo la suya.
    commit; las aserciones de mínimo de los dos impiden un verde sin mirar nada.
 3. Sacar el plan de la lista de pendientes de F0-41.
 4. Por tamaño, en varias sesiones: una tanda por fase, cada una con su commit en la
-   misma rama y `pnpm check:coherencia` en verde. Sigue siendo una tarea y una PR.
+   misma rama y `pnpm check:coherence` en verde. Sigue siendo una tarea y una PR.
 
 **Qué se convierte en control mecánico:** el de F0-41 sobre el plan, y los tests de
 los dos analizadores con el formato nuevo.
@@ -2403,7 +2425,7 @@ práctica en producto.
    asume**, y sólo con confirmación explícita.
 3. Genera plantillas de PR e issues, y `CODEOWNERS` a partir de los autores
    reales que devuelve el historial de git.
-4. Documenta el flujo en el `GOBERNANZA.md` que ya genera el pack de Node.
+4. Documenta el flujo en el `GOVERNANCE.md` que ya genera el pack de Node.
 
 **Lo aprendido configurándolo a mano en F0-13**, que concreta el diseño:
 
@@ -2584,7 +2606,7 @@ comando que lo deja todo en el portapapeles se usa. Es la tesis del producto
 3. **Siguiente tarea.** Sin `--next`, la primera pendiente cuyas dependencias
    estén cerradas, leída del plan que declare `.governance/config.yml`
    (`session.plan`: ruta y patrón de cabecera; por defecto `### [ ] <ID> — <título>`).
-   El cliente no tiene nuestro `PLAN_DE_EJECUCION.md`: la fuente es configurable.
+   El cliente no tiene nuestro `EXECUTION_PLAN.md`: la fuente es configurable.
 4. **Prompt de arranque con punteros, no con contenido.** Repositorio, tarea y
    su rama, último commit (hash y `--stat`) y qué leer y en qué orden. **Nunca el
    diff**: meterlo en el prompt es justo el contexto arrastrado que se quiere
@@ -2603,7 +2625,7 @@ comando que lo deja todo en el portapapeles se usa. Es la tesis del producto
   sistema. Se promete **sin contexto acumulado**, que es lo que cuesta.
 - "El cliente ve cuánto ahorra": no hay telemetría (ADR 0002). Medirlo exigiría
   un informe local leyendo los registros de cada asistente. Es otra tarea, y hay
-  que decidir antes si entra en `MODELO_DE_NEGOCIO.md`.
+  que decidir antes si entra en `BUSINESS_MODEL.md`.
 
 **Criterios de aceptación:**
 - Con el árbol sucio o la rama sin empujar, falla, lista la causa y no copia nada.
@@ -2620,7 +2642,7 @@ comando que lo deja todo en el portapapeles se usa. Es la tesis del producto
 **Estimación:** 3-4 sesiones.
 **Por qué importa:** el cliente paga una **suscripción anual**, y lo único que
 justifica renovarla es el valor nuevo que llega cada versión
-([ADR 0004](adr/0004-suscripcion-anual.md)). Sin `upgrade` y sin el motor
+([ADR 0004](adr/0004-annual-subscription.md)). Sin `upgrade` y sin el motor
 de recurrencia de F4-5 a F4-8, no hay segundo año.
 **Criterio de salida:** un repo configurado hace seis meses se actualiza a las
 reglas nuevas sin perder ni una sola personalización del cliente.
@@ -2730,7 +2752,7 @@ gratis, se comparte por correo y crea la necesidad que el producto resuelve.
 **Rama:** `feat/f4-version-detection` · **Depende de:** F4-2
 
 **Por qué:** es la primera pieza del motor de recurrencia
-([MODELO_DE_NEGOCIO.md §6](MODELO_DE_NEGOCIO.md)). Si el cliente no se
+([BUSINESS_MODEL.md §6](BUSINESS_MODEL.md)). Si el cliente no se
 entera de que hay algo nuevo, la suscripción no se renueva.
 
 **Trabajo:**
@@ -2915,7 +2937,7 @@ revisión de proveedor de un departamento de seguridad corporativo.
 **Rama:** `feat/f5-annual-subscription` · **Depende de:** F5-3
 
 **Origen:** decisión de negocio del 2026-09-09,
-[ADR 0004](adr/0004-suscripcion-anual.md). Sustituye al modelo de pago
+[ADR 0004](adr/0004-annual-subscription.md). Sustituye al modelo de pago
 único con doce meses de actualizaciones.
 
 **Trabajo:**
@@ -3040,7 +3062,7 @@ haga y en el idioma que sea. Si el desarrollador cambia una prioridad —como
 adelantar el paso a inglés, que se encarece cuanto más crece el proyecto—, se
 mueve la entrada y se escribe el motivo en el criterio correspondiente. Al cerrar
 una tarea, su PR la saca de la cola; al crear una tarea nueva, la misma PR la
-coloca. `pnpm check:coherencia` falla si una tarea pendiente no está,
+coloca. `pnpm check:coherence` falla si una tarea pendiente no está,
 si una completada sigue, o si alguna va antes que aquello de lo que depende.
 
 El orden de la Fase 0 sigue cuatro criterios, en este orden de prioridad:
@@ -3072,7 +3094,6 @@ controles que vigilan el trabajo de la fase van antes que ese trabajo.
 
 #### Fase 0 · 1. El inglés, idioma principal
 
-- **F0-16** — nombres de ficheros e identificadores, para que las traducciones caigan en su ruta definitiva.
 - **F0-42** — el plan, lo más leído después de `CLAUDE.md`.
 - **F0-18** — el resto de la documentación y todas las ADR.
 - **F0-43** — comentarios y tests del núcleo.
@@ -3082,7 +3103,7 @@ controles que vigilan el trabajo de la fase van antes que ese trabajo.
 #### Fase 0 · 2. Que el verde signifique algo
 
 - **F0-34** — el único e2e del ciclo completo no ejercita la comprobación del commit.
-- **F0-22** — los tests de `packages/*/test/` no pasan por el typecheck y el control del job `calidad` se vigila a sí mismo.
+- **F0-22** — los tests de `packages/*/test/` no pasan por el typecheck y el control del job `quality` se vigila a sí mismo.
 - **F0-32** — el control de mutaciones da verdes vacíos por huecos de sus parsers.
 - **F0-36** — decidir si el guardián del journal entra en la batería de mutaciones antes de volver a tocarlo.
 - **F0-7** — umbral de cobertura del 90 % en `core`, la mitigación declarada de R5.
@@ -3203,7 +3224,7 @@ enseñar a quien decide la compra.
 1. ~~**Licencia del código**~~ — cerrada el 2026-09-09: **BUSL-1.1**, con
    `scan` y `report` de uso libre y paso automático a Apache-2.0 a los cuatro
    años. Razonamiento y alternativas descartadas en
-   [ADR 0003](adr/0003-licencia-busl.md).
+   [ADR 0003](adr/0003-busl-license.md).
 2. ~~**Nombre del producto**~~ — se cerró como "AegisCode" el 2026-09-08 y se reabrió al descubrir que el nicho estaba ocupado por un competidor homónimo. Cerrado definitivamente el 2026-09-09: **Plumbward**, con la organización de npm y los dominios ya registrados.
 3. **Telemetría**: la recomendación es **ninguna por defecto**, opt-in explícito.
    Vendemos confianza; instrumentar el CLI la contradice.

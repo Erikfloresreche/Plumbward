@@ -18,30 +18,31 @@ import { checkPlan, checkPullRequestBranch } from './branch-names.mjs'
 import { uncoveredMutationInputs } from './mutation-paths.mjs'
 import { checkQueue } from './execution-queue.mjs'
 import { checkEnglishOnly } from './english-only.mjs'
+import { checkDocLinks, withDirectories } from './doc-links.mjs'
 
-const raiz = join(dirname(fileURLToPath(import.meta.url)), '..')
-const leer = (p) => readFileSync(join(raiz, p), 'utf8')
-const json = (p) => JSON.parse(leer(p))
+const root = join(dirname(fileURLToPath(import.meta.url)), '..')
+const read = (p) => readFileSync(join(root, p), 'utf8')
+const json = (p) => JSON.parse(read(p))
 
 /** @type {string[]} */
-const fallos = []
-const fallo = (control, detalle) => fallos.push(`${control}: ${detalle}`)
+const failures = []
+const fail = (control, detail) => failures.push(`${control}: ${detail}`)
 
 // ── 1. El suelo de Node declarado coincide con el que se prueba en CI ──────
 const engines = json('package.json').engines.node
-const sueloDeclarado = engines.replace(/^>=/, '')
+const declaredFloor = engines.replace(/^>=/, '')
 
-const ci = leer('.github/workflows/ci.yml')
-const matriz = /node: \[([^\]]+)\]/.exec(ci)
-if (!matriz) {
-  fallo('matriz-ci', 'no se encuentra la matriz de versiones de Node en ci.yml')
+const ci = read('.github/workflows/ci.yml')
+const matrix = /node: \[([^\]]+)\]/.exec(ci)
+if (!matrix) {
+  fail('ci-matrix', 'no se encuentra la matriz de versiones de Node en ci.yml')
 } else {
-  const versiones = matriz[1].split(',').map((v) => v.trim().replace(/'/g, ''))
-  const sueloProbado = versiones[0]
-  if (!sueloDeclarado.startsWith(sueloProbado)) {
-    fallo(
-      'suelo-de-node',
-      `package.json declara ">=${sueloDeclarado}" pero la versión más baja que la CI prueba es ${sueloProbado}. Se soporta lo que se prueba.`,
+  const versions = matrix[1].split(',').map((v) => v.trim().replace(/'/g, ''))
+  const testedFloor = versions[0]
+  if (!declaredFloor.startsWith(testedFloor)) {
+    fail(
+      'node-floor',
+      `package.json declara ">=${declaredFloor}" pero la versión más baja que la CI prueba es ${testedFloor}. Se soporta lo que se prueba.`,
     )
   }
 }
@@ -51,14 +52,14 @@ if (!matriz) {
 // dos pasos con `if: matrix.node == '22'` se saltaron en silencio en todas las
 // ejecuciones — entre ellos el typecheck y este mismo script. Un `if` que
 // nunca se cumple no falla: desaparece.
-if (matriz) {
-  const versiones = matriz[1].split(',').map((v) => v.trim().replace(/'/g, ''))
+if (matrix) {
+  const versions = matrix[1].split(',').map((v) => v.trim().replace(/'/g, ''))
   // Sólo líneas `if:` reales: un comentario que cite el patrón no cuenta.
   for (const m of ci.matchAll(/^\s*if:.*matrix\.node\s*==\s*'([^']+)'/gm)) {
-    if (!versiones.includes(m[1])) {
-      fallo(
-        'condicion-de-matriz',
-        `ci.yml tiene una condición "matrix.node == '${m[1]}'" pero la matriz es [${versiones.join(', ')}]. Ese paso no se ejecutaría nunca.`,
+    if (!versions.includes(m[1])) {
+      fail(
+        'matrix-condition',
+        `ci.yml tiene una condición "matrix.node == '${m[1]}'" pero la matriz es [${versions.join(', ')}]. Ese paso no se ejecutaría nunca.`,
       )
     }
   }
@@ -66,24 +67,24 @@ if (matriz) {
 
 // ── 1c. El job de tipos y coherencia usa la versión del suelo ─────────────
 {
-  const job = /calidad:[\s\S]*?node-version:\s*'([^']+)'/.exec(ci)
+  const job = /quality:[\s\S]*?node-version:\s*'([^']+)'/.exec(ci)
   if (!job) {
-    fallo('job-de-calidad', 'no se encuentra el job `calidad` en ci.yml: los tipos y la coherencia no se comprobarían en CI')
-  } else if (job[1] !== sueloDeclarado) {
-    fallo('job-de-calidad', `el job \`calidad\` usa Node ${job[1]} y el suelo declarado es ${sueloDeclarado}`)
+    fail('quality-job', 'no se encuentra el job `quality` en ci.yml: los tipos y la coherencia no se comprobarían en CI')
+  } else if (job[1] !== declaredFloor) {
+    fail('quality-job', `el job \`quality\` usa Node ${job[1]} y el suelo declarado es ${declaredFloor}`)
   }
 }
 
 // ── 2. La documentación dice la misma versión que package.json ────────────
 for (const doc of ['README.md', 'CONTRIBUTING.md']) {
-  const texto = leer(doc)
-  const m = /Node\.js >= ([\d.]+)/.exec(texto)
+  const text = read(doc)
+  const m = /Node\.js >= ([\d.]+)/.exec(text)
   if (!m) {
-    fallo('version-documentada', `${doc} no declara ninguna versión mínima de Node`)
-  } else if (m[1] !== sueloDeclarado) {
-    fallo(
-      'version-documentada',
-      `${doc} dice "Node.js >= ${m[1]}" y package.json dice ">=${sueloDeclarado}"`,
+    fail('documented-version', `${doc} no declara ninguna versión mínima de Node`)
+  } else if (m[1] !== declaredFloor) {
+    fail(
+      'documented-version',
+      `${doc} dice "Node.js >= ${m[1]}" y package.json dice ">=${declaredFloor}"`,
     )
   }
 }
@@ -91,25 +92,25 @@ for (const doc of ['README.md', 'CONTRIBUTING.md']) {
 // ── 3. Los paquetes publicables declaran su propio `engines` ──────────────
 // El `engines` de la raíz no llega al usuario: la raíz es privada. Sin esto,
 // quien instale el CLI no recibe el aviso que README y CONTRIBUTING prometen.
-const dirsDePaquetes = []
+const packageDirs = []
 for (const base of ['packages', 'packages/packs']) {
-  for (const nombre of readdirSync(join(raiz, base))) {
-    const ruta = join(base, nombre)
+  for (const name of readdirSync(join(root, base))) {
+    const path = join(base, name)
     try {
-      if (statSync(join(raiz, ruta, 'package.json')).isFile()) dirsDePaquetes.push(ruta)
+      if (statSync(join(root, path, 'package.json')).isFile()) packageDirs.push(path)
     } catch {
       /* no es un paquete */
     }
   }
 }
-for (const dir of dirsDePaquetes) {
+for (const dir of packageDirs) {
   const pkg = json(join(dir, 'package.json'))
   if (pkg.private) continue
   if (!pkg.engines?.node) {
-    fallo('engines-en-paquetes', `${pkg.name} se publica pero no declara "engines.node"`)
+    fail('package-engines', `${pkg.name} se publica pero no declara "engines.node"`)
   } else if (pkg.engines.node !== engines) {
-    fallo(
-      'engines-en-paquetes',
+    fail(
+      'package-engines',
       `${pkg.name} declara "${pkg.engines.node}" y la raíz declara "${engines}"`,
     )
   }
@@ -121,8 +122,8 @@ for (const dir of dirsDePaquetes) {
 // era que la rama de releases no tenía ninguna CI, en silencio.
 try {
   const { execSync } = await import('node:child_process')
-  const remotas = execSync('git ls-remote --heads origin', {
-    cwd: raiz,
+  const remoteBranches = execSync('git ls-remote --heads origin', {
+    cwd: root,
     encoding: 'utf8',
     stdio: ['ignore', 'pipe', 'ignore'],
     timeout: 15_000,
@@ -131,29 +132,29 @@ try {
     .map((l) => l.split('refs/heads/')[1])
     .filter(Boolean)
 
-  if (remotas.length > 0) {
+  if (remoteBranches.length > 0) {
     // Todos los workflows, no una lista escrita a mano: un workflow nuevo
     // con un disparador sobre una rama inexistente no tendría control.
-    const workflows = readdirSync(join(raiz, '.github/workflows'))
+    const workflows = readdirSync(join(root, '.github/workflows'))
       .filter((f) => f.endsWith('.yml') || f.endsWith('.yaml'))
       .map((f) => `.github/workflows/${f}`)
     for (const wf of workflows) {
-      const texto = leer(wf)
-      for (const m of texto.matchAll(/branches: \[([^\]]+)\]/g)) {
-        for (const rama of m[1].split(',').map((r) => r.trim())) {
-          if (remotas.includes(rama)) continue
+      const text = read(wf)
+      for (const m of text.matchAll(/branches: \[([^\]]+)\]/g)) {
+        for (const branch of m[1].split(',').map((r) => r.trim())) {
+          if (remoteBranches.includes(branch)) continue
 
           // Los nombres de rama de git SÍ distinguen mayúsculas: `Prod` y
           // `prod` son ramas distintas. Un desajuste de caja es el error más
           // probable y el más difícil de ver a simple vista, así que se
           // diagnostica aparte en lugar de decir "no existe" y dejar al
           // lector comparando letra por letra.
-          const porCaja = remotas.find((r) => r.toLowerCase() === rama.toLowerCase())
-          fallo(
-            'ramas-de-disparadores',
-            porCaja
-              ? `${wf} dispara sobre "${rama}", pero la rama del remoto se llama "${porCaja}". Los nombres de rama distinguen mayúsculas: el disparador nunca se activaría.`
-              : `${wf} dispara sobre la rama "${rama}", que no existe en el remoto. Esa rama no tendría ninguna CI. Ramas disponibles: ${remotas.join(', ')}.`,
+          const caseMatch = remoteBranches.find((r) => r.toLowerCase() === branch.toLowerCase())
+          fail(
+            'trigger-branches',
+            caseMatch
+              ? `${wf} dispara sobre "${branch}", pero la rama del remoto se llama "${caseMatch}". Los nombres de rama distinguen mayúsculas: el disparador nunca se activaría.`
+              : `${wf} dispara sobre la rama "${branch}", que no existe en el remoto. Esa rama no tendría ninguna CI. Ramas disponibles: ${remoteBranches.join(', ')}.`,
           )
         }
       }
@@ -171,13 +172,13 @@ try {
 // el filtro no nombra, el job deja de ejecutarse en las PRs que lo cambian sin
 // ponerse en rojo —no se ejecuta, no falla—. La lógica vive en
 // `scripts/mutation-paths.mjs`, cubierta por su test. Tarea F0-27.
-for (const fichero of uncoveredMutationInputs(
-  leer('scripts/check-mutations.mjs'),
-  leer('.github/workflows/mutations.yml'),
+for (const file of uncoveredMutationInputs(
+  read('scripts/check-mutations.mjs'),
+  read('.github/workflows/mutations.yml'),
 )) {
-  fallo(
-    'filtro-de-mutaciones',
-    `check-mutations.mjs muta o ejecuta "${fichero}", pero el filtro paths: de .github/workflows/mutations.yml no lo nombra. Una PR que cambie ese fichero no lanzaría las mutaciones.`,
+  fail(
+    'mutation-filter',
+    `check-mutations.mjs muta o ejecuta "${file}", pero el filtro paths: de .github/workflows/mutations.yml no lo nombra. Una PR que cambie ese fichero no lanzaría las mutaciones.`,
   )
 }
 
@@ -189,21 +190,21 @@ for (const fichero of uncoveredMutationInputs(
 // La rama de la PR se lee de GITHUB_HEAD_REF y no se interpola en el workflow,
 // porque un nombre de rama lo controla quien abre la PR y meterlo en un `run:`
 // sería una vía de inyección de comandos. El autor viene de GITHUB_ACTOR.
-for (const motivo of checkPlan(leer('docs/PLAN_DE_EJECUCION.md'))) {
-  fallo('nombre-de-rama-en-plan', motivo)
+for (const reason of checkPlan(read('docs/EXECUTION_PLAN.md'))) {
+  fail('plan-branch-name', reason)
 }
 
-const motivoRamaPR = checkPullRequestBranch(process.env.GITHUB_HEAD_REF, process.env.GITHUB_ACTOR)
-if (motivoRamaPR) {
-  fallo('nombre-de-rama-de-la-pr', `"${process.env.GITHUB_HEAD_REF}" ${motivoRamaPR}`)
+const prBranchReason = checkPullRequestBranch(process.env.GITHUB_HEAD_REF, process.env.GITHUB_ACTOR)
+if (prBranchReason) {
+  fail('pr-branch-name', `"${process.env.GITHUB_HEAD_REF}" ${prBranchReason}`)
 }
 
 // ── 5 bis. La cola de ejecución describe el plan (F0-40) ─────────────────
 // La siguiente tarea es la primera de la cola del §5. Si la cola se deja una
 // tarea pendiente, conserva una cerrada o pone algo antes de su dependencia,
 // la siguiente tarea deja de ser la correcta sin que nadie lo note.
-for (const motivo of checkQueue(leer('docs/PLAN_DE_EJECUCION.md'))) {
-  fallo('cola-de-ejecucion', motivo)
+for (const reason of checkQueue(read('docs/EXECUTION_PLAN.md'))) {
+  fail('execution-queue', reason)
 }
 
 // ── 5 ter. English everywhere, except what is listed (F0-41) ──────────────
@@ -214,7 +215,7 @@ for (const motivo of checkQueue(leer('docs/PLAN_DE_EJECUCION.md'))) {
   const { execFileSync } = await import('node:child_process')
   const paths = new Set(
     execFileSync('git', ['ls-files', '-z', '--cached', '--others', '--exclude-standard'], {
-      cwd: raiz,
+      cwd: root,
       encoding: 'utf8',
     })
       .split('\0')
@@ -222,12 +223,20 @@ for (const motivo of checkQueue(leer('docs/PLAN_DE_EJECUCION.md'))) {
   )
   const files = []
   for (const path of paths) {
-    const full = join(raiz, path)
+    const full = join(root, path)
     if (!existsSync(full) || !lstatSync(full).isFile()) continue
     files.push({ path, text: readFileSync(full, 'utf8') })
   }
   for (const problem of checkEnglishOnly(files, json('scripts/english-only.json'))) {
-    fallo('english-only', problem)
+    fail('english-only', problem)
+  }
+
+  // ── 5 quater. Relative documentation links resolve (F0-16) ──────────────
+  // Same file list: a link to a new file not yet added resolves, a link to a
+  // file deleted on disk does not. A rename otherwise breaks links in silence.
+  const existing = withDirectories([...paths].filter((path) => existsSync(join(root, path))))
+  for (const problem of checkDocLinks(files, existing)) {
+    fail('doc-links', problem)
   }
 }
 
@@ -251,7 +260,7 @@ function skillFolderHash(dir) {
       // `skills` lo salta, así que su contenido nunca entra en el hash. Se
       // prohíbe, o sería una forma de meter código que el lock no cubre.
       if (entry.isSymbolicLink()) {
-        fallo('skill-con-enlace', `${relative(raiz, full)} es un enlace simbólico: el hash del lock no lo cubre`)
+        fail('skill-symlink', `${relative(root, full)} es un enlace simbólico: el hash del lock no lo cubre`)
       } else if (entry.isDirectory()) {
         if (entry.name !== '.git' && entry.name !== 'node_modules') walk(full)
       } else if (entry.isFile() && entry.name !== '.DS_Store') {
@@ -267,27 +276,27 @@ function skillFolderHash(dir) {
   return hash.digest('hex')
 }
 
-if (existsSync(join(raiz, 'skills-lock.json'))) {
+if (existsSync(join(root, 'skills-lock.json'))) {
   const locked = json('skills-lock.json').skills ?? {}
-  const installed = existsSync(join(raiz, SKILLS_DIR))
-    ? readdirSync(join(raiz, SKILLS_DIR), { withFileTypes: true }).filter((e) => !e.isFile()).map((e) => e.name)
+  const installed = existsSync(join(root, SKILLS_DIR))
+    ? readdirSync(join(root, SKILLS_DIR), { withFileTypes: true }).filter((e) => !e.isFile()).map((e) => e.name)
     : []
   for (const name of installed) {
-    if (!(name in locked)) fallo('skill-sin-lock', `${SKILLS_DIR}/${name} no está en skills-lock.json`)
+    if (!(name in locked)) fail('skill-not-locked', `${SKILLS_DIR}/${name} no está en skills-lock.json`)
   }
   for (const [name, entry] of Object.entries(locked)) {
-    const dir = join(raiz, SKILLS_DIR, name)
+    const dir = join(root, SKILLS_DIR, name)
     if (!existsSync(dir)) {
-      fallo('skill-ausente', `skills-lock.json fija "${name}" pero ${SKILLS_DIR}/${name} no existe`)
+      fail('skill-missing', `skills-lock.json fija "${name}" pero ${SKILLS_DIR}/${name} no existe`)
       continue
     }
     const actual = skillFolderHash(dir)
     if (actual !== entry.computedHash) {
-      fallo('skill-alterada', `${SKILLS_DIR}/${name} no coincide con el hash de skills-lock.json (${actual})`)
+      fail('skill-altered', `${SKILLS_DIR}/${name} no coincide con el hash de skills-lock.json (${actual})`)
     }
     // 6b. Claude Code sólo lee `.claude/skills/`. Sin el enlace, la skill está
     // instalada y versionada pero ningún asistente la carga: parece que funciona.
-    const link = join(raiz, CLAUDE_SKILLS_DIR, name)
+    const link = join(root, CLAUDE_SKILLS_DIR, name)
     const expected = `../../${SKILLS_DIR}/${name}`
     let target
     try {
@@ -296,7 +305,7 @@ if (existsSync(join(raiz, 'skills-lock.json'))) {
       target = undefined
     }
     if (target !== expected) {
-      fallo('skill-sin-enlace', `${CLAUDE_SKILLS_DIR}/${name} debe ser un enlace a ${expected}`)
+      fail('skill-not-linked', `${CLAUDE_SKILLS_DIR}/${name} debe ser un enlace a ${expected}`)
     }
   }
 }
@@ -305,15 +314,15 @@ if (existsSync(join(raiz, 'skills-lock.json'))) {
 // Las reglas están escritas en la cabecera del fichero, y una regla escrita se
 // incumple. Máximo 10 entradas por categoría; cada una con fecha y "Do instead".
 const NAPKIN = '.claude/napkin.md'
-if (existsSync(join(raiz, NAPKIN))) {
+if (existsSync(join(root, NAPKIN))) {
   let category
   let count = 0
   let pending // entrada abierta que aún no ha mostrado su "Do instead"
   const closeEntry = () => {
-    if (pending) fallo('napkin-sin-do-instead', `"${pending}" (${category})`)
+    if (pending) fail('napkin-no-do-instead', `"${pending}" (${category})`)
     pending = undefined
   }
-  for (const line of leer(NAPKIN).split('\n')) {
+  for (const line of read(NAPKIN).split('\n')) {
     const header = /^## (.+)$/.exec(line)
     if (header) {
       closeEntry()
@@ -325,9 +334,9 @@ if (existsSync(join(raiz, NAPKIN))) {
     if (item) {
       closeEntry()
       count += 1
-      if (count === 11) fallo('napkin-categoria-llena', `"${category}" pasa de 10 entradas`)
+      if (count === 11) fail('napkin-category-full', `"${category}" pasa de 10 entradas`)
       if (!/^\*\*\[\d{4}-\d{2}-\d{2}\] /.test(item[1])) {
-        fallo('napkin-sin-fecha', `"${item[1].slice(0, 60)}" (${category})`)
+        fail('napkin-no-date', `"${item[1].slice(0, 60)}" (${category})`)
       }
       pending = item[1].slice(0, 60)
       continue
@@ -343,25 +352,25 @@ if (existsSync(join(raiz, NAPKIN))) {
 // manda hacer algo que el mismo fichero prohíbe sólo se descubre leyendo las
 // dos secciones a la vez, que es justo lo que nadie hace.
 {
-  const claude = leer('CLAUDE.md')
-  const seccion = (prefijo) => {
-    const desde = claude.indexOf(`\n## ${prefijo}`)
-    if (desde < 0) return undefined
-    const resto = claude.slice(desde + 1)
-    const hasta = resto.indexOf('\n## ')
-    return hasta < 0 ? resto : resto.slice(0, hasta)
+  const claude = read('CLAUDE.md')
+  const section = (prefix) => {
+    const from = claude.indexOf(`\n## ${prefix}`)
+    if (from < 0) return undefined
+    const rest = claude.slice(from + 1)
+    const to = rest.indexOf('\n## ')
+    return to < 0 ? rest : rest.slice(0, to)
   }
 
-  const seccion0 = seccion('0. ')
-  const listaDePermitidos = /You may use the read-only ones:([\s\S]*?)\./.exec(claude)
-  const permitidos = listaDePermitidos
-    ? [...listaDePermitidos[1].matchAll(/`([^`]+)`/g)].map((m) => m[1])
+  const section0 = section('0. ')
+  const allowedList = /You may use the read-only ones:([\s\S]*?)\./.exec(claude)
+  const allowed = allowedList
+    ? [...allowedList[1].matchAll(/`([^`]+)`/g)].map((m) => m[1])
     : []
 
   // Sin ancla no hay control: se falla en vez de pasar en silencio.
-  if (!seccion0) fallo('git-permitido-en-claude-md', 'no se encuentra la sección "## 0. " en CLAUDE.md')
-  else if (permitidos.length === 0) {
-    fallo('git-permitido-en-claude-md', 'no se encuentra la lista de comandos git de sólo lectura en la §1')
+  if (!section0) fail('claude-md-allowed-git', 'no se encuentra la sección "## 0. " en CLAUDE.md')
+  else if (allowed.length === 0) {
+    fail('claude-md-allowed-git', 'no se encuentra la lista de comandos git de sólo lectura en la §1')
   } else {
     // Se recorre la §0 entera, no sólo sus bloques ```bash: un `git reset
     // --hard` escrito en prosa, entre acentos graves, es igual de copiable y
@@ -377,40 +386,40 @@ if (existsSync(join(raiz, NAPKIN))) {
     // El grupo es opcional a propósito: un `git` cuyo subcomando este control
     // no sepa leer cae en `undefined` en vez de desaparecer, y se falla en voz
     // alta. Silencio aquí es exactamente lo que hacía falsa la frase de la §1.
-    const usos = seccion0.matchAll(
+    const uses = section0.matchAll(
       /(?<![\w-])git\s+(?:-[cC]\s+\S+\s+)*([a-z][a-z-]*(?:\s+--?[a-z][\w.-]*(?:=\S+)?)*)?/g,
     )
-    let vistos = 0
-    for (const uso of usos) {
-      vistos += 1
-      const comando = uso[1]?.trim()
-      if (!comando) {
-        const contexto = seccion0.slice(uso.index, uso.index + 48).split('\n')[0].trim()
-        fallo(
-          'git-permitido-en-claude-md',
-          `la §0 escribe "${contexto}", y este control no sabe leer ahí un subcomando: ` +
+    let seen = 0
+    for (const use of uses) {
+      seen += 1
+      const command = use[1]?.trim()
+      if (!command) {
+        const excerpt = section0.slice(use.index, use.index + 48).split('\n')[0].trim()
+        fail(
+          'claude-md-allowed-git',
+          `la §0 escribe "${excerpt}", y este control no sabe leer ahí un subcomando: ` +
             'no puede afirmar que la §1 lo permita',
         )
         continue
       }
-      const permitido = permitidos.some((p) => comando === p || comando.startsWith(`${p} `))
-      if (!permitido) {
-        fallo(
-          'git-permitido-en-claude-md',
-          `la §0 propone "git ${comando}", que no está en la lista de sólo lectura de la §1`,
+      const isAllowed = allowed.some((p) => command === p || command.startsWith(`${p} `))
+      if (!isAllowed) {
+        fail(
+          'claude-md-allowed-git',
+          `la §0 propone "git ${command}", que no está en la lista de sólo lectura de la §1`,
         )
       }
     }
     // Si la §0 deja de proponer comandos, este control se queda sin objeto y
     // hay que revisarlo, no dejarlo pasando en verde sin mirar nada.
-    if (vistos === 0) fallo('git-permitido-en-claude-md', 'la §0 ya no propone ningún comando git')
+    if (seen === 0) fail('claude-md-allowed-git', 'la §0 ya no propone ningún comando git')
   }
 }
 
 // ── Resultado ─────────────────────────────────────────────────────────────
-if (fallos.length > 0) {
+if (failures.length > 0) {
   console.error('\nCoherencia: se han encontrado incoherencias.\n')
-  for (const f of fallos) console.error(`  ✗ ${f}`)
+  for (const f of failures) console.error(`  ✗ ${f}`)
   console.error('')
   process.exit(1)
 }

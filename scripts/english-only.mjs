@@ -12,14 +12,20 @@
  * - `exceptions`: files that must stay in Spanish, each with its reason. The
  *   same staleness rule applies.
  *
- * Pure functions, like `branch-names.mjs`: `verificar-coherencia.mjs` only
+ * Pure functions, like `branch-names.mjs`: `check-coherence.mjs` only
  * wires them to the files on disk.
  *
+ * File and directory names are checked too (F0-16), with no list to escape to:
+ * a Spanish name is renamed, not excused. A false positive is fixed in the
+ * heuristic, with its test.
+ *
  * Not mechanisable: translation fidelity. An English text that says something
- * else than the original passes; the defence is the fresh-context review.
+ * else than the original passes; the defence is the fresh-context review. Nor
+ * a Spanish name made only of words English also has: the name heuristic is a
+ * word list and a few suffixes, not a dictionary.
  */
 
-import { SPANISH_WORDS } from './branch-names.mjs'
+import { SPANISH_WORDS, spanishEvidence } from './branch-names.mjs'
 
 /**
  * Files read at the start of every session. They can never be listed: a
@@ -62,6 +68,35 @@ export function findSpanish(text) {
     if (found) return { line: i + 1, match: found[0] }
   }
   return undefined
+}
+
+/**
+ * Spanish words of names this repository already had that neither the
+ * branch-name words nor the suffixes catch: `ARQUITECTURA.md`, `GOBERNANZA.md`.
+ */
+const SPANISH_NAME_WORDS = new Set(['arquitectura', 'gobernanza'])
+
+/**
+ * Signs that a path is named in Spanish. Empty = none.
+ *
+ * Each segment is split into words at separators and at camelCase humps and
+ * read with the branch-name heuristic: `PLAN_DE_EJECUCION.md` is read like the
+ * slug `plan-de-ejecucion-md`.
+ *
+ * @param {string} path repository-relative path
+ * @returns {string[]}
+ */
+export function spanishNameEvidence(path) {
+  const character = SPANISH_CHARACTER.exec(path)
+  if (character) return [character[0]]
+  return path.split('/').flatMap((segment) => {
+    const words = segment
+      .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
+      .toLowerCase()
+      .split(/[^a-z0-9]+/)
+      .filter(Boolean)
+    return [...spanishEvidence(words.join('-')), ...words.filter((word) => SPANISH_NAME_WORDS.has(word))]
+  })
 }
 
 /**
@@ -126,6 +161,10 @@ export function checkEnglishOnly(files, lists) {
   }
 
   for (const { path, text } of files) {
+    const nameEvidence = spanishNameEvidence(path)
+    if (nameEvidence.length > 0) {
+      problems.push(`${path} looks named in Spanish (${nameEvidence.join(', ')}): rename it in English`)
+    }
     const evidence = findSpanish(text)
     const list = listed.get(path)
     if (evidence && !list) {

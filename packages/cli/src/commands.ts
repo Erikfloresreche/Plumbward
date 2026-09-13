@@ -318,7 +318,7 @@ export async function runApply(cwd: string, options: ApplyOptions): Promise<numb
     console.log(pc.dim(`  Journal: ${result.journalPath}`))
 
     console.log(`\n${pc.bold('Siguientes pasos')}`)
-    console.log('  1. Lee GOBERNANZA.md: explica al equipo qué se ha instalado.')
+    console.log('  1. Lee GOVERNANCE.md: explica al equipo qué se ha instalado.')
     if (!options.install) {
       console.log('  2. Instala las dependencias listadas arriba.')
     }

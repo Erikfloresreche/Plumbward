@@ -76,7 +76,7 @@ técnico confía antes en quien delimita su alcance que en quien promete magia.
 
 **Suscripción anual por repositorio, con tramos por volumen.**
 Decisión tomada el 2026-09-09; sustituye al pago único con 12 meses de
-actualizaciones. El razonamiento está en [ADR 0004](adr/0004-suscripcion-anual.md).
+actualizaciones. El razonamiento está en [ADR 0004](adr/0004-annual-subscription.md).
 
 | Plan | Precio orientativo | Para quién |
 |---|---|---|
@@ -114,7 +114,7 @@ pasando. El cliente no percibe pérdida, así que no renueva.
 Sólo hay dos salidas, y una es inaceptable:
 
 1. **Degradar lo instalado** para forzar la renovación. Hostil, y contradice
-   frontalmente la [ADR 0002](adr/0002-licenciamiento-local-first.md).
+   frontalmente la [ADR 0002](adr/0002-local-first-licensing.md).
 2. **Hacer que lo nuevo valga lo suficiente** como para pagar otra vez.
 
 Elegimos la segunda, y de ahí sale todo el motor de recurrencia del §6.
@@ -246,9 +246,9 @@ en tres sitios:
 
 **Tomadas:**
 
-- Suscripción anual por repositorio ([ADR 0004](adr/0004-suscripcion-anual.md)).
-- Licencia BUSL-1.1 ([ADR 0003](adr/0003-licencia-busl.md)).
-- Validación de licencia local-first ([ADR 0002](adr/0002-licenciamiento-local-first.md)).
+- Suscripción anual por repositorio ([ADR 0004](adr/0004-annual-subscription.md)).
+- Licencia BUSL-1.1 ([ADR 0003](adr/0003-busl-license.md)).
+- Validación de licencia local-first ([ADR 0002](adr/0002-local-first-licensing.md)).
 - `scan` y `report` gratuitos para siempre, garantizado por licencia.
 
 **Abiertas:**
