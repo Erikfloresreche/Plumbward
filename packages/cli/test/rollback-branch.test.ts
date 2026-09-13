@@ -137,6 +137,23 @@ describe('rollback fuera de la rama en la que apply escribió', () => {
     expect(printed).toContain('`plumbward rollback` lo deja todo como estaba')
   })
 
+  /**
+   * Hallazgo 1 de la revisión de F0-30. El paso anterior manda abrir una Pull
+   * Request, y para eso hay que commitear; desde F0-30, commitear mueve el
+   * commit y `rollback` se niega. La promesa dejaba de ser cierta en cuanto se
+   * seguía el paso de antes, que es la misma promesa falsa que retiró F0-24.
+   */
+  it('no promete un rollback que el paso anterior invalida', async () => {
+    const root = await createRepo('Prod')
+    const output = captureOutput()
+
+    expect(await apply(root)).toBe(0)
+    const printed = output()
+
+    expect(printed).toContain('aún no has commiteado')
+    expect(printed).not.toContain('Si algo no encaja: `plumbward rollback`')
+  })
+
   it('sigue revirtiendo con normalidad en la rama en la que apply escribió', async () => {
     const root = await createRepo('Prod')
 
