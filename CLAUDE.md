@@ -35,8 +35,14 @@ gh run list --branch "$(git branch --show-current)" --limit 3   # la CI ya dice 
 pnpm check:coherencia
 ```
 
-Y **pregunta a la persona en qué está trabajando** antes de deducirlo: el plan
-dice qué queda pendiente, no dónde está ella ahora mismo.
+**El orden de las tareas ya está decidido en el plan: es la cola de ejecución
+del §5.** Cuando alguien pregunta, con las palabras y en el idioma que sea, por
+el estado del plan o por la siguiente tarea, la respuesta sale de la cola: la
+siguiente es la primera. No se inventa otro orden en cada sesión. Si el
+desarrollador decide otra prioridad, se mueve la tarea en la cola, con su motivo,
+y `check:coherencia` comprueba que el nuevo orden respeta las dependencias. Si
+el estado real contradice la cola —una rama de tarea a medias, cambios sin
+commitear—, se dice antes de empezar otra cosa.
 
 ---
 

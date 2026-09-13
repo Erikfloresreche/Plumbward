@@ -16,6 +16,7 @@ import { join, dirname, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { checkPlan, checkPullRequestBranch } from './branch-names.mjs'
 import { uncoveredMutationInputs } from './mutation-paths.mjs'
+import { checkQueue } from './execution-queue.mjs'
 
 const raiz = join(dirname(fileURLToPath(import.meta.url)), '..')
 const leer = (p) => readFileSync(join(raiz, p), 'utf8')
@@ -194,6 +195,14 @@ for (const motivo of checkPlan(leer('docs/PLAN_DE_EJECUCION.md'))) {
 const motivoRamaPR = checkPullRequestBranch(process.env.GITHUB_HEAD_REF, process.env.GITHUB_ACTOR)
 if (motivoRamaPR) {
   fallo('nombre-de-rama-de-la-pr', `"${process.env.GITHUB_HEAD_REF}" ${motivoRamaPR}`)
+}
+
+// ── 5 bis. La cola de ejecución describe el plan (F0-40) ─────────────────
+// La siguiente tarea es la primera de la cola del §5. Si la cola se deja una
+// tarea pendiente, conserva una cerrada o pone algo antes de su dependencia,
+// la siguiente tarea deja de ser la correcta sin que nadie lo note.
+for (const motivo of checkQueue(leer('docs/PLAN_DE_EJECUCION.md'))) {
+  fallo('cola-de-ejecucion', motivo)
 }
 
 // ── 6. Las skills de agente versionadas son las que fija el lock (F0-17) ──
