@@ -1,66 +1,66 @@
-# ADR 0002 — Validación de licencia local, sin lógica remota
+# ADR 0002 — Local licence validation, with no remote logic
 
-- **Estado:** aceptada
-- **Fecha:** 2026-09-08
-- **Afecta a:** Fase 5 (licenciamiento) y al empaquetado
+- **Status:** accepted
+- **Date:** 2026-09-08
+- **Affects:** Phase 5 (licensing) and the packaging
 
-## Contexto
+## Context
 
-La especificación original proponía dos medidas anti-piratería:
+The original specification proposed two anti-piracy measures:
 
-1. **Ejecución remota**: las reglas y plantillas no residirían en el paquete
-   NPM, sino que se descargarían de nuestra API tras validar el token, para
-   evitar la copia no autorizada.
-2. **`ci-guard`**: inyectar en el repositorio del cliente un paquete de
-   validación que **haría fallar sus pipelines de GitHub Actions** si el token
-   dejaba de ser válido.
+1. **Remote execution**: the rules and templates would not live in the NPM
+   package, but would be downloaded from our API after validating the token,
+   to prevent unauthorised copying.
+2. **`ci-guard`**: inject into the client's repository a validation package
+   that **would make their GitHub Actions pipelines fail** if the token stopped
+   being valid.
 
-El objetivo —proteger el ingreso— es legítimo. Los medios son el problema.
+The goal —protecting revenue— is legitimate. The means are the problem.
 
-## Decisión
+## Decision
 
-Todo el código y todas las reglas viajan en el paquete NPM. La licencia se
-valida contra la API **únicamente** en `init` y `upgrade`, y el resultado queda
-firmado criptográficamente en `.governance/config.yml`, verificable en local
-contra una clave pública embebida.
+All the code and all the rules travel in the NPM package. The licence is
+validated against the API **only** on `init` and `upgrade`, and the result is
+cryptographically signed in `.governance/config.yml`, verifiable locally
+against an embedded public key.
 
-`scan`, `plan`, `apply`, `rollback` y `doctor` funcionan **offline y para
-siempre**. No se inyecta ninguna dependencia capaz de hacer fallar la CI del
-cliente. Una licencia caducada deja de traer reglas nuevas; nunca degrada ni
-bloquea un repositorio ya configurado.
+`scan`, `plan`, `apply`, `rollback` and `doctor` work **offline and forever**.
+No dependency capable of making the client's CI fail is injected. An expired
+licence stops bringing new rules; it never degrades or blocks an already
+configured repository.
 
-## Alternativa descartada
+## Discarded alternative
 
-La del PDF, tal cual. Se descarta por dos motivos independientes, cada uno
-suficiente por sí solo:
+The PDF's, as it stands. It is discarded for two independent reasons, each one
+sufficient on its own:
 
-**Bloquea la venta.** Descargar y ejecutar lógica en tiempo de ejecución desde
-un servidor externo es de las primeras cosas que un departamento de seguridad
-corporativo veta en una revisión de proveedor. Habríamos construido un producto
-que el comprador objetivo no puede aprobar.
+**It blocks the sale.** Downloading and running logic at runtime from an
+external server is one of the first things a corporate security department
+vetoes in a vendor review. We would have built a product that the target buyer
+cannot approve.
 
-**Contradice el producto.** Vendemos "puedes ver exactamente qué va a pasar
-antes de que pase". Un binario que descarga instrucciones opacas es lo contrario
-de eso. Y un paquete que rompe deliberadamente la CI de un cliente se lee, desde
-su lado, como sabotaje: destruye la confianza que es el activo del producto.
+**It contradicts the product.** We sell "you can see exactly what is going to
+happen before it happens". A binary that downloads opaque instructions is the
+opposite of that. And a package that deliberately breaks a client's CI reads,
+from their side, as sabotage: it destroys the trust that is the product's
+asset.
 
-## Consecuencias
+## Consequences
 
-**A favor:**
+**In favour:**
 
-- El producto pasa una revisión de proveedor.
-- Funciona en entornos aislados de red, que son habituales en banca y sanidad
-  —dos sectores que pagan bien.
-- Ninguna caída de nuestra infraestructura puede bloquear el trabajo de un
-  cliente.
+- The product passes a vendor review.
+- It works in air-gapped environments, which are common in banking and
+  healthcare —two sectors that pay well.
+- No outage of our infrastructure can block a client's work.
 
-**El coste que asumimos:**
+**The cost we accept:**
 
-- El código es copiable. Alguien con la voluntad de hacerlo puede extraer las
-  reglas y usarlas sin pagar.
+- The code can be copied. Someone with the will to do it can extract the rules
+  and use them without paying.
 
-Lo aceptamos conscientemente: lo que se vende no es el binario, es la
-**actualización continua** de unas reglas que caducan (ESLint 10 saldrá, `ruff`
-cambiará de opciones) y el soporte. Un cliente que copia el paquete se queda con
-una foto que envejece. La licencia de código elegida (ver ADR 0003) cubre además
-el caso grave, que no es la copia interna sino la reventa.
+We accept it knowingly: what is sold is not the binary, it is the **continuous
+updating** of rules that go stale (ESLint 10 will come out, `ruff` will change
+its options) and the support. A client who copies the package is left with a
+snapshot that ages. The chosen code licence (see ADR 0003) also covers the
+serious case, which is not internal copying but resale.
