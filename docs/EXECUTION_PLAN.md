@@ -1139,643 +1139,651 @@ that is a control (it stays in F0-28, which depends on this decision).
 
 ---
 
-### [ ] F0-21 — Restos del plan y del diagrama de flujo
+### [ ] F0-21 — Leftovers in the plan and the flow diagram
 **Branch:** `docs/f0-plan-leftovers` · **Depends on:** F0-15
 
-**Origen:** revisión de la PR #6, punto 9.
+**Origin:** review of PR #6, point 9.
 
-**Trabajo:** el diagrama del §3.2 sigue diciendo `docs/f2-guia-packs` y
-`main (release)`; F3-5 tiene dos puntos numerados `2.`; la lista de "ya
-entregado" de F0-12 no incluye los controles que se han ido añadiendo, y F0-12
-sigue diciendo que `CLAUDE.md` "ronda las 130 líneas" cuando pasa de 250.
+**Work:** the §3.2 diagram still says `docs/f2-guia-packs` and
+`main (release)`; F3-5 has two points numbered `2.`; the "already delivered"
+list of F0-12 does not include the controls that have been added since, and
+F0-12 still says `CLAUDE.md` "is around 130 lines" when it is over 250.
 
-**Qué se convierte en control mecánico:** extender el control de nombres de rama
-al diagrama del §3.2, que hoy no mira. El recuento de controles de F0-12 se
-deriva de `check-coherence.mjs` en vez de escribirse a mano, que es lo que
-lo deja caducado cada vez que se añade uno. El resto es corrección puntual.
+**What becomes a mechanical control:** extend the branch name control to the
+§3.2 diagram, which it does not look at today. The control count of F0-12 is
+derived from `check-coherence.mjs` instead of being written by hand, which is
+what makes it go stale every time one is added. The rest is a one-off fix.
 
-**Criterios de aceptación:**
-- El diagrama del §3.2 usa nombres de rama que pasan el control, y el control
-  los mira.
-- F3-5 numera sus puntos sin repetir.
-- F0-12 no afirma ningún número —de controles ni de líneas— que el repositorio
-  desmienta.
+**Acceptance criteria:**
+- The §3.2 diagram uses branch names that pass the control, and the control
+  looks at them.
+- F3-5 numbers its points without repeating.
+- F0-12 does not state any number —of controls or of lines— that the repository
+  contradicts.
 
 ---
 
-### [ ] F0-22 — Seguimientos de la revisión de F0-14
+### [ ] F0-22 — Follow-ups from the F0-14 review
 **Branch:** `fix/f0-f014-review-followups` · **Depends on:** F0-15
 
-**Origen:** revisión de la PR #7, punto 11 de F0-15.
+**Origin:** review of PR #7, point 11 of F0-15.
 
-**Trabajo:**
-1. El control de que existe el job `quality` se ejecuta **dentro de ese mismo
-   job**: con `if: false`, `continue-on-error: true` o quitándole los pasos, el
-   control desaparece con él. Debe comprobarse desde otro job, o mejor, que el
-   job sea un check obligatorio (lo es desde F0-13) y verificar que lo sigue
-   siendo leyendo el ruleset.
-2. La comprobación de condiciones `if` no reconoce `- if:` en forma de elemento
-   de lista, operandos invertidos ni `startsWith`, y no mira `e2e.yml`.
-3. La rama por defecto sólo se lee de `origin`: un repo cuyo remoto se llame
-   `upstream` no aporta esa fuente.
-4. Los tests de `packages/*/test/` no pasan por el typecheck: los `tsconfig`
-   sólo incluyen `src/`.
-5. `listBranchNames` quita sólo el primer segmento del nombre de un remoto: un
-   remoto con `/` en el nombre produce nombres de rama erróneos.
-6. Los tests que ejecutan `runApply` imprimen toda la salida del CLI en el log
-   de la CI.
+**Work:**
+1. The control that checks the `quality` job exists runs **inside that same
+   job**: with `if: false`, `continue-on-error: true` or removing its steps,
+   the control disappears with it. It must be checked from another job, or
+   better, the job must be a required check (it has been since F0-13) and the
+   check must verify it still is by reading the ruleset.
+2. The check of `if` conditions does not recognise `- if:` as a list item,
+   inverted operands or `startsWith`, and does not look at `e2e.yml`.
+3. The default branch is only read from `origin`: a repo whose remote is called
+   `upstream` does not provide that source.
+4. The tests in `packages/*/test/` do not go through the typecheck: the
+   `tsconfig` files only include `src/`.
+5. `listBranchNames` strips only the first segment of a remote's name: a remote
+   with `/` in its name produces wrong branch names.
+6. The tests that run `runApply` print the whole CLI output in the CI log.
 
-**Qué se convierte en control mecánico:** los puntos 1 a 5. El 6 es ergonomía,
-no corrección. Un `integration` deducido de un `origin/HEAD` desfasado y escrito
-en `config.yml` **no** es mecanizable —depende de que el equipo lea el fichero—
-y lo resuelve la confirmación del wizard (F4-1).
+**What becomes a mechanical control:** points 1 to 5. Point 6 is ergonomics,
+not correctness. An `integration` inferred from a stale `origin/HEAD` and
+written to `config.yml` is **not** mechanisable —it depends on the team reading
+the file— and the wizard confirmation solves it (F4-1).
 
-**Criterios de aceptación:**
-- Vaciar el job `quality` hace fallar la CI desde otro job.
-- Hay un test por cada uno de los puntos 2 a 5, y falla al revertir su
-  corrección.
+**Acceptance criteria:**
+- Emptying the `quality` job makes CI fail from another job.
+- There is a test for each of points 2 to 5, and it fails when its fix is
+  reverted.
 
 ---
 
-### [ ] F0-23 — Sacar el escaneo del historial completo a su propio workflow
+### [ ] F0-23 — Move the full history scan to its own workflow
 **Branch:** `ci/f0-history-scan-workflow` · **Depends on:** F0-15
 
-**Origen:** revisión de la PR #6, punto 12. Vive en `ci.yml` con una condición,
-así que aparece como *Skipped* en todas las PRs y genera la duda de si algo
-falla. En un workflow que sólo se dispare por calendario y a mano, no
-aparecería. Se ejecutó por primera vez el 2026-09-11: el historial completo
-está limpio.
+**Origin:** review of PR #6, point 12. It lives in `ci.yml` behind a condition,
+so it shows up as *Skipped* on every PR and raises the doubt of whether
+something is failing. In a workflow triggered only by schedule and by hand, it
+would not show up. It ran for the first time on 2026-09-11: the full history is
+clean.
 
-**Qué se convierte en control mecánico:** nada. Es un cambio de estructura sin
-regla nueva que vigilar.
+**What becomes a mechanical control:** nothing. It is a structural change with
+no new rule to watch.
 
-**Criterios de aceptación:**
-- El escaneo vive en su propio workflow, con disparadores `schedule` y
-  `workflow_dispatch`.
-- Ninguna PR muestra un job *Skipped* por esta causa.
+**Acceptance criteria:**
+- The scan lives in its own workflow, with `schedule` and `workflow_dispatch`
+  triggers.
+- No PR shows a *Skipped* job for this reason.
 
 ---
 
-### [x] F0-24 — `rollback` y mensajes fuera de la rama en la que se escribió
+### [x] F0-24 — `rollback` and messages outside the branch it wrote to
 **Branch:** `fix/f0-pr7-review-followups` · **Depends on:** F0-15
 
-**Origen:** puntos 13 y 14 de F0-15, de la tercera y la cuarta revisión previas
-al merge de la PR #7.
+**Origin:** points 13 and 14 of F0-15, from the third and fourth reviews before
+the merge of PR #7.
 
-**Por qué está dividida:** la revisión dejó ocho seguimientos sin relación entre
-sí, y uno de ellos —el consejo `git branch -d`— no se puede hacer hasta que
-F0-20 decida la estrategia de merge, así que la tarea entera quedaba bloqueada
-por su punto más pequeño. Se reparten en F0-24, F0-26, F0-27 y F0-28: una rama
-implementa exactamente una tarea (§3 de `CLAUDE.md`), y una PR de ocho arreglos
-inconexos fuerza justo la revisión gigante que §6 pide evitar. Aquí quedan los
-dos que comparten código: los dos son "`apply` escribió en otra rama y nadie se
-ha enterado".
+**Why it is split:** the review left eight unrelated follow-ups, and one of
+them —the `git branch -d` advice— cannot be done until F0-20 decides the merge
+strategy, so the whole task was blocked by its smallest point. They are spread
+over F0-24, F0-26, F0-27 and F0-28: a branch implements exactly one task (§3 of
+`CLAUDE.md`), and a PR of eight unconnected fixes forces exactly the giant
+review that §6 asks to avoid. The two that share code stay here: both are
+"`apply` wrote to another branch and nobody noticed".
 
-**Trabajo:**
-1. **Prioridad alta.** `rollback` en `Prod` sobrescribe ficheros de `Prod` con
-   un journal de un `apply` que escribió en la rama aislada: el journal guarda
-   la rama de partida, no la escrita, está ignorado por git y sobrevive a los
-   checkouts. Reproducido: devuelve el `package.json` de `Prod` a una versión
-   anterior. Existe también en `develop`. El journal debe guardar la rama en la
-   que se escribió, y `rollback` negarse en cualquier otra.
-2. Tras un fallo de `apply` —un `EACCES`, por ejemplo—, la reversión automática
-   deja HEAD en `chore/setup-ai-governance` y el mensaje dice "el repositorio
-   está intacto". Los ficheros lo están, pero la rama actual ya no es la de
-   partida. El mensaje debe decir en qué rama queda y cómo volver. Lo mismo tras
-   `rollback`.
-Los otros seis seguimientos de esta revisión están en F0-26 (validación y
-detección), F0-27 (el job de mutaciones) y F0-28 (el consejo `git branch -d`).
+**Work:**
+1. **High priority.** `rollback` on `Prod` overwrites `Prod` files with a
+   journal from an `apply` that wrote to the isolated branch: the journal
+   stores the starting branch, not the written one, is ignored by git and
+   survives checkouts. Reproduced: it takes `Prod`'s `package.json` back to an
+   earlier version. It also happens on `develop`. The journal must store the
+   branch it wrote to, and `rollback` must refuse on any other.
+2. After an `apply` failure —an `EACCES`, for example—, the automatic revert
+   leaves HEAD on `chore/setup-ai-governance` and the message says "the
+   repository is intact". The files are, but the current branch is no longer
+   the starting one. The message must say which branch it is left on and how to
+   go back. The same after `rollback`.
+The other six follow-ups of this review are in F0-26 (validation and
+detection), F0-27 (the mutation job) and F0-28 (the `git branch -d` advice).
 
-**Qué se convierte en control mecánico:** un test por punto; el del `rollback`,
-reproduciendo el caso de la revisión.
+**What becomes a mechanical control:** one test per point; the `rollback` one
+reproduces the case from the review.
 
-**Criterios de aceptación:**
-- `rollback` se niega a actuar en una rama distinta de aquella en la que
-  `apply` escribió, y hay un test que reproduce el caso de `Prod`.
-- Hay un test del punto 2, y falla al revertir su corrección.
+**Acceptance criteria:**
+- `rollback` refuses to act on a branch other than the one `apply` wrote to,
+  and there is a test that reproduces the `Prod` case.
+- There is a test for point 2, and it fails when its fix is reverted.
 
 ---
 
-### [ ] F0-25 — Seguimientos de la revisión de la PR #10
+### [ ] F0-25 — Follow-ups from the review of PR #10
 **Branch:** `fix/f0-branch-control-followups` · **Depends on:** F0-15
 
-**Origen:** revisión en contexto nuevo de la PR #10 (F0-15). Los dos
-bloqueantes se corrigieron dentro de la PR; estos son los no bloqueantes, que
-van al plan y no a la rama abierta (§6.4 de `CLAUDE.md`).
+**Origin:** fresh-context review of PR #10 (F0-15). The two blockers were fixed
+inside the PR; these are the non-blocking ones, which go to the plan and not to
+the open branch (§6.4 of `CLAUDE.md`).
 
-**Trabajo:**
-1. **Dos exenciones siguen siendo por nombre, no por autor.** `branchExemption`
-   exime `Prod`/`develop` y `revert-<n>-<rama válida>` sin mirar el autor:
-   cualquiera puede llamar a su rama `revert-1-develop` y saltarse el control
-   entero. El impacto real es bajo —es un control de convención, no de
-   seguridad— pero la puerta trasera que cerró el punto 1 de F0-15 sigue
-   entreabierta con otra forma. Decidir si se ata también al autor (la rama
-   `revert-*` la crea quien pulsa el botón, que es alguien con permiso de
-   escritura) o si se acepta, y dejarlo escrito donde se pueda leer.
-2. **Regresión operativa con Dependabot, sin anotar.** La exención exige ahora
-   `GITHUB_ACTOR` terminado en `[bot]`. Si una persona empuja un commit a una
-   rama `dependabot/...`, el actor es esa persona y la rama falla el formato:
-   CI roja en una rama legítima. Con el prefijo anterior no pasaba. La decisión
-   es deliberada y correcta, pero no está anotada ni en el plan ni en el JSDoc.
-3. **La lista de permitidos del control 8 se corta en el primer punto.** El
-   patrón `/Sí puedes usar los de sólo lectura:([\s\S]*?)\./` trunca la lista
-   en silencio si alguien añade a la §1 un `git log --format=%h` o cualquier
-   comando con un punto. Falla en voz alta, que es la dirección segura, pero el
-   mensaje apunta al sitio equivocado y cuesta de diagnosticar.
+**Work:**
+1. **Two exemptions are still by name, not by author.** `branchExemption`
+   exempts `Prod`/`develop` and `revert-<n>-<valid branch>` without looking at
+   the author: anyone can call their branch `revert-1-develop` and skip the
+   whole control. The real impact is low —it is a convention control, not a
+   security one— but the back door that point 1 of F0-15 closed is still ajar
+   in another shape. Decide whether it is also tied to the author (the
+   `revert-*` branch is created by whoever presses the button, who is someone
+   with write permission) or accepted, and write it down where it can be read.
+2. **Operational regression with Dependabot, not written down.** The exemption
+   now requires a `GITHUB_ACTOR` ending in `[bot]`. If a person pushes a commit
+   to a `dependabot/...` branch, the actor is that person and the branch fails
+   the format: CI red on a legitimate branch. With the previous prefix it did
+   not happen. The decision is deliberate and correct, but it is not written
+   down in the plan or in the JSDoc.
+3. **The allow list of control 8 is cut at the first full stop.** The pattern
+   `/Sí puedes usar los de sólo lectura:([\s\S]*?)\./` silently truncates the
+   list if someone adds to §1 a `git log --format=%h` or any command with a
+   full stop. It fails loudly, which is the safe direction, but the message
+   points to the wrong place and is hard to diagnose.
 
-4. **El control 8 no tiene ni un test automático.** Se ha validado con nueve
-   mutantes a mano, en dos revisiones. Es el argumento textual del punto 4 de
-   F0-15 —lógica en línea dentro de un script que acaba en `process.exit`—
-   aplicado al control que nació de esa misma revisión, y la rama de error
-   nueva (el `git` cuyo subcomando no se sabe leer) tampoco tiene prueba. La
-   solución ya está demostrada en F0-15: sacar el cuerpo a una función pura,
-   en un módulo propio, y cubrirla con los mutantes que hoy se lanzan a mano.
+4. **Control 8 does not have a single automatic test.** It has been validated
+   with nine mutants by hand, in two reviews. It is the textbook argument of
+   point 4 of F0-15 —inline logic inside a script that ends in `process.exit`—
+   applied to the control born from that same review, and the new error path
+   (the `git` whose subcommand cannot be read) has no test either. The solution
+   is already proven in F0-15: move the body to a pure function, in its own
+   module, and cover it with the mutants that are run by hand today.
 
-5. **Cosmético.** El mensaje de la aserción de mínimo dice "1 de las 1 tareas".
+5. **Cosmetic.** The message of the minimum assertion says "1 of the 1 tasks".
 
-**Qué se convierte en control mecánico:** el 1, el 3 y el 4, con tests. El 2 es
-una anotación: ningún control puede ver que una rama de bot ha dejado de serlo
-porque una persona ha empujado a ella.
+**What becomes a mechanical control:** 1, 3 and 4, with tests. Point 2 is a
+note: no control can see that a bot branch has stopped being one because a
+person pushed to it.
 
-**Criterios de aceptación:**
-- La decisión del punto 1 está escrita, y si se ata al autor hay un test que
-  rechaza `revert-1-develop` de un autor sin permiso.
-- El punto 2 está anotado en el JSDoc de `branchExemption`.
-- Añadir a la §1 un comando con un punto no trunca la lista de permitidos, y
-  hay un test que lo fija.
-- El control 8 vive en un módulo propio con tests que cubren, como mínimo, los
-  nueve mutantes ya probados a mano: comando en prosa, en bloque, en tabla,
-  con `-C` y con `-c`, permitido con `=`, subcomando ilegible, `gitlab`/`legit`
-  que no son comandos, y la lista de la §1 recortada.
+**Acceptance criteria:**
+- The decision of point 1 is written down, and if it is tied to the author
+  there is a test that rejects `revert-1-develop` from an author without
+  permission.
+- Point 2 is written down in the JSDoc of `branchExemption`.
+- Adding to §1 a command with a full stop does not truncate the allow list, and
+  there is a test that pins it.
+- Control 8 lives in its own module with tests that cover, at least, the nine
+  mutants already tried by hand: command in prose, in a block, in a table, with
+  `-C` and with `-c`, allowed with `=`, unreadable subcommand, `gitlab`/`legit`
+  which are not commands, and the §1 list cut short.
 
 ---
 
-### [ ] F0-26 — Validación y detección: `doctor`, nombres de rama y `branches`
+### [ ] F0-26 — Validation and detection: `doctor`, branch names and `branches`
 **Branch:** `fix/f0-branch-config-validation` · **Depends on:** F0-15
 
-**Origen:** puntos 3, 4, 5 y 7 de las revisiones de la PR #7, separados de F0-24
-(ver allí el porqué de la división). Los cuatro son el mismo fallo con cuatro
-caras: **la herramienta mira un dato, no lo entiende, y sigue como si nada.**
+**Origin:** points 3, 4, 5 and 7 of the reviews of PR #7, split from F0-24 (see
+there why it was split). The four are the same failure with four faces: **the
+tool looks at a piece of data, does not understand it, and carries on as if
+nothing happened.**
 
-**Trabajo:**
-1. `doctor` da por revisadas todas las PRs con `branches-ignore` o `paths` en
-   `pull_request`, y avisa en falso con `on: pull_request` y
+**Work:**
+1. `doctor` treats every PR as reviewed with `branches-ignore` or `paths` in
+   `pull_request`, and warns falsely with `on: pull_request` and
    `on: [push, pull_request]`.
-2. Con una rama llamada `chore`, `apply` falla tras confirmar con un error crudo
-   de git (`refs/heads/chore' exists`). No escribe nada, pero la comprobación
-   previa no lo detecta.
-3. Un valor no textual en `branches` (`release: 2024`) se descarta sin avisar.
-4. `ciPushBranches` deduplica sin distinguir mayúsculas, y los filtros de GitHub
-   sí distinguen: `integration: prod` y `release: Prod` dejan fuera `Prod`.
+2. With a branch called `chore`, `apply` fails after confirming with a raw git
+   error (`refs/heads/chore' exists`). It writes nothing, but the prior check
+   does not detect it.
+3. A non-text value in `branches` (`release: 2024`) is discarded without a
+   warning.
+4. `ciPushBranches` deduplicates case-insensitively, and GitHub filters are
+   case-sensitive: `integration: prod` and `release: Prod` leave `Prod` out.
 
-**Qué se convierte en control mecánico:** un test por punto.
+**What becomes a mechanical control:** one test per point.
 
-**Criterios de aceptación:**
-- Hay un test por cada uno de los cuatro puntos, y falla al revertir su
-  corrección.
-- Ningún valor de `branches` se descarta en silencio: o se usa, o se avisa.
+**Acceptance criteria:**
+- There is a test for each of the four points, and it fails when its fix is
+  reverted.
+- No value in `branches` is silently discarded: it is either used or warned
+  about.
 
 ---
 
-### [x] F0-27 — Ejecutar `check:mutations` en CI
+### [x] F0-27 — Run `check:mutations` in CI
 **Branch:** `ci/f0-mutation-job` · **Depends on:** F0-15
 
-**Origen:** punto 8 de las revisiones de la PR #7, separado de F0-24 (ver allí
-el porqué de la división). Va solo porque no toca código de producto: es
-infraestructura, y mezclarlo con arreglos de comportamiento obliga a revisar dos
-cosas distintas en la misma PR.
+**Origin:** point 8 of the reviews of PR #7, split from F0-24 (see there why it
+was split). It goes alone because it does not touch product code: it is
+infrastructure, and mixing it with behaviour fixes forces two different things
+to be reviewed in the same PR.
 
-**Trabajo:** `pnpm check:mutations` no se ejecuta en CI, así que todavía no es
-un control: depende de que alguien lo lance. Añadirlo como job, al menos en las
-PRs que tocan `branches.ts`, `context.ts`, `commands.ts` o las plantillas de CI.
-Así deja de ejecutarse dentro de la sesión del asistente, que es lo que más
-tarda (§6.2 de `CLAUDE.md`).
+**Work:** `pnpm check:mutations` does not run in CI, so it is not yet a
+control: it depends on someone launching it. Add it as a job, at least on the
+PRs that touch `branches.ts`, `context.ts`, `commands.ts` or the CI templates.
+That way it stops running inside the assistant's session, which is what takes
+the longest (§6.2 of `CLAUDE.md`).
 
-**Qué se convierte en control mecánico:** el propio job, y uno más que hizo
-falta al montarlo: el filtro `paths:` que decide cuándo corre es una lista
-escrita a mano, y la de mutaciones crece. Si una mutación nueva toca un fichero
-que el filtro no nombra, el job deja de ejecutarse sin ponerse en rojo —no se
-ejecuta, no falla—. `check:coherence` deriva la lista de `check-mutations.mjs`
-y compara (`scripts/mutation-paths.mjs`, con su test).
+**What becomes a mechanical control:** the job itself, and one more that was
+needed when setting it up: the `paths:` filter that decides when it runs is a
+list written by hand, and the mutation list grows. If a new mutation touches a
+file the filter does not name, the job stops running without turning red —it
+does not run, it does not fail—. `check:coherence` derives the list from
+`check-mutations.mjs` and compares (`scripts/mutation-paths.mjs`, with its
+test).
 
-Y un tercero, de la revisión: el script daba "detectada" para cualquier salida
-distinta de 0, y `spawnSync` devuelve `status: null` cuando no puede lanzar el
-proceso o salta el timeout. Un entorno roto —`pnpm` ausente, un `install` a
-medias, un runner sin memoria— producía "30 de 30 detectadas" en verde sin
-ejecutar un test. Ahora el veredicto es explícito (`scripts/mutation-outcome.mjs`,
-con su test) y la batería se ejecuta antes en seco, sin mutar nada.
+And a third, from the review: the script reported "detected" for any exit other
+than 0, and `spawnSync` returns `status: null` when it cannot launch the process
+or the timeout fires. A broken environment —`pnpm` missing, a half-done
+`install`, a runner out of memory— produced "30 of 30 detected" in green without
+running a single test. Now the verdict is explicit
+(`scripts/mutation-outcome.mjs`, with its test) and the battery first runs dry,
+without mutating anything.
 
-**Criterios de aceptación:**
-- `check:mutations` corre en CI y una mutación superviviente pone la PR en rojo.
-- El job va en uno propio, sin `if:` de matriz (napkin: un `if` de matriz
-  desaparece sin fallar).
+**Acceptance criteria:**
+- `check:mutations` runs in CI and a surviving mutation turns the PR red.
+- The job goes in one of its own, with no matrix `if:` (napkin: a matrix `if`
+  disappears without failing).
 
 ---
 
-### [ ] F0-28 — El consejo `git branch -d` tras la estrategia de merge elegida
+### [ ] F0-28 — The `git branch -d` advice after the chosen merge strategy
 **Branch:** `fix/f0-delete-branch-advice` · **Depends on:** F0-20
 
-**Origen:** punto 6 de las revisiones de la PR #7, separado de F0-24 (ver allí
-el porqué de la división). **Es el que bloqueaba la tarea entera:** no se puede
-arreglar hasta que F0-20 decida si se mergea con *squash* o con *merge commit*,
-y tenerlo dentro dejaba los otros siete esperando a una decisión ajena.
+**Origin:** point 6 of the reviews of PR #7, split from F0-24 (see there why it
+was split). **It is the one that blocked the whole task:** it cannot be fixed
+until F0-20 decides whether to merge with *squash* or with a *merge commit*,
+and keeping it inside left the other seven waiting on someone else's decision.
 
-**Trabajo:** el consejo `git branch -d` que imprime `isolatedBranchBlocks` no
-funciona tras un *squash merge*: git no reconoce la rama como integrada y se
-niega a borrarla, así que el mensaje manda al usuario a un comando que falla.
-Ajustarlo a lo que F0-20 decida.
+**Work:** the `git branch -d` advice that `isolatedBranchBlocks` prints does
+not work after a *squash merge*: git does not recognise the branch as merged
+and refuses to delete it, so the message sends the user to a command that
+fails. Adjust it to what F0-20 decides.
 
-**Qué se convierte en control mecánico:** un test del texto del consejo, atado a
-la estrategia escrita en F0-20.
+**What becomes a mechanical control:** a test of the advice text, tied to the
+strategy written down in F0-20.
 
-**Criterios de aceptación:**
-- El comando que imprime la CLI funciona con la estrategia de merge elegida.
-- Hay un test que falla si el consejo vuelve a la forma que no funciona.
+**Acceptance criteria:**
+- The command the CLI prints works with the chosen merge strategy.
+- There is a test that fails if the advice goes back to the form that does not
+  work.
 
 ---
 
-### [x] F0-29 — `apply` no puede prometer un `rollback` que no va a poder hacer
+### [x] F0-29 — `apply` cannot promise a `rollback` it will not be able to do
 **Branch:** `fix/f0-unrevertable-journal` · **Depends on:** F0-24
 
-**Origen:** hallazgo 2 de la revisión en contexto nuevo de la PR #11. **Es una
-regresión que introdujo F0-24**, no un hueco antiguo.
+**Origin:** finding 2 of the fresh-context review of PR #11. **It is a
+regression introduced by F0-24**, not an old gap.
 
-**El síntoma:** con `--no-branch` y HEAD desacoplado, `prepareBranch` sale
-pronto, `apply` escribe sobre el HEAD desacoplado y `writtenOnBranch` queda
-`null`. El guardián de F0-24 se niega siempre, así que ese journal no se puede
-revertir nunca. Antes de F0-24 ese `rollback` funcionaba.
+**The symptom:** with `--no-branch` and a detached HEAD, `prepareBranch` returns
+early, `apply` writes on the detached HEAD and `writtenOnBranch` ends up
+`null`. The F0-24 guard always refuses, so that journal can never be reverted.
+Before F0-24 that `rollback` worked.
 
-**Ya hecho en F0-24, y no es esta tarea:** retirar la promesa falsa. El paso 4
-de la salida de éxito ya no dice "`plumbward rollback` lo deja todo como estaba"
-cuando el journal no se va a poder revertir; lo dice, y remite a git. Eso era
-reparar una mentira que introdujo la propia PR, no diseño.
+**Already done in F0-24, and not this task:** withdraw the false promise. Step 4
+of the success output no longer says "`plumbward rollback` puts everything back
+as it was" when the journal cannot be reverted; it says so, and refers to git.
+That was repairing a lie the PR itself introduced, not design.
 
-**Trabajo:** decidir qué hace `apply` con esa combinación, más allá de no
-mentir. Dos vías: rechazarla antes de escribir, o aceptarla dejando claro el
-coste. Guardar el commit de partida (F0-30) abre una tercera y mejor:
-identificar el sitio por commit en vez de por nombre, con lo que el `rollback`
-vuelve a ser posible con HEAD desacoplado y la regresión desaparece en lugar de
-documentarse.
+**Work:** decide what `apply` does with that combination, beyond not lying. Two
+ways: reject it before writing, or accept it making the cost clear. Storing the
+starting commit (F0-30) opens a third and better one: identify the place by
+commit instead of by name, so that `rollback` becomes possible again with a
+detached HEAD and the regression disappears instead of being documented.
 
-**Qué se convierte en control mecánico:** un test de la decisión que se tome.
-La retirada de la promesa de F0-24 tenía el suyo en `rollback-branch.test.ts`;
-esta tarea lo sustituye, porque la decisión vuelve a hacer cierta la promesa.
+**What becomes a mechanical control:** a test of the decision taken. The
+withdrawal of the promise in F0-24 had its own in `rollback-branch.test.ts`;
+this task replaces it, because the decision makes the promise true again.
 
-**Decisión (tercera vía):** `writtenOnBranch === null` se compara como cualquier
-otro nombre. El journal escrito con HEAD desacoplado se revierte con HEAD
-desacoplado sobre el mismo commit; desde una rama se niega aunque apunte a ese
-commit, y el mensaje manda volver con `git checkout --detach <commit>`. Sólo un
-journal sin rama **y** sin commit —que `apply` no escribe— se sigue negando.
-Descartadas: rechazar la combinación antes de escribir, porque castiga un uso
-legítimo (las CI hacen checkout desacoplado) para proteger lo que el commit ya
-protege; y aceptarla sin `rollback`, porque deja irreversible lo que antes de
-F0-24 se revertía. Escrita en `assertSameBranch` y en `docs/ARCHITECTURE.md`.
+**Decision (third way):** `writtenOnBranch === null` is compared like any other
+name. The journal written with a detached HEAD is reverted with a detached HEAD
+on the same commit; from a branch it refuses even if the branch points to that
+commit, and the message says to go back with `git checkout --detach <commit>`.
+Only a journal with no branch **and** no commit —which `apply` does not write—
+is still refused. Discarded: rejecting the combination before writing, because
+it punishes a legitimate use (CI runs check out detached) to protect what the
+commit already protects; and accepting it without `rollback`, because it makes
+irreversible what was reverted before F0-24. Written in `assertSameBranch` and
+in `docs/ARCHITECTURE.md`.
 
-**Criterios de aceptación:**
-- La decisión está escrita, con la alternativa descartada y el porqué.
-- `apply --no-branch` con HEAD desacoplado hace lo que esa decisión diga, y hay
-  un test que lo fija.
+**Acceptance criteria:**
+- The decision is written down, with the discarded alternative and why.
+- `apply --no-branch` with a detached HEAD does what that decision says, and
+  there is a test that pins it.
 
 ---
 
-### [x] F0-30 — El journal identifica el sitio por commit, no sólo por nombre
+### [x] F0-30 — The journal identifies the place by commit, not only by name
 **Branch:** `feat/f0-journal-commit-identity` · **Depends on:** F0-24
 
-**Origen:** hallazgos 3 y 4 de la revisión en contexto nuevo de la PR #11.
+**Origin:** findings 3 and 4 of the fresh-context review of PR #11.
 
-**Por qué importa:** F0-24 compara **nombres de rama**, y `revertEntries` escribe
-a ciegas en cuanto el nombre coincide. Una rama borrada y recreada con el mismo
-nombre sobre otro commit, o trabajo hecho en la rama aislada después del `apply`,
-pasan el guardián y pierden datos igual. El nombre dice dónde estás, no si es el
-mismo sitio.
+**Why it matters:** F0-24 compares **branch names**, and `revertEntries` writes
+blindly as soon as the name matches. A branch deleted and recreated with the
+same name on another commit, or work done on the isolated branch after the
+`apply`, pass the guard and lose data all the same. The name says where you
+are, not whether it is the same place.
 
-**Trabajo:**
-1. Guardar en el journal el commit sobre el que se escribió. `readHead` ya lo
-   devuelve; hoy se tira.
-2. `rollback` lo compara además del nombre, y se niega si el sitio ha cambiado.
-3. Guardar también el commit de partida. Hoy, si se empezó con HEAD desacoplado,
-   el aviso dice `git checkout <commit>` y deja al usuario rellenar un hueco que
-   no puede rellenar: el commit se conoce en `runApply` (`headBefore.commit`) y
-   no se guarda.
+**Work:**
+1. Store in the journal the commit it wrote on. `readHead` already returns it;
+   today it is thrown away.
+2. `rollback` compares it as well as the name, and refuses if the place has
+   changed.
+3. Also store the starting commit. Today, if it started with a detached HEAD,
+   the notice says `git checkout <commit>` and leaves the user to fill in a gap
+   they cannot fill: the commit is known in `runApply` (`headBefore.commit`)
+   and is not stored.
 
-**Qué se convierte en control mecánico:** un test por punto; el del 2, borrando
-y recreando la rama sobre otro commit.
+**What becomes a mechanical control:** one test per point; the one for point 2
+deletes and recreates the branch on another commit.
 
-**Criterios de aceptación:**
-- `rollback` se niega en una rama del mismo nombre creada sobre otro commit, y
-  hay un test que lo reproduce.
-- El aviso de vuelta nombra el commit de partida en lugar de `<commit>`.
+**Acceptance criteria:**
+- `rollback` refuses on a branch with the same name created on another commit,
+  and there is a test that reproduces it.
+- The notice to go back names the starting commit instead of `<commit>`.
 
 ---
 
-### [ ] F0-31 — Anotar el contrato de `readJournal`
+### [ ] F0-31 — Write down the `readJournal` contract
 **Branch:** `docs/f0-read-journal-contract` · **Depends on:** F0-24
 
-**Origen:** hallazgo 5 de la revisión en contexto nuevo de la PR #11.
+**Origin:** finding 5 of the fresh-context review of PR #11.
 
-**Trabajo:** `readJournal` se exporta en `packages/core/src/index.ts` y ahora
-lanza `OutdatedJournalError` donde antes devolvía el journal. La dirección es la
-segura, pero es un cambio de contrato de API pública. Hoy el único consumidor es
-`rollbackLastApply`; anotarlo en el JSDoc antes de que haya otro.
+**Work:** `readJournal` is exported in `packages/core/src/index.ts` and now
+throws `OutdatedJournalError` where it used to return the journal. The
+direction is the safe one, but it is a change to a public API contract. Today
+the only consumer is `rollbackLastApply`; write it down in the JSDoc before
+there is another.
 
-**Qué se convierte en control mecánico:** nada por sí mismo. Ningún control
-puede ver que un consumidor futuro esperaba el contrato viejo; la defensa es
-que esté escrito donde se lee.
+**What becomes a mechanical control:** nothing by itself. No control can see
+that a future consumer expected the old contract; the defence is that it is
+written where it is read.
 
 ---
 
-### [ ] F0-32 — Seguimientos de la revisión de la PR de F0-27
+### [ ] F0-32 — Follow-ups from the review of the F0-27 PR
 **Branch:** `fix/f0-mutation-control-followups` · **Depends on:** F0-27
 
-**Origen:** revisión en contexto nuevo de la PR de F0-27. Los tres bloqueantes
-—constantes con dígito invisibles para el control, veredicto verde sin ejecutar
-un test, y el filtro leído del bloque `paths:` equivocado— se corrigieron dentro
-de la PR. Estos son los no bloqueantes (§6.4 de `CLAUDE.md`).
+**Origin:** fresh-context review of the F0-27 PR. The three blockers —constants
+with a digit invisible to the control, a green verdict without running a test,
+and the filter read from the wrong `paths:` block— were fixed inside the PR.
+These are the non-blocking ones (§6.4 of `CLAUDE.md`).
 
-Todos comparten una forma: el control de mutaciones mide con parsers propios
-—expresiones regulares sobre YAML y sobre JavaScript— y cada hueco del parser
-es un verde que no significa nada.
+They all share one shape: the mutation control measures with its own parsers
+—regular expressions over YAML and over JavaScript— and every gap in the parser
+is a green that means nothing.
 
-**Trabajo:**
-1. **Prioridad alta.** El control prohíbe la salida de emergencia que el propio
-   workflow documenta: `mutations.yml` avisa de que, si el job entra en el
-   ruleset, hay que quitar el filtro `paths:`; sin filtro, `workflowPaths`
-   devuelve `[]` y `check:coherence` se pone en rojo con quince ficheros sin
-   cubrir. Un workflow sin filtro corre siempre y es estrictamente más seguro:
-   hay que distinguir "no hay filtro" de "el filtro se deja ficheros fuera".
-2. Dos mutantes sobreviven a `scripts/mutation-paths.test.mjs`: quitar
-   `if (sangria(line) <= indent) break` y cambiar `if (!entrada) break` por
-   `continue`. En ambos casos el test pasa porque otro camino corta la lista
-   igual. La diferencia entre truncar la lista y saltarse una entrada mal
-   formada es perder una ruta o perderlas todas.
-3. El `readdirSync` del directorio de workflows cayó dentro del `try` que
-   diagnostica fallos de red: si `.github/workflows` no se puede leer, el
-   control 4 entero se desactiva imprimiendo "no se han podido listar las ramas
-   remotas", que es falso.
-4. `mutationInputs` lee `TESTS` con `/const TESTS = \[([\s\S]*?)\]/`: una ruta
-   comentada dentro del array cuenta como fichero —exige en el filtro algo que
-   ya no se ejecuta, falso rojo— y un `]` dentro de un comentario corta el
-   array y pierde las rutas siguientes en silencio —falso verde—.
-5. En el filtro del workflow, una entrada con comillas dobles se devuelve con
-   las comillas dentro, y un comentario al final de la línea corta la lista
-   ahí. Ambos fallan hacia rojo, pero acusan al fichero equivocado.
-6. El control 1b (`if: matrix.node`) sigue mirando sólo `ci.yml`, mientras el
-   control 4 pasó a recorrer el directorio en F0-27. Un workflow futuro con
-   matriz no tendría ese control. Hoy no duele: `mutations.yml` no tiene matriz.
+**Work:**
+1. **High priority.** The control forbids the emergency exit that the workflow
+   itself documents: `mutations.yml` warns that, if the job enters the ruleset,
+   the `paths:` filter has to be removed; with no filter, `workflowPaths`
+   returns `[]` and `check:coherence` turns red with fifteen files not covered.
+   A workflow with no filter always runs and is strictly safer: "there is no
+   filter" has to be told apart from "the filter leaves files out".
+2. Two mutants survive `scripts/mutation-paths.test.mjs`: removing
+   `if (sangria(line) <= indent) break` and changing `if (!entrada) break` to
+   `continue`. In both cases the test passes because another path cuts the list
+   all the same. The difference between truncating the list and skipping a
+   malformed entry is losing one path or losing all of them.
+3. The `readdirSync` of the workflows directory ended up inside the `try` that
+   diagnoses network failures: if `.github/workflows` cannot be read, the whole
+   of control 4 is disabled while printing "the remote branches could not be
+   listed", which is false.
+4. `mutationInputs` reads `TESTS` with `/const TESTS = \[([\s\S]*?)\]/`: a
+   commented-out path inside the array counts as a file —it demands in the
+   filter something that no longer runs, a false red— and a `]` inside a comment
+   cuts the array and silently loses the paths after it —a false green—.
+5. In the workflow filter, an entry in double quotes is returned with the
+   quotes inside, and a comment at the end of the line cuts the list there.
+   Both fail towards red, but they blame the wrong file.
+6. Control 1b (`if: matrix.node`) still looks only at `ci.yml`, while control 4
+   started walking the directory in F0-27. A future workflow with a matrix
+   would not have that control. It does not hurt today: `mutations.yml` has no
+   matrix.
 
-**No mecanizable, y por eso se escribe aquí:** el filtro cubre los ficheros que
-se mutan, no todos los que pueden hacer sobrevivir una mutación. Las `TESTS`
-importan producción que no está en el filtro —`packages/core/src/`,
-`packages/cli/src/apply.ts`—, así que un cambio ahí puede dejar una mutación
-viva sin que el job llegue a ejecutarse. Cumple lo que F0-27 pide —"al menos"
-esas PRs—, pero el control derivado da una impresión de completitud que no
-tiene. Cerrarlo de verdad exige el grafo de importaciones, no una lista.
+**Not mechanisable, and that is why it is written here:** the filter covers the
+files that are mutated, not all the ones that can make a mutation survive. The
+`TESTS` import production code that is not in the filter
+—`packages/core/src/`, `packages/cli/src/apply.ts`—, so a change there can leave
+a mutation alive without the job ever running. It meets what F0-27 asks —"at
+least" those PRs—, but the derived control gives an impression of completeness
+it does not have. Really closing it requires the import graph, not a list.
 
-**Qué se convierte en control mecánico:** los puntos 1 a 6, cada uno con su
-test. El párrafo anterior, no: queda escrito donde se lee.
+**What becomes a mechanical control:** points 1 to 6, each with its test. The
+previous paragraph, no: it stays written where it is read.
 
-**Criterios de aceptación:**
-- Quitar el filtro `paths:` de `mutations.yml` deja `check:coherence` en verde.
-- Los dos mutantes del punto 2 mueren: `pnpm check:mutations` no es el control
-  de este fichero, así que se comprueban a mano mutando y ejecutando.
-- Hay un test por cada uno de los puntos 3 a 6, y falla al revertir su
-  corrección.
+**Acceptance criteria:**
+- Removing the `paths:` filter from `mutations.yml` leaves `check:coherence`
+  green.
+- The two mutants of point 2 die: `pnpm check:mutations` is not the control of
+  this file, so they are checked by hand by mutating and running.
+- There is a test for each of points 3 to 6, and it fails when its fix is
+  reverted.
 
-**Criterios de aceptación:**
-- El JSDoc de `readJournal` dice qué lanza y en qué casos.
+**Acceptance criteria:**
+- The JSDoc of `readJournal` says what it throws and in which cases.
 
 ---
 
-### [ ] F0-33 — El aviso sin ningún commit describe un estado imposible
+### [ ] F0-33 — The notice with no commit at all describes an impossible state
 **Branch:** `fix/f0-unreachable-notice-branch` · **Depends on:** F0-30
 
-**Origen:** hallazgo 3 de la revisión en contexto nuevo de la PR de F0-30.
+**Origin:** finding 3 of the fresh-context review of the F0-30 PR.
 
-**Trabajo:** `returnToCommit` tiene una rama para `startedOnCommit === null` que
-no se puede alcanzar desde la CLI: `startedOnBranch === null` significa HEAD
-desacoplado, y desacoplar exige que exista un commit; en un repositorio sin
-commits el escáner devuelve el nombre de la rama no nacida, no `null`. Los dos
-sitios de llamada derivan rama y commit de la misma lectura de HEAD, así que el
-par `(null, null)` no se produce. Sólo existe en un test que lo construye a
-mano. Decidir entre hacerla imposible por tipos o justificar por qué se queda.
+**Work:** `returnToCommit` has a branch for `startedOnCommit === null` that
+cannot be reached from the CLI: `startedOnBranch === null` means a detached
+HEAD, and detaching requires a commit to exist; in a repository with no commits
+the scanner returns the name of the unborn branch, not `null`. The two call
+sites derive branch and commit from the same read of HEAD, so the pair
+`(null, null)` does not happen. It only exists in a test that builds it by hand.
+Decide between making it impossible through types or justifying why it stays.
 
-**Qué se convierte en control mecánico:** si se retira, su test desaparece con
-ella; si se queda, un test que la provoque por el camino real.
+**What becomes a mechanical control:** if it is removed, its test goes with it;
+if it stays, a test that triggers it through the real path.
 
-**Criterios de aceptación:**
-- No queda código vivo que sólo pueda ejecutar un test.
+**Acceptance criteria:**
+- No live code remains that only a test can run.
 
 ---
 
-### [ ] F0-34 — El e2e revierte con un commit que el repositorio no tiene
+### [ ] F0-34 — The e2e reverts with a commit the repository does not have
 **Branch:** `test/f0-e2e-journal-commit` · **Depends on:** F0-30
 
-**Origen:** hallazgo 4 de la revisión en contexto nuevo de la PR de F0-30.
+**Origin:** finding 4 of the fresh-context review of the F0-30 PR.
 
-**Trabajo:** el e2e escribe el journal con `writtenOnCommit: null` y revierte con
-`currentCommit: null` sobre un repositorio que sí tiene commits: una combinación
-que en producción no ocurre. `assertSameCommit` pasa por `null === null` y no
-ejercita nada. Es el punto 3 del napkin —datos que hacen la mutación
-invisible— en el único test que dice cubrir el ciclo completo.
+**Work:** the e2e writes the journal with `writtenOnCommit: null` and reverts
+with `currentCommit: null` on a repository that does have commits: a
+combination that does not happen in production. `assertSameCommit` passes
+through `null === null` and exercises nothing. It is napkin point 3 —data that
+makes the mutation invisible— in the only test that claims to cover the full
+cycle.
 
-**Qué se convierte en control mecánico:** pasar el commit real del repositorio
-de pruebas y comprobar que mutar la comprobación del commit mata el test.
+**What becomes a mechanical control:** pass the real commit of the test
+repository and check that mutating the commit check kills the test.
 
-**Criterios de aceptación:**
-- El e2e usa el commit real en `applyPlan` y en `rollbackLastApply`.
-- Quitar `assertSameCommit` pone el e2e en rojo.
+**Acceptance criteria:**
+- The e2e uses the real commit in `applyPlan` and in `rollbackLastApply`.
+- Removing `assertSameCommit` turns the e2e red.
 
 ---
 
-### [ ] F0-35 — Anotar los cambios de contrato del journal v3
+### [ ] F0-35 — Write down the contract changes of journal v3
 **Branch:** `docs/f0-journal-v3-contract` · **Depends on:** F0-30, F0-31
 
-**Origen:** hallazgo 5 de la revisión en contexto nuevo de la PR de F0-30.
+**Origin:** finding 5 of the fresh-context review of the F0-30 PR.
 
-**Trabajo:** F0-30 cambió tres veces la superficie pública exportada en
-`packages/core/src/index.ts`: `ApplyOptions.writtenOnCommit` y
-`RollbackOptions.currentCommit` son campos requeridos nuevos, y `Journal.version`
-pasó de 2 a 3, con lo que `readJournal` lanza `OutdatedJournalError` donde antes
-devolvía el journal de un v2. F0-31 cubre sólo el JSDoc de `readJournal`.
-Anotarlo entero, con la política de versiones del journal.
+**Work:** F0-30 changed the public surface exported in
+`packages/core/src/index.ts` three times: `ApplyOptions.writtenOnCommit` and
+`RollbackOptions.currentCommit` are new required fields, and `Journal.version`
+went from 2 to 3, so `readJournal` throws `OutdatedJournalError` where it used
+to return a v2 journal. F0-31 only covers the JSDoc of `readJournal`. Write all
+of it down, with the journal versioning policy.
 
-**Qué se convierte en control mecánico:** nada por sí mismo, igual que en F0-31:
-ningún control ve qué esperaba un consumidor externo. La defensa es que esté
-escrito donde se lee.
+**What becomes a mechanical control:** nothing by itself, just as in F0-31: no
+control sees what an external consumer expected. The defence is that it is
+written where it is read.
 
-**Criterios de aceptación:**
-- El JSDoc de los tipos exportados dice qué campos son nuevos y desde cuándo.
+**Acceptance criteria:**
+- The JSDoc of the exported types says which fields are new and since when.
 
 ---
 
-### [ ] F0-36 — La mutación del commit nombra otra cosa de la que muta
+### [ ] F0-36 — The commit mutation is named after something other than what it mutates
 **Branch:** `fix/f0-mutation-name-collision` · **Depends on:** F0-30
 
-**Origen:** hallazgo 6 de la revisión en contexto nuevo de la PR de F0-30.
+**Origin:** finding 6 of the fresh-context review of the F0-30 PR.
 
-**Trabajo:** la entrada `Comparar sólo la rama, no el commit` de
-`scripts/check-mutations.mjs` es anterior a F0-30 y muta `headMoved`, no
-`assertSameCommit`. Quien lea la lista concluirá que el guardián del journal
-está cubierto por la batería, y no lo está: la batería no muta
-`packages/core/`. Renombrarla, y decidir si el guardián del journal entra en la
-batería —lo que arrastra el filtro `paths:` de `mutations.yml`— o se deja fuera
-diciéndolo.
+**Work:** the `Comparar sólo la rama, no el commit` entry of
+`scripts/check-mutations.mjs` predates F0-30 and mutates `headMoved`, not
+`assertSameCommit`. Whoever reads the list will conclude that the journal guard
+is covered by the battery, and it is not: the battery does not mutate
+`packages/core/`. Rename it, and decide whether the journal guard enters the
+battery —which drags along the `paths:` filter of `mutations.yml`— or is left
+out saying so.
 
-**Qué se convierte en control mecánico:** la propia entrada, si se añade.
+**What becomes a mechanical control:** the entry itself, if it is added.
 
-**Criterios de aceptación:**
-- Ningún nombre de mutación describe una pieza distinta de la que muta.
+**Acceptance criteria:**
+- No mutation name describes a piece other than the one it mutates.
 
 ---
 
-### [ ] F0-37 — Un journal v2 pendiente se queda sin `rollback`
+### [ ] F0-37 — A pending v2 journal is left without `rollback`
 **Branch:** `fix/f0-v2-journal-remedy` · **Depends on:** F0-30
 
-**Origen:** hallazgo 7 de la revisión en contexto nuevo de la PR de F0-30.
+**Origin:** finding 7 of the fresh-context review of the F0-30 PR.
 
-**Trabajo:** quien actualice la CLI con un `apply` v2 sin revertir pierde
-`plumbward rollback`: `readJournal` lanza `OutdatedJournalError`. La dirección
-es la segura y está documentada, pero es una retirada de capacidad que para un
-v2 aún era posible por nombre de rama, que es el nivel que F0-24 dio por bueno.
-Y el remedio que sugiere el error, `git checkout -- .`, no borra los ficheros
-nuevos sin seguimiento que creó el `apply` —defecto anterior, que ahora alcanza
-a muchos más casos—. Decidir qué se ofrece a esos journals y arreglar el
-remedio.
+**Work:** whoever updates the CLI with an unreverted v2 `apply` loses
+`plumbward rollback`: `readJournal` throws `OutdatedJournalError`. The direction
+is the safe one and it is documented, but it withdraws a capability that for a
+v2 was still possible by branch name, which is the level F0-24 accepted. And the
+remedy the error suggests, `git checkout -- .`, does not delete the new
+untracked files the `apply` created —an earlier defect, which now reaches many
+more cases—. Decide what is offered to those journals and fix the remedy.
 
-**Qué se convierte en control mecánico:** un test del remedio que deje el árbol
-limpio de verdad, comprobado con `git status --porcelain`.
+**What becomes a mechanical control:** a test of the remedy that leaves the
+tree really clean, checked with `git status --porcelain`.
 
-**Criterios de aceptación:**
-- El texto del error lleva a un árbol limpio, ficheros sin seguimiento
-  incluidos.
-- La decisión sobre los journals v2 está escrita, con la alternativa
-  descartada.
+**Acceptance criteria:**
+- The error text leads to a clean tree, untracked files included.
+- The decision about v2 journals is written down, with the discarded
+  alternative.
 
 ---
 
-### [ ] F0-38 — `rollback` no comprueba que los ficheros sigan siendo los que dejó `apply`
+### [ ] F0-38 — `rollback` does not check that the files are still the ones `apply` left
 **Branch:** `fix/f0-rollback-content-check` · **Depends on:** F0-29
 
-**Origen:** hallazgos 1 y 2 de la revisión en contexto nuevo de la PR #14
-(F0-29). Son anteriores a F0-29: pasan igual con journals escritos en una rama.
+**Origin:** findings 1 and 2 of the fresh-context review of PR #14 (F0-29).
+They predate F0-29: they happen all the same with journals written on a branch.
 
-**El síntoma:** la rama y el commit dicen dónde se escribió, no si el árbol sigue
-como lo dejó `apply`. Dos casos verificados con git real:
-- Tras `apply`, `git switch -c rescue` y una edición sin commitear. `rollback`
-  se niega y manda volver al sitio con `git checkout`; el checkout arrastra la
-  edición, y el `rollback` de allí la sobrescribe.
-- Tras `apply`, `git switch -c work` y commit de la gobernanza. Al volver al
-  sitio, `rollback` imprime "Revertidas N operaciones" y el árbol queda limpio,
-  pero la gobernanza sigue en `work`: no ha revertido nada.
+**The symptom:** the branch and the commit say where it was written, not whether
+the tree is still as `apply` left it. Two cases verified with real git:
+- After `apply`, `git switch -c rescue` and an uncommitted edit. `rollback`
+  refuses and says to go back to the place with `git checkout`; the checkout
+  carries the edit along, and the `rollback` there overwrites it.
+- After `apply`, `git switch -c work` and a commit of the governance files. On
+  going back to the place, `rollback` prints "Reverted N operations" and the tree
+  is left clean, but the governance files are still on `work`: it has reverted
+  nothing.
 
-**Trabajo:** guardar en el journal un hash de lo que `apply` dejó en cada
-fichero y negarse, sin escribir, si el contenido actual no coincide. Decidir
-también el orden de las comprobaciones, para que el mensaje hable del motivo
-real y no mande a un sitio desde el que `rollback` tampoco es correcto. Cambia
-el formato del journal: ver F0-35 y F0-37.
+**Work:** store in the journal a hash of what `apply` left in each file and
+refuse, without writing, if the current content does not match. Also decide the
+order of the checks, so the message talks about the real reason and does not
+send the user to a place from which `rollback` is not correct either. It changes
+the journal format: see F0-35 and F0-37.
 
-**Qué se convierte en control mecánico:** los dos escenarios anteriores como
-tests con git real, comprobando el contenido de los ficheros después.
+**What becomes a mechanical control:** the two scenarios above as tests with
+real git, checking the content of the files afterwards.
 
-**Criterios de aceptación:**
-- `rollback` no sobrescribe ningún fichero cuyo contenido difiera del que dejó
-  `apply`, y en ese caso conserva el journal.
-- Seguir el consejo de un mensaje de `rollback` nunca lleva a perder trabajo ni
-  a un "Revertidas" que no revierte nada.
+**Acceptance criteria:**
+- `rollback` does not overwrite any file whose content differs from what
+  `apply` left, and in that case it keeps the journal.
+- Following the advice of a `rollback` message never leads to lost work nor to
+  a "Reverted" that reverts nothing.
 
 ---
 
-### [ ] F0-39 — Mensajes de `rollback` sin test y dos consejos de vuelta distintos
+### [ ] F0-39 — `rollback` messages without tests and two different go-back advices
 **Branch:** `fix/f0-rollback-message-coverage` · **Depends on:** F0-29
 
-**Origen:** hallazgos 4 y 5 de la revisión en contexto nuevo de la PR #14
-(F0-29).
+**Origin:** findings 4 and 5 of the fresh-context review of PR #14 (F0-29).
 
-**Trabajo:**
-- Ningún test fija el texto de `assertSameCommit` para un journal escrito con
-  HEAD desacoplado ("HEAD sigue desacoplado…"): intercambiar los dos textos de
-  `cause` pasaría la batería.
-- `branch-notice.ts` aconseja `git checkout <sha>` y `rollback.ts`,
-  `git checkout --detach <sha>`. Hacen lo mismo; elegir una forma.
+**Work:**
+- No test pins the text of `assertSameCommit` for a journal written with a
+  detached HEAD ("HEAD is still detached…"): swapping the two `cause` texts
+  would pass the battery.
+- `branch-notice.ts` advises `git checkout <sha>` and `rollback.ts`,
+  `git checkout --detach <sha>`. They do the same; choose one form.
 
-**Qué se convierte en control mecánico:** un test del mensaje con journal
-desacoplado y otro que fije la forma elegida en los dos sitios.
+**What becomes a mechanical control:** a test of the message with a detached
+journal and another that pins the chosen form in both places.
 
-**Criterios de aceptación:**
-- Intercambiar los dos textos de `cause` en `assertSameCommit` hace fallar un
-  test.
-- Los dos mensajes aconsejan volver a un commit con la misma orden.
+**Acceptance criteria:**
+- Swapping the two `cause` texts in `assertSameCommit` makes a test fail.
+- Both messages advise going back to a commit with the same command.
 
 ---
 
-### [x] F0-40 — Una cola de ejecución que decide la siguiente tarea
+### [x] F0-40 — An execution queue that decides the next task
 **Branch:** `chore/f0-execution-queue` · **Depends on:** nothing
 
-**Origen:** decisión del desarrollador del 2026-09-13. Elegir la siguiente tarea
-dependía de que cada sesión la propusiera y alguien la confirmase: cada vez un
-coste, y dos sesiones podían llegar a respuestas distintas.
+**Origin:** developer decision of 2026-09-13. Choosing the next task depended on
+each session proposing it and someone confirming it: a cost every time, and two
+sessions could reach different answers.
 
-**Trabajo:** una cola ordenada de todas las tareas pendientes en el §5, con los
-criterios del orden escritos. Quien pregunte por el estado del plan o por la
-siguiente tarea obtiene la misma respuesta: la primera de la cola. Cambiar una
-prioridad es mover una entrada, con su motivo. `CLAUDE.md` §0 lo dice.
+**Work:** an ordered queue of all pending tasks in §5, with the ordering
+criteria written down. Whoever asks about the state of the plan or the next task
+gets the same answer: the first one in the queue. Changing a priority is moving
+an entry, with its reason. `CLAUDE.md` §0 says so.
 
-**Qué se convierte en control mecánico:** `scripts/execution-queue.mjs`, conectado
-a `check:coherence` y cubierto por `scripts/execution-queue.test.mjs`. Falla si
-una tarea pendiente no está en la cola, si una completada sigue, si hay
-duplicados o identificadores inexistentes, o si una tarea va antes que una
-dependencia pendiente, incluidas las de "Fase N completa".
+**What becomes a mechanical control:** `scripts/execution-queue.mjs`, wired into
+`check:coherence` and covered by `scripts/execution-queue.test.mjs`. It fails if
+a pending task is not in the queue, if a completed one is still there, if there
+are duplicates or non-existent identifiers, or if a task comes before a pending
+dependency, including those of "Phase N complete".
 
-**No mecanizable:** que el orden sea el mejor. El control garantiza que es
-completo y posible, no que sea sensato; eso lo defienden los criterios escritos
-en el §5 y la revisión.
+**Not mechanisable:** that the order is the best one. The control guarantees it
+is complete and possible, not that it is sensible; that is defended by the
+criteria written in §5 and by the review.
 
-**Criterios de aceptación:**
-- La primera entrada de la cola es la siguiente tarea, sin que haga falta
-  proponerla.
-- Crear una tarea sin colocarla, o cerrar una sin sacarla, pone la CI en rojo.
+**Acceptance criteria:**
+- The first entry in the queue is the next task, with no need to propose it.
+- Creating a task without placing it, or closing one without removing it, turns
+  CI red.
 
 ---
 
-### [x] F0-41 — El inglés, idioma principal: el control y las instrucciones del asistente
+### [x] F0-41 — English as the main language: the control and the assistant instructions
 **Branch:** `chore/f0-english-only-control` · **Depends on:** F0-40
 
-**Origen:** decisión del desarrollador del 2026-09-13. Todo el repositorio pasa a
-inglés: instrucciones del asistente, plan, documentación, comentarios, tests y lo
-que el producto genera por defecto. Es la convención de la industria, la que
-siguen los equipos de nuestros clientes, y ahorra tokens: cada sesión lee
-`CLAUDE.md`, el runbook y partes del plan, y el español gasta más tokens para la
-misma información. Amplía F0-16 y F0-18, que sólo cubrían nombres y
-documentación, y abre F0-42 a F0-45.
+**Origin:** developer decision of 2026-09-13. The whole repository moves to
+English: assistant instructions, plan, documentation, comments, tests and what
+the product generates by default. It is the industry convention, the one our
+clients' teams follow, and it saves tokens: every session reads `CLAUDE.md`, the
+runbook and parts of the plan, and Spanish spends more tokens for the same
+information. It widens F0-16 and F0-18, which only covered names and
+documentation, and opens F0-42 to F0-45.
 
-**Trabajo:**
-1. **Primero el control, para que no entre español nuevo.** Una comprobación en
-   `check:coherence` —lógica pura en `scripts/`, con su test— que detecta español
-   en los ficheros versionados (comentarios, cadenas, Markdown, YAML), reutilizando
-   las palabras inequívocas de `branch-names.mjs` más los caracteres propios del
-   español (`ñ`, `¿`, `¡`, vocales con tilde). Con dos listas explícitas:
-   - **Pendientes de traducir:** los ficheros que hoy tienen español. Cada tarea
-     del bloque saca los suyos. Un fichero fuera de la lista con español falla, y
-     uno de la lista que ya no lo tiene también, para que la lista no caduque.
-   - **Excepciones permanentes, cada una con su motivo:** lo que debe seguir en
-     español, como la variante `es` de lo que se genera para el cliente o el
-     corpus de palabras de `branch-names`.
-2. Traducir `CLAUDE.md`, `.claude/napkin.md` y `.github/PULL_REQUEST_TEMPLATE.md`,
-   y revertir en ellos las reglas que fijan el español para la prosa y los
-   comentarios. Son los que se leen en todas las sesiones.
+**Work:**
+1. **The control first, so no new Spanish gets in.** A check in
+   `check:coherence` —pure logic in `scripts/`, with its test— that detects
+   Spanish in versioned files (comments, strings, Markdown, YAML), reusing the
+   unambiguous words of `branch-names.mjs` plus the characters specific to
+   Spanish (`ñ`, `¿`, `¡`, accented vowels). With two explicit lists:
+   - **Pending translation:** the files that have Spanish today. Each task of the
+     block removes its own. A file outside the list with Spanish fails, and so
+     does one on the list that no longer has any, so the list does not go stale.
+   - **Permanent exceptions, each with its reason:** what must stay in Spanish,
+     such as the `es` variant of what is generated for the client or the word
+     corpus of `branch-names`.
+2. Translate `CLAUDE.md`, `.claude/napkin.md` and
+   `.github/PULL_REQUEST_TEMPLATE.md`, and revert in them the rules that fix
+   Spanish for prose and comments. They are the ones read in every session.
 
-**Qué se convierte en control mecánico:** la comprobación del punto 1.
+**What becomes a mechanical control:** the check of point 1.
 
-**No mecanizable:** la fidelidad de la traducción. Un texto en inglés que dice otra
-cosa que el original pasa el control; la defensa es la revisión en contexto nuevo
-de cada PR de traducción, comparando con el original.
+**Not mechanisable:** the fidelity of the translation. An English text that says
+something other than the original passes the control; the defence is the
+fresh-context review of each translation PR, comparing with the original.
 
-**Criterios de aceptación:**
-- Añadir un comentario o un párrafo en español a un fichero que no está en ninguna
-  lista pone `check:coherence` en rojo.
-- Un fichero de la lista de pendientes que ya está en inglés también lo pone en rojo.
-- `CLAUDE.md`, el runbook y la plantilla de PR están en inglés y fijan el inglés
-  como idioma de todo el repositorio.
+**Acceptance criteria:**
+- Adding a Spanish comment or paragraph to a file that is on neither list turns
+  `check:coherence` red.
+- A file on the pending list that is already in English also turns it red.
+- `CLAUDE.md`, the runbook and the PR template are in English and set English as
+  the language of the whole repository.
 
 ---
 
@@ -1803,7 +1811,7 @@ is read the most: every task starts by reading its own.
   (`**Branch:**`, `**Depends on:**`, `**Blocks:**`, `Phase N complete`,
   `<!-- queue:start -->`); header, §1 to §4, this task, and §5 to §7.
 - [x] Batch 2: Phase 0, first half (F0-1 to F0-20).
-- [ ] Batch 3: Phase 0, second half (F0-21 to F0-46).
+- [x] Batch 3: Phase 0, second half (F0-21 to F0-46).
 - [ ] Batch 4: Phases 1 to 6, and the plan out of the pending list.
 
 **What becomes a mechanical control:** the F0-41 one over the plan, and the
@@ -1817,64 +1825,65 @@ did not know read as "no dependencies", and a broken order passed.
 
 ---
 
-### [ ] F0-43 — Comentarios y tests del núcleo en inglés
+### [ ] F0-43 — Core comments and tests in English
 **Branch:** `refactor/f0-english-comments-core` · **Depends on:** F0-16
 
-**Origen:** F0-41. Separada de F0-44 para que cada PR se pueda revisar entera.
+**Origin:** F0-41. Split from F0-44 so each PR can be reviewed in full.
 
-**Trabajo:** traducir comentarios, JSDoc y descripciones de `describe` e `it` en
-`packages/core`, `packages/ast`, `packages/scanner` y `packages/packs-sdk`. Los
-textos que llegan al usuario, aunque se lancen desde el núcleo (`RollbackError`),
-son de F0-45. Sacar los ficheros de la lista de pendientes de F0-41.
+**Work:** translate comments, JSDoc and `describe` and `it` descriptions in
+`packages/core`, `packages/ast`, `packages/scanner` and `packages/packs-sdk`.
+The texts that reach the user, even when thrown from the core
+(`RollbackError`), belong to F0-45. Remove the files from the F0-41 pending
+list.
 
-**Qué se convierte en control mecánico:** el de F0-41 sobre estos paquetes.
+**What becomes a mechanical control:** the F0-41 one over these packages.
 
-**Criterios de aceptación:**
-- Ningún fichero de esos paquetes contiene español fuera de las excepciones
-  declaradas y de los textos que quedan para F0-45.
-- Sin cambios de comportamiento: `pnpm typecheck` y sus tests siguen en verde.
+**Acceptance criteria:**
+- No file in those packages contains Spanish outside the declared exceptions
+  and the texts left for F0-45.
+- No behaviour changes: `pnpm typecheck` and their tests stay green.
 
 ---
 
-### [ ] F0-44 — Comentarios y tests de la CLI, los packs y los scripts en inglés
+### [ ] F0-44 — CLI, packs and scripts comments and tests in English
 **Branch:** `refactor/f0-english-comments-cli` · **Depends on:** F0-16
 
-**Origen:** F0-41. La otra mitad de F0-43.
+**Origin:** F0-41. The other half of F0-43.
 
-**Trabajo:** traducir comentarios, JSDoc y descripciones de tests en
-`packages/cli`, `packages/packs/`, `scripts/`, `.github/workflows/` y la
-configuración de la raíz. El contenido que se genera para el cliente es de F0-45.
-Sacar los ficheros de la lista de pendientes de F0-41.
+**Work:** translate comments, JSDoc and test descriptions in `packages/cli`,
+`packages/packs/`, `scripts/`, `.github/workflows/` and the root configuration.
+The content generated for the client belongs to F0-45. Remove the files from
+the F0-41 pending list.
 
-**Qué se convierte en control mecánico:** el de F0-41 sobre estos ficheros.
+**What becomes a mechanical control:** the F0-41 one over these files.
 
-**Criterios de aceptación:**
-- Ningún fichero de esas rutas contiene español fuera de las excepciones declaradas
-  y de los textos que quedan para F0-45.
-- Sin cambios de comportamiento: `pnpm typecheck`, sus tests y `check:mutations`
-  siguen en verde.
+**Acceptance criteria:**
+- No file in those paths contains Spanish outside the declared exceptions and
+  the texts left for F0-45.
+- No behaviour changes: `pnpm typecheck`, their tests and `check:mutations`
+  stay green.
 
 ---
 
-### [ ] F0-45 — El producto habla inglés por defecto
+### [ ] F0-45 — The product speaks English by default
 **Branch:** `feat/f0-english-default-language` · **Depends on:** F0-41
 
-**Origen:** F0-41. Los clientes siguen por defecto la misma convención. El producto
-sigue siendo bilingüe —decisión de negocio del 2026-09-08—: el español se elige
-en el perfil, no se retira. El wizard (F4-1) pregunta el idioma a la empresa.
+**Origin:** F0-41. Clients follow the same convention by default. The product
+is still bilingual —business decision of 2026-09-08—: Spanish is chosen in the
+profile, not withdrawn. The wizard (F4-1) asks the company for the language.
 
-**Trabajo:**
-1. Mensajes de la CLI y errores que llegan al usuario (`RollbackError`, avisos de
-   rama, `doctor`...) en inglés. La CLI queda sólo en inglés hasta que F1-3 la
-   haga bilingüe.
-2. `Profile.language` por defecto `en` —hoy `es` en
-   `packages/packs-sdk/src/contract.ts`—, y con él los ficheros que genera el pack
-   de Node.
-3. Lo que hoy sólo existe en español para el cliente se escribe en inglés, y la
-   variante española se conserva detrás de `language: es`. Llevarlo a catálogos
-   es F1-2.
-4. Actualizar los tests que comparan textos y registrar la variante `es` como
-   excepción del control de F0-41.
+**Work:**
+1. CLI messages and errors that reach the user (`RollbackError`, branch
+   notices, `doctor`...) in English. The CLI stays English-only until F1-3
+   makes it bilingual.
+2. `Profile.language` defaults to `en` —today `es` in
+   `packages/packs-sdk/src/contract.ts`—, and with it the files the Node pack
+   generates.
+3. What today only exists in Spanish for the client is written in English, and
+   the Spanish variant is kept behind `language: es`. Moving it to catalogues is
+   F1-2.
+4. Update the tests that compare texts and register the `es` variant as an
+   exception of the F0-41 control.
 5. The job ids of the workflows the Node pack generates (`calidad`, `secretos`,
    `gobernanza` in `packages/packs/node-ts/src/templates/ci.ts`) go to English,
    in both languages: they are identifiers, not text. Keep the check names that
@@ -1882,14 +1891,15 @@ en el perfil, no se retira. El wizard (F4-1) pregunta el idioma a la empresa.
    review of F0-16: with no accent and no listed word, the Spanish-text test
    below does not see them.
 
-**Qué se convierte en control mecánico:** un test que genera con el perfil por
-defecto y falla si aparece español, y otro que con `language: es` sigue generando
-español. Plus a test that fails if a job id of a generated workflow looks
-Spanish, with the same heuristic as the file-name control of F0-16.
+**What becomes a mechanical control:** a test that generates with the default
+profile and fails if Spanish appears, and another that with `language: es`
+still generates Spanish. Plus a test that fails if a job id of a generated
+workflow looks Spanish, with the same heuristic as the file-name control of
+F0-16.
 
-**Criterios de aceptación:**
-- Sin configurar idioma, la CLI y los ficheros generados están en inglés.
-- Con `language: es`, lo generado para el cliente sigue en español.
+**Acceptance criteria:**
+- With no language configured, the CLI and the generated files are in English.
+- With `language: es`, what is generated for the client stays in Spanish.
 - The job ids of the generated workflows are in English with either language.
 
 ---
