@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { SPANISH_WORDS } from './branch-names.mjs'
-import { ALWAYS_ENGLISH, checkEnglishOnly, findSpanish } from './english-only.mjs'
+import { ALWAYS_ENGLISH, checkEnglishOnly, findSpanish, spanishNameEvidence } from './english-only.mjs'
 
 /**
  * F0-41. Spanish samples are written with `\u` escapes, and the Spanish word
@@ -114,5 +114,63 @@ describe('checkEnglishOnly', () => {
     const files = [{ path: 'a.md', text: 'English.' }]
     expect(checkEnglishOnly(files, {})).not.toEqual([])
     expect(checkEnglishOnly(files, { pending: 'a.md', exceptions: [] })).not.toEqual([])
+  })
+})
+
+describe('file names (F0-16)', () => {
+  // The names F0-16 renamed, plus the one created and fixed in the session
+  // that agreed the rule. None has an accent or a word of the content list.
+  const RENAMED = [
+    'scripts/verificar-coherencia.mjs',
+    'docs/PLAN_DE_EJECUCION.md',
+    'docs/ARQUITECTURA.md',
+    'docs/MODELO_DE_NEGOCIO.md',
+    'docs/adr/0001-plan-antes-de-aplicar.md',
+    'docs/adr/0002-licenciamiento-local-first.md',
+    'docs/adr/0003-licencia-busl.md',
+    'docs/adr/0004-suscripcion-anual.md',
+    'docs/adr/0005-lo-inferido-solo-amplia.md',
+    'GOBERNANZA.md',
+  ]
+
+  it.each(RENAMED)('fails for a new file named %s', (path) => {
+    const problems = checkEnglishOnly([{ path, text: 'English only.' }], noLists)
+    expect(problems).toHaveLength(1)
+    expect(problems[0]).toContain(`${path} looks named in Spanish`)
+  })
+
+  it.each([
+    'scripts/check-coherence.mjs',
+    'docs/EXECUTION_PLAN.md',
+    'docs/ARCHITECTURE.md',
+    'docs/BUSINESS_MODEL.md',
+    'docs/adr/0001-plan-before-apply.md',
+    'docs/adr/0002-local-first-licensing.md',
+    'docs/adr/0003-busl-license.md',
+    'docs/adr/0004-annual-subscription.md',
+    'docs/adr/0005-inference-fails-safe.md',
+    'GOVERNANCE.md',
+    'packages/cli/test/apply-failed-notice.test.ts',
+    'scripts/branch-names-corpus.json',
+  ])('accepts the English name %s', (path) => {
+    expect(spanishNameEvidence(path)).toEqual([])
+  })
+
+  it('reads a Spanish word in a directory name', () => {
+    expect(spanishNameEvidence(`src/${WORD}/index.ts`)).toEqual([WORD])
+  })
+
+  it('splits camelCase names into words', () => {
+    expect(spanishNameEvidence(`src/${WORD}Helper.ts`)).toEqual([WORD])
+  })
+
+  it('detects an accent in a name', () => {
+    expect(spanishNameEvidence('docs/gu\u00eda.md')).toEqual(['\u00ed'])
+  })
+
+  it('fails for a Spanish name even when the file is listed for its content', () => {
+    const files = [{ path: 'GOBERNANZA.md', text: SPANISH_LINE }]
+    const problems = checkEnglishOnly(files, { pending: ['GOBERNANZA.md'], exceptions: [] })
+    expect(problems).toEqual([expect.stringContaining('GOBERNANZA.md looks named in Spanish')])
   })
 })

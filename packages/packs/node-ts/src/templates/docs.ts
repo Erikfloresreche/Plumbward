@@ -8,24 +8,24 @@ import type { RepoScan } from '@plumbward/scanner'
  * pieza de producto, no documentación técnica: si el cliente no entiende qué le
  * hemos instalado, no lo mantiene y no renueva.
  */
-export function gobernanzaDoc(scan: RepoScan, profile: Profile): string {
+export function governanceDoc(scan: RepoScan, profile: Profile): string {
   const stack = scan.primaryStack
-  const modoTexto =
+  const modeText =
     profile.mode === 'greenfield'
       ? {
-          nombre: 'Estricto (proyecto nuevo)',
-          explicacion:
+          name: 'Estricto (proyecto nuevo)',
+          explanation:
             'El repositorio es pequeño, así que las reglas se aplican a todo el código desde el primer día. Es el mejor momento para hacerlo: cuanto más tarde se empieza, más caro sale.',
         }
       : profile.mode === 'ratchet'
         ? {
-            nombre: 'Trinquete (progresivo)',
-            explicacion:
+            name: 'Trinquete (progresivo)',
+            explanation:
               'Las reglas estrictas se aplican **sólo al código que escribís a partir de ahora**. El código antiguo se queda como está y nadie tiene que parar a arreglar el pasado. Cada semana que pasa, el porcentaje de código bajo control sube solo.',
           }
         : {
-            nombre: 'No disruptivo',
-            explicacion:
+            name: 'No disruptivo',
+            explanation:
               'El repositorio es grande. Se ha guardado una foto del estado actual (la *baseline*) y sólo se auditan los ficheros que toca cada Pull Request. Nada de lo que ya funciona se ve afectado.',
           }
 
@@ -48,11 +48,11 @@ erratas y se dediquen a lo que de verdad importa.
 | Frameworks | ${stack?.frameworks.length ? stack.frameworks.join(', ') : '—'} |
 | Gestor de paquetes | ${stack?.packageManager ?? 'npm'} |
 | Tamaño | ~${scan.sloc.total.toLocaleString('es-ES')} líneas de código |
-| Modo de gobernanza | **${modoTexto.nombre}** |
+| Modo de gobernanza | **${modeText.name}** |
 
-### Qué significa el modo "${modoTexto.nombre}"
+### Qué significa el modo "${modeText.name}"
 
-${modoTexto.explicacion}
+${modeText.explanation}
 
 ## Qué se ha instalado
 

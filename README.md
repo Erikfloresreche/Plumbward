@@ -10,7 +10,7 @@ pre-commit, escaneo de secretos y reglas de contexto para asistentes de IA.
 > publicado en npm**: se usa clonando el repositorio (ver
 > [Desarrollo](#desarrollo)). Hoy sólo existe el pack de Node.js/TypeScript; el
 > resto llega en la Fase 2. El plan completo está en
-> [docs/PLAN_DE_EJECUCION.md](docs/PLAN_DE_EJECUCION.md).
+> [docs/EXECUTION_PLAN.md](docs/EXECUTION_PLAN.md).
 >
 > Cuando publiquemos será bajo el scope `@plumbward/`.
 
@@ -82,7 +82,7 @@ Depende del stack y del tamaño del repositorio, pero en un proyecto de
 Node/TypeScript incluye pipelines de CI comentados, ESLint y Prettier, hooks de
 pre-commit con Husky y lint-staged, escaneo de secretos con Gitleaks,
 Conventional Commits, DevContainer, un `Makefile` unificado, reglas de contexto
-para Cursor, Claude y Copilot, y un `GOBERNANZA.md` que explica al equipo qué se
+para Cursor, Claude y Copilot, y un `GOVERNANCE.md` que explica al equipo qué se
 ha instalado.
 
 La dureza se adapta al tamaño: en un proyecto pequeño se aplica todo desde el
@@ -104,7 +104,7 @@ núcleo sea reutilizable fuera de la CLI:
 | `cli` | Interfaz de terminal |
 
 La explicación completa, con el porqué de cada decisión, está en
-[docs/ARQUITECTURA.md](docs/ARQUITECTURA.md).
+[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## Desarrollo
 

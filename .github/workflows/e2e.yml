@@ -24,7 +24,7 @@ permissions:
   contents: read
 
 jobs:
-  ciclo-completo:
+  full-cycle:
     name: Ciclo completo sobre repositorios reales
     runs-on: ubuntu-latest
     timeout-minutes: 20

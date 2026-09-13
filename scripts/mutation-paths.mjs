@@ -12,7 +12,7 @@
  * condición que se desajusta en silencio. Aquí se deriva la lista del propio
  * script en lugar de confiar en que alguien actualice las dos.
  *
- * Vive fuera de `verificar-coherencia.mjs` por la misma razón que
+ * Vive fuera de `check-coherence.mjs` por la misma razón que
  * `branch-names.mjs`: aquel script se ejecuta al cargarse y termina en
  * `process.exit`, así que no se puede probar. Aquí sólo hay funciones puras.
  *
@@ -37,7 +37,7 @@
  * @param {string} valor literal de la constante
  * @returns {boolean}
  */
-const pareceRuta = (valor) => valor.includes('/') || /\.[A-Za-z0-9]+$/.test(valor)
+const looksLikePath = (value) => value.includes('/') || /\.[A-Za-z0-9]+$/.test(value)
 
 /**
  * Ficheros que `check-mutations.mjs` muta o ejecuta como test.
@@ -53,7 +53,7 @@ export function mutationInputs(scriptText) {
   const files = new Set()
 
   for (const m of scriptText.matchAll(/^const [A-Za-z_$][\w$]* = '([^']+)'$/gm)) {
-    if (pareceRuta(m[1])) files.add(m[1])
+    if (looksLikePath(m[1])) files.add(m[1])
   }
 
   const tests = /const TESTS = \[([\s\S]*?)\]/.exec(scriptText)
@@ -74,7 +74,7 @@ export function mutationInputs(scriptText) {
  */
 export function workflowPaths(workflowText) {
   const lines = workflowText.split('\n')
-  const sangria = (linea) => /^(\s*)/.exec(linea)[1].length
+  const indentOf = (line) => /^(\s*)/.exec(line)[1].length
 
   // El filtro que importa es el de `pull_request`, no el primer `paths:` del
   // fichero: un disparador `push:` con su propia lista por delante secuestraba
@@ -85,7 +85,7 @@ export function workflowPaths(workflowText) {
   let start = -1
   for (let i = pr + 1; i < lines.length; i++) {
     if (lines[i].trim() === '') continue
-    if (sangria(lines[i]) <= sangria(lines[pr])) break
+    if (indentOf(lines[i]) <= indentOf(lines[pr])) break
     if (/^\s+paths:\s*$/.test(lines[i])) {
       start = i
       break
@@ -93,22 +93,22 @@ export function workflowPaths(workflowText) {
   }
   if (start === -1) return []
 
-  const indent = sangria(lines[start])
+  const indent = indentOf(lines[start])
   const paths = []
   for (const line of lines.slice(start + 1)) {
     if (line.trim() === '') continue
 
     // Una línea que no está más indentada que `paths:` ya es otra clave.
-    if (sangria(line) <= indent) break
+    if (indentOf(line) <= indent) break
 
     // Los comentarios no interrumpen la lista: el filtro lleva uno en medio
     // para separar los ficheros mutados de los que gobiernan la ejecución.
-    const contenido = line.trim()
-    if (contenido.startsWith('#')) continue
+    const content = line.trim()
+    if (content.startsWith('#')) continue
 
-    const entrada = /^-\s*'?([^']+?)'?\s*$/.exec(contenido)
-    if (!entrada) break
-    paths.push(entrada[1])
+    const entry = /^-\s*'?([^']+?)'?\s*$/.exec(content)
+    if (!entry) break
+    paths.push(entry[1])
   }
   return paths
 }

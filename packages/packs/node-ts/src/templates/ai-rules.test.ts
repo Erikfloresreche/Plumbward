@@ -78,26 +78,26 @@ describe('límites operativos en las reglas de IA generadas', () => {
   })
 
   it('respeta la desactivación de cada límite por separado', () => {
-    const sinGit = aiRules(scan, withBoundaries({ git: false }))
-    expect(sinGit).not.toContain('Comandos de git que modifican el estado')
-    expect(sinGit).toContain('Comandos de base de datos que escriben')
+    const withoutGit = aiRules(scan, withBoundaries({ git: false }))
+    expect(withoutGit).not.toContain('Comandos de git que modifican el estado')
+    expect(withoutGit).toContain('Comandos de base de datos que escriben')
 
-    const sinNada = aiRules(scan, withBoundaries({ git: false, database: false }))
-    expect(sinNada).not.toContain('Comandos de base de datos que escriben')
+    const withoutAny = aiRules(scan, withBoundaries({ git: false, database: false }))
+    expect(withoutAny).not.toContain('Comandos de base de datos que escriben')
   })
 
   it('mantiene la numeración de secciones aunque se desactive todo', () => {
-    const sinNada = aiRules(scan, withBoundaries({ git: false, database: false }))
+    const withoutAny = aiRules(scan, withBoundaries({ git: false, database: false }))
 
     // La regla del idioma de los commits siempre aplica, así que la sección 7
     // nunca desaparece y la 8 nunca queda huérfana.
-    expect(sinNada).toContain('## 7. Lo que NO debes ejecutar')
-    expect(sinNada).toContain('## 8. Lo que NUNCA debes hacer')
+    expect(withoutAny).toContain('## 7. Lo que NO debes ejecutar')
+    expect(withoutAny).toContain('## 8. Lo que NUNCA debes hacer')
   })
 
   it('traduce el idioma de los commits cuando el perfil lo cambia', () => {
-    const enEspanol = aiRules(scan, withBoundaries({ commitLanguage: 'es' }))
-    expect(enEspanol).toContain('se redactan siempre\nen español')
+    const inSpanish = aiRules(scan, withBoundaries({ commitLanguage: 'es' }))
+    expect(inSpanish).toContain('se redactan siempre\nen español')
   })
 
   it('exige también los nombres de rama en el idioma del historial', () => {

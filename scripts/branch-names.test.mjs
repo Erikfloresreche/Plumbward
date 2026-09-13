@@ -144,8 +144,8 @@ describe('analizador del plan', () => {
   })
 
   it('sólo juzga las ramas de las tareas pendientes', () => {
-    const conFallo = plan.replace('fix/f0-pending-task', 'fix/f0-ramas-protegidas')
-    expect(checkPlan(conFallo)).toEqual([
+    const withSpanishBranch = plan.replace('fix/f0-pending-task', 'fix/f0-ramas-protegidas')
+    expect(checkPlan(withSpanishBranch)).toEqual([
       expect.stringContaining('"fix/f0-ramas-protegidas" parece estar en español'),
     ])
   })
@@ -158,22 +158,22 @@ describe('analizador del plan', () => {
   })
 
   it('falla si alguna tarea no declara su rama', () => {
-    const sinRama = '### [ ] F0-1 — Con rama\n**Rama:** `fix/f0-one`\n\n### [ ] F0-2 — Sin rama\n'
-    expect(checkPlan(sinRama)).toEqual([expect.stringContaining('1 de las 2 tareas')])
+    const withoutBranch = '### [ ] F0-1 — Con rama\n**Rama:** `fix/f0-one`\n\n### [ ] F0-2 — Sin rama\n'
+    expect(checkPlan(withoutBranch)).toEqual([expect.stringContaining('1 de las 2 tareas')])
   })
 
   it('falla si la línea de rama no sigue un formato que el analizador reconoce', () => {
     // El fallo que motivó la aserción: el analizador se saltaba la línea y el
     // control pasaba como si la tarea no tuviera rama que juzgar.
-    const otraForma = '### [ ] F0-1 — Tarea\n*Rama*: `fix/f0-ramas-protegidas`\n'
-    expect(checkPlan(otraForma)).toEqual([expect.stringContaining('1 de las 1 tareas')])
+    const otherFormat = '### [ ] F0-1 — Tarea\n*Rama*: `fix/f0-ramas-protegidas`\n'
+    expect(checkPlan(otherFormat)).toEqual([expect.stringContaining('1 de las 1 tareas')])
   })
 
   it('una rama fuera de toda tarea no compensa a la tarea que no la declara', () => {
     // Regresión de la revisión de la PR #10: comparando totales, la línea de
     // "## Apéndice" cuadraba las cuentas y el nombre español de F0-1 nunca se
     // llegaba a juzgar. Se cuenta por tarea, no por totales.
-    const enmascarado = [
+    const masked = [
       '### [ ] F0-1 — Con la rama mal escrita',
       '*Rama*: `fix/f0-ramas-protegidas`',
       '',
@@ -184,9 +184,9 @@ describe('analizador del plan', () => {
       '**Rama:** `fix/f0-three`',
       '',
     ].join('\n')
-    const { tasks, declarations } = parsePlan(enmascarado)
+    const { tasks, declarations } = parsePlan(masked)
     expect({ tasks, declarations }).toEqual({ tasks: 2, declarations: 2 })
-    expect(checkPlan(enmascarado)).toEqual([expect.stringContaining('1 de las 2 tareas')])
+    expect(checkPlan(masked)).toEqual([expect.stringContaining('1 de las 2 tareas')])
   })
 
   it('tolera espaciado distinto en la línea de rama', () => {
@@ -195,6 +195,6 @@ describe('analizador del plan', () => {
   })
 
   it('el plan real del repositorio pasa el control', () => {
-    expect(checkPlan(read('../docs/PLAN_DE_EJECUCION.md'))).toEqual([])
+    expect(checkPlan(read('../docs/EXECUTION_PLAN.md'))).toEqual([])
   })
 })

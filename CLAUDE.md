@@ -4,7 +4,7 @@ A DevSecOps governance CLI that analyses a repository and installs CI, linters,
 hooks, secret scanning and context rules for AI assistants.
 
 The full execution plan, with every task and its acceptance criteria, is in
-[docs/PLAN_DE_EJECUCION.md](docs/PLAN_DE_EJECUCION.md). **Read it before
+[docs/EXECUTION_PLAN.md](docs/EXECUTION_PLAN.md). **Read it before
 starting any task** and tick its checkbox when you finish.
 
 ---
@@ -18,9 +18,9 @@ Read it in this order:
 | Order | File | What it gives you |
 |---|---|---|
 | 1 | This file | Operating limits and working rules |
-| 2 | `docs/PLAN_DE_EJECUCION.md`, header | **Where we are**: the global status line says which tasks are closed |
-| 3 | `docs/ARQUITECTURA.md` | How the code works and **why** each piece is where it is |
-| 4 | `docs/MODELO_DE_NEGOCIO.md` | What we sell, to whom, and what we cannot promise |
+| 2 | `docs/EXECUTION_PLAN.md`, header | **Where we are**: the global status line says which tasks are closed |
+| 3 | `docs/ARCHITECTURE.md` | How the code works and **why** each piece is where it is |
+| 4 | `docs/BUSINESS_MODEL.md` | What we sell, to whom, and what we cannot promise |
 | 5 | `docs/adr/` | The big decisions, with the alternatives that were discarded |
 | 6 | `.claude/napkin.md` | Repo tricks that already cost a mistake. Read it all: it is short on purpose |
 
@@ -32,7 +32,7 @@ Check the real state before trusting what is written:
 pnpm install                                                    # a fresh clone has no dependencies
 git branch --show-current && git status --short
 gh run list --branch "$(git branch --show-current)" --limit 3   # CI already says whether it is green
-pnpm check:coherencia
+pnpm check:coherence
 ```
 
 **The order of the tasks is already decided in the plan: it is the execution
@@ -40,7 +40,7 @@ queue in §5.** When anyone asks, in whatever words and language, about the
 state of the plan or the next task, the answer comes from the queue: the next
 one is the first. No other order is invented in each session. If the developer
 decides on another priority, the task is moved in the queue, with its reason,
-and `check:coherencia` checks that the new order respects the dependencies. If
+and `check:coherence` checks that the new order respects the dependencies. If
 the real state contradicts the queue —a task branch half done, uncommitted
 changes—, say so before starting anything else.
 
@@ -61,7 +61,7 @@ message ready to copy.
 You may use the read-only ones: `status`, `log`, `diff`, `show`,
 `branch --list`, `branch --show-current`, `blame`, `ls-files`, `rev-parse`.
 
-`check:coherencia` checks that every `git` command in §0 is in this list: if
+`check:coherence` checks that every `git` command in §0 is in this list: if
 one is added to the guide without allowing it here, CI says so.
 
 **Why:** whoever signs the commit answers for what enters the history. An
@@ -97,7 +97,7 @@ Only two exceptions:
   F0-18, F0-42 to F0-45) or permanent exceptions, each with its reason. New
   text in a pending file is written in English too.
 
-`pnpm check:coherencia` fails on Spanish anywhere else, and on a listed file
+`pnpm check:coherence` fails on Spanish anywhere else, and on a listed file
 that no longer has any.
 
 Format: Conventional Commits, with the task identifier in the body.
@@ -185,7 +185,7 @@ They are not broken without an ADR in `docs/adr/` that justifies it:
 - Branches: `Prod` (releases) and `develop` (integration). One branch per plan
   task, named `<type>/f<phase>-<slug>` **with the slug in English** —the branch
   name stays in the history just like the commit—, created from `develop`.
-  Example: `fix/f0-protected-branches`. `pnpm check:coherencia` checks it on
+  Example: `fix/f0-protected-branches`. `pnpm check:coherence` checks it on
   every PR.
 - A branch implements **exactly one task**. If unplanned work appears, a new
   task is added to the plan; the current one is not widened.
@@ -258,7 +258,7 @@ read in it. The defence is this section and the question in §0.
   what can be mechanised goes to a control. It is curated only when adding,
   even though the skill asks for it on every read. The repository is public:
   nothing personal.
-  `pnpm check:coherencia` checks the skill hash, the link, and that the runbook
+  `pnpm check:coherence` checks the skill hash, the link, and that the runbook
   follows its rules (date, "Do instead", at most 10 per category).
 - **caveman**: an optional plugin of each developer, not versioned. It only
   compresses chat replies; commits, PRs, documentation, napkin and memory are
@@ -266,6 +266,6 @@ read in it. The defence is this section and the question in §0.
   spend: it does not replace rule 1.
 - **Forbidden: `caveman-setup` and any gateway that routes the assistant's
   requests through an external service.** It contradicts the local-first,
-  no-telemetry stance ([ADR 0002](docs/adr/0002-licenciamiento-local-first.md)).
+  no-telemetry stance ([ADR 0002](docs/adr/0002-local-first-licensing.md)).
 - A new skill is third-party code with access to the repository: review it in
   full before installing it, with `npx skills add`, so it ends up in the lock.

@@ -26,7 +26,7 @@ on:
   pull_request:
     branches: [develop, Prod]
     # Sólo las PRs que tocan lo que el script muta o ejecuta. La lista la
-    # verifica `pnpm check:coherencia` contra `scripts/check-mutations.mjs`:
+    # verifica `pnpm check:coherence` contra `scripts/check-mutations.mjs`:
     # si una mutación nueva toca un fichero que no está aquí, la CI lo dice.
     paths:
       - 'packages/cli/src/commands.ts'
@@ -60,7 +60,7 @@ permissions:
   contents: read
 
 jobs:
-  mutaciones:
+  mutations:
     name: Mutaciones de la lógica de ramas
     # Job propio, sin matriz y sin condiciones `if`: lo que decide si esto
     # corre es el filtro `paths:` de arriba, en un solo sitio.

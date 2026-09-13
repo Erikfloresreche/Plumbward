@@ -25,7 +25,7 @@ export default defineConfig({
     include: [
       'packages/**/src/**/*.test.ts',
       'packages/**/test/**/*.test.ts',
-      // Los controles de `scripts/` también se prueban: `verificar-coherencia`
+      // Los controles de `scripts/` también se prueban: `check-coherence`
       // ejecutaba todo al cargarse y no se podía cubrir (F0-15).
       'scripts/**/*.test.mjs',
     ],

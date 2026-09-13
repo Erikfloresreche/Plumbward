@@ -4,7 +4,7 @@ Documento de referencia: qué hace el producto, cómo está construido y **por q
 cada pieza está donde está**. Si vas a tocar el código, léelo antes.
 
 Para saber qué se construye a continuación, ve a
-[PLAN_DE_EJECUCION.md](PLAN_DE_EJECUCION.md).
+[EXECUTION_PLAN.md](EXECUTION_PLAN.md).
 
 ---
 
@@ -481,7 +481,7 @@ PDF original, que trata "monorepo" y "grande" como sinónimos. Sobre este mismo
 repositorio, con ~4.300 líneas, aplica reglas suaves cuando podría permitirse las
 estrictas. A revisar en F2-7.
 
-**El pack de Node genera `GOBERNANZA.md` y `Makefile` en la raíz.** Sobre un
+**El pack de Node genera `GOVERNANCE.md` y `Makefile` en la raíz.** Sobre un
 monorepo eso puede chocar con lo que ya exista. A resolver en la Fase 2.
 
 **Los límites operativos del asistente sólo existen en el pack de Node.** Deben

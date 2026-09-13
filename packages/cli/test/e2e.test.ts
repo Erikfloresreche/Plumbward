@@ -13,7 +13,7 @@ import { nodeTsPack } from '@plumbward/pack-node-ts'
 const VERSION = '0.1.0-test'
 
 /** Crea un repositorio git realista sobre el que ejecutar el ciclo completo. */
-async function crearRepoDePrueba(): Promise<string> {
+async function createTestRepo(): Promise<string> {
   const root = await mkdtemp(join(tmpdir(), 'plumbward-e2e-'))
 
   await writeFile(
@@ -44,7 +44,7 @@ async function crearRepoDePrueba(): Promise<string> {
   return root
 }
 
-async function construirPlan(root: string): Promise<ChangePlan> {
+async function buildTestPlan(root: string): Promise<ChangePlan> {
   const scan = await scanRepository(root)
   const profile = recommendedProfile(scan)
   const registry = new PackRegistry([nodeTsPack])
@@ -69,7 +69,7 @@ describe('ciclo completo sobre un repositorio real', () => {
   let root: string
 
   beforeEach(async () => {
-    root = await crearRepoDePrueba()
+    root = await createTestRepo()
   })
 
   afterEach(async () => {
@@ -90,27 +90,27 @@ describe('ciclo completo sobre un repositorio real', () => {
   })
 
   it('el plan describe exactamente lo que apply va a hacer', async () => {
-    const plan = await construirPlan(root)
+    const plan = await buildTestPlan(root)
     const simulation = await simulatePlan(plan, { repoRoot: root, version: VERSION })
 
-    const rutas = simulation.changes.map((cambio) => cambio.path)
-    expect(rutas).toContain('.github/workflows/ci-dev.yml')
-    expect(rutas).toContain('.gitleaks.toml')
-    expect(rutas).toContain('.husky/pre-commit')
-    expect(rutas).toContain('.cursorrules')
-    expect(rutas).toContain('GOBERNANZA.md')
-    expect(rutas).toContain('package.json')
-    expect(rutas).toContain('.gitignore')
+    const changedPaths = simulation.changes.map((change) => change.path)
+    expect(changedPaths).toContain('.github/workflows/ci-dev.yml')
+    expect(changedPaths).toContain('.gitleaks.toml')
+    expect(changedPaths).toContain('.husky/pre-commit')
+    expect(changedPaths).toContain('.cursorrules')
+    expect(changedPaths).toContain('GOVERNANCE.md')
+    expect(changedPaths).toContain('package.json')
+    expect(changedPaths).toContain('.gitignore')
 
     // Nada se ha escrito todavía: `plan` es de sólo lectura.
     expect(await gitStatus(root)).toBe('')
   })
 
   it('apply escribe lo planificado y rollback deja el repositorio idéntico', async () => {
-    const plan = await construirPlan(root)
-    const paqueteOriginal = await readFile(join(root, 'package.json'), 'utf8')
+    const plan = await buildTestPlan(root)
+    const originalPackage = await readFile(join(root, 'package.json'), 'utf8')
 
-    const resultado = await applyPlan(plan, {
+    const firstApply = await applyPlan(plan, {
       repoRoot: root,
       version: VERSION,
       writtenOnBranch: 'main',
@@ -119,16 +119,16 @@ describe('ciclo completo sobre un repositorio real', () => {
       runCommands: false,
     })
 
-    expect(resultado.applied).toBeGreaterThan(10)
+    expect(firstApply.applied).toBeGreaterThan(10)
     expect(existsSync(join(root, '.github/workflows/ci-dev.yml'))).toBe(true)
     expect(existsSync(join(root, '.husky/pre-commit'))).toBe(true)
     expect(await gitStatus(root)).not.toBe('')
 
     // El parche de package.json respeta los scripts que ya existían.
-    const paqueteModificado = JSON.parse(await readFile(join(root, 'package.json'), 'utf8'))
-    expect(paqueteModificado.scripts.dev).toBe('vite')
-    expect(paqueteModificado.scripts.build).toBe('vite build')
-    expect(paqueteModificado.scripts.lint).toBe('eslint .')
+    const modifiedPackage = JSON.parse(await readFile(join(root, 'package.json'), 'utf8'))
+    expect(modifiedPackage.scripts.dev).toBe('vite')
+    expect(modifiedPackage.scripts.build).toBe('vite build')
+    expect(modifiedPackage.scripts.lint).toBe('eslint .')
 
     // El comentario del tsconfig del cliente sigue ahí.
     expect(await readFile(join(root, 'tsconfig.json'), 'utf8')).toContain('Comentario del cliente')
@@ -136,12 +136,12 @@ describe('ciclo completo sobre un repositorio real', () => {
     await rollbackLastApply(root, { currentBranch: 'main', currentCommit: null })
 
     expect(await gitStatus(root)).toBe('')
-    expect(await readFile(join(root, 'package.json'), 'utf8')).toBe(paqueteOriginal)
+    expect(await readFile(join(root, 'package.json'), 'utf8')).toBe(originalPackage)
     expect(existsSync(join(root, '.github/workflows/ci-dev.yml'))).toBe(false)
   })
 
   it('un segundo apply no produce ningún cambio (idempotencia de punta a punta)', async () => {
-    await applyPlan(await construirPlan(root), {
+    await applyPlan(await buildTestPlan(root), {
       repoRoot: root,
       version: VERSION,
       writtenOnBranch: 'main',
@@ -150,12 +150,12 @@ describe('ciclo completo sobre un repositorio real', () => {
       runCommands: false,
     })
 
-    const segundoPlan = await construirPlan(root)
-    const simulacion = await simulatePlan(segundoPlan, { repoRoot: root, version: VERSION })
+    const secondPlan = await buildTestPlan(root)
+    const secondSimulation = await simulatePlan(secondPlan, { repoRoot: root, version: VERSION })
 
-    expect(simulacion.changes).toHaveLength(0)
+    expect(secondSimulation.changes).toHaveLength(0)
 
-    const segundo = await applyPlan(segundoPlan, {
+    const secondApply = await applyPlan(secondPlan, {
       repoRoot: root,
       version: VERSION,
       writtenOnBranch: 'main',
@@ -163,12 +163,12 @@ describe('ciclo completo sobre un repositorio real', () => {
       startedOnBranch: 'main',
       runCommands: false,
     })
-    expect(segundo.applied).toBe(0)
+    expect(secondApply.applied).toBe(0)
   })
 
   it('revierte automáticamente si una operación falla a mitad', async () => {
-    const plan = await construirPlan(root)
-    const roto: ChangePlan = {
+    const plan = await buildTestPlan(root)
+    const brokenPlan: ChangePlan = {
       ...plan,
       operations: [
         ...plan.operations,
@@ -184,7 +184,7 @@ describe('ciclo completo sobre un repositorio real', () => {
     }
 
     await expect(
-      applyPlan(roto, {
+      applyPlan(brokenPlan, {
         repoRoot: root,
         version: VERSION,
         writtenOnBranch: 'main',
@@ -200,14 +200,14 @@ describe('ciclo completo sobre un repositorio real', () => {
 
   it('el pack node-ts cumple el contrato de conformidad', async () => {
     const scan = await scanRepository(root)
-    const contexto = { scan, profile: recommendedProfile(scan), cliVersion: VERSION }
+    const packContext = { scan, profile: recommendedProfile(scan), cliVersion: VERSION }
 
-    expect(await checkPackConformance(nodeTsPack, contexto)).toEqual([])
+    expect(await checkPackConformance(nodeTsPack, packContext)).toEqual([])
   })
 
   it('impide que un pack escriba fuera del repositorio', async () => {
-    const plan = await construirPlan(root)
-    const malicioso: ChangePlan = {
+    const plan = await buildTestPlan(root)
+    const maliciousPlan: ChangePlan = {
       ...plan,
       operations: [
         {
@@ -221,7 +221,7 @@ describe('ciclo completo sobre un repositorio real', () => {
     }
 
     await expect(
-      applyPlan(malicioso, {
+      applyPlan(maliciousPlan, {
         repoRoot: root,
         version: VERSION,
         writtenOnBranch: 'main',

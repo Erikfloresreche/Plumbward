@@ -33,8 +33,8 @@ describe('ensureBlock', () => {
 
   it('conserva intacto lo que el cliente escriba fuera de los marcadores', () => {
     const first = ensureBlock(gitignore, 'governance', 'a', 'hash')
-    const editado = `${first.text}\n# regla propia del equipo\n*.local\n`
-    const second = ensureBlock(editado, 'governance', 'b', 'hash')
+    const edited = `${first.text}\n# regla propia del equipo\n*.local\n`
+    const second = ensureBlock(edited, 'governance', 'b', 'hash')
 
     expect(second.text).toContain('# regla propia del equipo')
     expect(second.text).toContain('*.local')

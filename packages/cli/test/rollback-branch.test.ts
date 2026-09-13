@@ -201,20 +201,20 @@ describe('rollback en una rama del mismo nombre creada sobre otro commit', () =>
   it('el journal guarda el commit sobre el que se escribió, que es el de partida', async () => {
     const root = await createRepo('Prod')
     await git(root, 'checkout', '--detach')
-    const commitDePartida = await git(root, 'rev-parse', 'HEAD')
+    const startCommit = await git(root, 'rev-parse', 'HEAD')
 
     expect(await apply(root)).toBe(0)
 
     const journal: unknown = JSON.parse(
       await readFile(join(root, '.governance/journal.json'), 'utf8'),
     )
-    expect((journal as { writtenOnCommit: string | null }).writtenOnCommit).toBe(commitDePartida)
+    expect((journal as { writtenOnCommit: string | null }).writtenOnCommit).toBe(startCommit)
   })
 
   it('el aviso de vuelta nombra el commit de partida, no un hueco que rellenar', async () => {
     const root = await createRepo('Prod')
     await git(root, 'checkout', '--detach')
-    const commitDePartida = await git(root, 'rev-parse', 'HEAD')
+    const startCommit = await git(root, 'rev-parse', 'HEAD')
 
     expect(await apply(root)).toBe(0)
     expect(await currentBranch(root)).toBe(GOVERNANCE_BRANCH)
@@ -223,7 +223,7 @@ describe('rollback en una rama del mismo nombre creada sobre otro commit', () =>
     expect(await runRollback(root)).toBe(0)
     const printed = output()
 
-    expect(printed).toContain(`git checkout ${commitDePartida}`)
+    expect(printed).toContain(`git checkout ${startCommit}`)
     expect(printed).not.toContain('git checkout <commit>')
   })
 })
@@ -280,7 +280,7 @@ describe('apply --no-branch con HEAD desacoplado', () => {
 
   it('no revierte desde una rama, aunque apunte al mismo commit, y dice cómo volver', async () => {
     const root = await createRepo('Prod')
-    const commitDePartida = await git(root, 'rev-parse', 'HEAD')
+    const startCommit = await git(root, 'rev-parse', 'HEAD')
 
     expect(await applyDetached(root)).toBe(0)
     await git(root, 'switch', '-c', 'rescue')
@@ -288,7 +288,7 @@ describe('apply --no-branch con HEAD desacoplado', () => {
     const output = captureOutput()
 
     expect(await runRollback(root)).toBe(1)
-    expect(output()).toContain(`git checkout --detach ${commitDePartida}`)
+    expect(output()).toContain(`git checkout --detach ${startCommit}`)
     expect(await readManifest(root)).toBe(manifest('3.0.0'))
   })
 })

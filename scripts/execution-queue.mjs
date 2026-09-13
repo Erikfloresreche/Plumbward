@@ -1,7 +1,7 @@
 /**
  * Control de la cola de ejecución del plan.
  *
- * La cola, en el §5 de `docs/PLAN_DE_EJECUCION.md`, dice en qué orden se
+ * La cola, en el §5 de `docs/EXECUTION_PLAN.md`, dice en qué orden se
  * ejecutan las tareas pendientes. La siguiente tarea es siempre la primera: así
  * saber por dónde va el plan no depende de que nadie recuerde ni proponga nada,
  * y cualquier sesión llega a la misma respuesta. Cambiar una prioridad es mover
@@ -13,7 +13,7 @@
  * que depende. Una tarea nueva sin sitio en la cola pone la CI en rojo, que es
  * lo que obliga a decidir su orden en el momento de crearla.
  *
- * Funciones puras, como `branch-names.mjs`: `verificar-coherencia.mjs` sólo las
+ * Funciones puras, como `branch-names.mjs`: `check-coherence.mjs` sólo las
  * conecta. Tarea F0-40.
  */
 

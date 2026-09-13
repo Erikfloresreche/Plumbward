@@ -10,7 +10,7 @@ import type { RepoScan } from '@plumbward/scanner'
  */
 function boundariesSection(profile: Profile): string {
   const { git, database, commitLanguage } = profile.agentBoundaries
-  const idioma = commitLanguage === 'en' ? 'inglés' : 'español'
+  const commitLanguageName = commitLanguage === 'en' ? 'inglés' : 'español'
 
   const gitBlock = git
     ? `### Comandos de git que modifican el estado
@@ -58,7 +58,7 @@ ${gitBlock}${dbBlock}### Idioma del historial de git
 
 Aunque el proyecto se documente en otro idioma, **los mensajes de commit, los
 títulos y descripciones de Pull Request y los nombres de rama se redactan siempre
-en ${idioma}**. Todo eso queda en el historial de git, y lo leerá gente que no
+en ${commitLanguageName}**. Todo eso queda en el historial de git, y lo leerá gente que no
 estuvo en la conversación.
 
 - Commits y títulos de PR siguen Conventional Commits.
