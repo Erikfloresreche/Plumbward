@@ -17,6 +17,7 @@ import { fileURLToPath } from 'node:url'
 import { checkPlan, checkPullRequestBranch } from './branch-names.mjs'
 import { uncoveredMutationInputs } from './mutation-paths.mjs'
 import { checkQueue } from './execution-queue.mjs'
+import { checkEnglishOnly } from './english-only.mjs'
 
 const raiz = join(dirname(fileURLToPath(import.meta.url)), '..')
 const leer = (p) => readFileSync(join(raiz, p), 'utf8')
@@ -205,6 +206,31 @@ for (const motivo of checkQueue(leer('docs/PLAN_DE_EJECUCION.md'))) {
   fallo('cola-de-ejecucion', motivo)
 }
 
+// ── 5 ter. English everywhere, except what is listed (F0-41) ──────────────
+// Tracked files plus new ones not yet added, so Spanish is caught before the
+// commit and not only in CI. A file deleted on disk but still in the index is
+// skipped, and so are symlinks: their target is scanned as its own path.
+{
+  const { execFileSync } = await import('node:child_process')
+  const paths = new Set(
+    execFileSync('git', ['ls-files', '-z', '--cached', '--others', '--exclude-standard'], {
+      cwd: raiz,
+      encoding: 'utf8',
+    })
+      .split('\0')
+      .filter(Boolean),
+  )
+  const files = []
+  for (const path of paths) {
+    const full = join(raiz, path)
+    if (!existsSync(full) || !lstatSync(full).isFile()) continue
+    files.push({ path, text: readFileSync(full, 'utf8') })
+  }
+  for (const problem of checkEnglishOnly(files, json('scripts/english-only.json'))) {
+    fallo('english-only', problem)
+  }
+}
+
 // ── 6. Las skills de agente versionadas son las que fija el lock (F0-17) ──
 // Una skill es código de terceros que el asistente carga con acceso al repo.
 // `skills-lock.json` fija su hash; si alguien la edita a mano o la sustituye,
@@ -327,7 +353,7 @@ if (existsSync(join(raiz, NAPKIN))) {
   }
 
   const seccion0 = seccion('0. ')
-  const listaDePermitidos = /Sí puedes usar los de sólo lectura:([\s\S]*?)\./.exec(claude)
+  const listaDePermitidos = /You may use the read-only ones:([\s\S]*?)\./.exec(claude)
   const permitidos = listaDePermitidos
     ? [...listaDePermitidos[1].matchAll(/`([^`]+)`/g)].map((m) => m[1])
     : []
