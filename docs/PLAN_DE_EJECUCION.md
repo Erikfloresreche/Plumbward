@@ -6,7 +6,7 @@
 > misma Pull Request que la implementa.
 
 **Última actualización:** 2026-09-12
-**Estado global:** Fase 0 en curso — F0-1, F0-3, F0-5, F0-8, F0-13, F0-14, F0-15, F0-17, F0-24, F0-27, F0-29 y F0-30 completadas. Quedan F0-2, F0-4, F0-6, F0-7, F0-9 a F0-12, F0-16, F0-18 a F0-23, F0-25, F0-26, F0-28 y F0-31 a F0-37.
+**Estado global:** Fase 0 en curso — F0-1, F0-3, F0-5, F0-8, F0-13, F0-14, F0-15, F0-17, F0-24, F0-27, F0-29 y F0-30 completadas. Quedan F0-2, F0-4, F0-6, F0-7, F0-9 a F0-12, F0-16, F0-18 a F0-23, F0-25, F0-26, F0-28 y F0-31 a F0-39.
 **Producto:** Plumbward · https://github.com/Erikfloresreche/Plumbward
 **Modelo de negocio:** suscripción anual por repositorio — ver
 [MODELO_DE_NEGOCIO.md](MODELO_DE_NEGOCIO.md)
@@ -1394,7 +1394,8 @@ vuelve a ser posible con HEAD desacoplado y la regresión desaparece en lugar de
 documentarse.
 
 **Qué se convierte en control mecánico:** un test de la decisión que se tome.
-La retirada de la promesa ya tiene el suyo en `rollback-branch.test.ts`.
+La retirada de la promesa de F0-24 tenía el suyo en `rollback-branch.test.ts`;
+esta tarea lo sustituye, porque la decisión vuelve a hacer cierta la promesa.
 
 **Decisión (tercera vía):** `writtenOnBranch === null` se compara como cualquier
 otro nombre. El journal escrito con HEAD desacoplado se revierte con HEAD
@@ -1625,6 +1626,61 @@ limpio de verdad, comprobado con `git status --porcelain`.
   incluidos.
 - La decisión sobre los journals v2 está escrita, con la alternativa
   descartada.
+
+---
+
+### [ ] F0-38 — `rollback` no comprueba que los ficheros sigan siendo los que dejó `apply`
+**Rama:** `fix/f0-rollback-content-check` · **Depende de:** F0-29
+
+**Origen:** hallazgos 1 y 2 de la revisión en contexto nuevo de la PR #14
+(F0-29). Son anteriores a F0-29: pasan igual con journals escritos en una rama.
+
+**El síntoma:** la rama y el commit dicen dónde se escribió, no si el árbol sigue
+como lo dejó `apply`. Dos casos verificados con git real:
+- Tras `apply`, `git switch -c rescue` y una edición sin commitear. `rollback`
+  se niega y manda volver al sitio con `git checkout`; el checkout arrastra la
+  edición, y el `rollback` de allí la sobrescribe.
+- Tras `apply`, `git switch -c work` y commit de la gobernanza. Al volver al
+  sitio, `rollback` imprime "Revertidas N operaciones" y el árbol queda limpio,
+  pero la gobernanza sigue en `work`: no ha revertido nada.
+
+**Trabajo:** guardar en el journal un hash de lo que `apply` dejó en cada
+fichero y negarse, sin escribir, si el contenido actual no coincide. Decidir
+también el orden de las comprobaciones, para que el mensaje hable del motivo
+real y no mande a un sitio desde el que `rollback` tampoco es correcto. Cambia
+el formato del journal: ver F0-35 y F0-37.
+
+**Qué se convierte en control mecánico:** los dos escenarios anteriores como
+tests con git real, comprobando el contenido de los ficheros después.
+
+**Criterios de aceptación:**
+- `rollback` no sobrescribe ningún fichero cuyo contenido difiera del que dejó
+  `apply`, y en ese caso conserva el journal.
+- Seguir el consejo de un mensaje de `rollback` nunca lleva a perder trabajo ni
+  a un "Revertidas" que no revierte nada.
+
+---
+
+### [ ] F0-39 — Mensajes de `rollback` sin test y dos consejos de vuelta distintos
+**Rama:** `fix/f0-rollback-message-coverage` · **Depende de:** F0-29
+
+**Origen:** hallazgos 4 y 5 de la revisión en contexto nuevo de la PR #14
+(F0-29).
+
+**Trabajo:**
+- Ningún test fija el texto de `assertSameCommit` para un journal escrito con
+  HEAD desacoplado ("HEAD sigue desacoplado…"): intercambiar los dos textos de
+  `cause` pasaría la batería.
+- `branch-notice.ts` aconseja `git checkout <sha>` y `rollback.ts`,
+  `git checkout --detach <sha>`. Hacen lo mismo; elegir una forma.
+
+**Qué se convierte en control mecánico:** un test del mensaje con journal
+desacoplado y otro que fije la forma elegida en los dos sitios.
+
+**Criterios de aceptación:**
+- Intercambiar los dos textos de `cause` en `assertSameCommit` hace fallar un
+  test.
+- Los dos mensajes aconsejan volver a un commit con la misma orden.
 
 ---
 

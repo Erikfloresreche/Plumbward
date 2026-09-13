@@ -91,10 +91,13 @@ function writtenWhere(journal: Journal): string {
  * Negarse siempre, como hacía F0-24, dejaba ese journal irreversible sin
  * proteger nada que el commit no proteja ya.
  *
- * Desde una rama que apunta al mismo commit también se niega. El árbol de
- * partida es el mismo, pero la etiqueta no coincide, y en el caso simétrico
- * —journal con rama, HEAD ahora desacoplado— ya se negaba: ante la duda, volver
- * es un `git checkout --detach`, y equivocarse es trabajo perdido.
+ * Desde una rama que apunta al mismo commit también se niega, por simetría con
+ * el caso contrario —journal con rama, HEAD ahora desacoplado—, que ya se
+ * negaba. **Esa negativa no protege el trabajo sin commitear:** el
+ * `git checkout` que aconseja el mensaje arrastra los cambios del árbol, y el
+ * `rollback` de después los sobrescribe. Pasa igual con journals de rama: ni la
+ * rama ni el commit dicen si los ficheros siguen siendo los que dejó `apply`.
+ * Comprobarlo es F0-38.
  *
  * Sin rama y sin commit no queda nada que comparar. `apply` no escribe ese
  * journal —un HEAD desacoplado siempre apunta a un commit—, pero uno editado a

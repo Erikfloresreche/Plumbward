@@ -139,8 +139,12 @@ escribir y conserva el journal para poder revertir desde el sitio correcto.
 Con `--no-branch` y HEAD desacoplado no hay rama que anotar, y `writtenOnBranch`
 queda `null`. **Ese `null` se compara como cualquier otro nombre** (F0-29): el
 journal se revierte con HEAD desacoplado sobre el mismo commit, y se niega desde
-una rama aunque apunte a ese commit, igual que un journal con rama se niega con
-HEAD desacoplado. Se descartaron dos alternativas. Rechazar la combinación antes
+una rama aunque apunte a ese commit, por simetría con un journal con rama, que se
+niega con HEAD desacoplado. **Esa negativa no protege el trabajo sin
+commitear:** volver al commit con `git checkout` arrastra los cambios del árbol,
+y el `rollback` siguiente los sobrescribe, igual que con journals de rama. Ni la
+rama ni el commit dicen si los ficheros siguen siendo los que dejó `apply`;
+comprobarlo es la tarea **F0-38**. Se descartaron dos alternativas. Rechazar la combinación antes
 de escribir castiga un uso legítimo —las CI hacen checkout desacoplado— para
 proteger algo que el commit ya protege. Aceptarla sin `rollback`, como dejó
 F0-24, convertía en irreversible lo que antes se revertía.
