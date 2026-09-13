@@ -6,7 +6,6 @@
     ".github/workflows/e2e.yml",
     ".github/workflows/mutations.yml",
     ".gitignore",
-    "docs/adr/0004-annual-subscription.md",
     "docs/adr/0005-inference-fails-safe.md",
     "packages/ast/src/blocks.test.ts",
     "packages/ast/src/blocks.ts",
