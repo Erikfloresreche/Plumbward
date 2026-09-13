@@ -1,21 +1,21 @@
-# Cómo contribuir a Plumbward
+# Contributing to Plumbward
 
-## Antes de nada
+## Before anything else
 
-Lee [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). El proyecto tiene tres
-invariantes que no son estilo, son la razón de existir del producto, y una
-contribución que los rompa se rechaza aunque funcione:
+Read [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). The project has three
+invariants that are not style, they are the reason the product exists, and a
+contribution that breaks them is rejected even if it works:
 
-1. **Ningún módulo escribe en disco por su cuenta.** Se declaran operaciones;
-   sólo `applyPlan` materializa, y deja journal.
-2. **`.governance/config.yml` es la fuente de verdad.** La CLI es una función
-   determinista de él.
-3. **Soportar un stack nuevo no toca el núcleo.** Es publicar un pack.
+1. **No module writes to disk on its own.** Operations are declared; only
+   `applyPlan` materialises, and it leaves a journal.
+2. **`.governance/config.yml` is the source of truth.** The CLI is a
+   deterministic function of it.
+3. **Supporting a new stack does not touch the core.** It is publishing a pack.
 
-## Puesta en marcha
+## Getting started
 
-Requiere Node.js >= 22.13 y pnpm. El suelo no es una preferencia: pnpm 11
-usa `node:sqlite` y no arranca por debajo de esa versión.
+Requires Node.js >= 22.13 and pnpm. The floor is not a preference: pnpm 11
+uses `node:sqlite` and does not start below that version.
 
 ```bash
 git clone https://github.com/Erikfloresreche/Plumbward.git
@@ -25,31 +25,31 @@ pnpm build
 pnpm test
 ```
 
-## Flujo de trabajo
+## Workflow
 
-El desarrollo se guía por [docs/EXECUTION_PLAN.md](docs/EXECUTION_PLAN.md).
-Cada tarea tiene identificador, rama, dependencias y criterios de aceptación.
+Development is driven by [docs/EXECUTION_PLAN.md](docs/EXECUTION_PLAN.md).
+Every task has an identifier, a branch, dependencies and acceptance criteria.
 
-### Ramas
+### Branches
 
-| Rama | Papel |
+| Branch | Role |
 |---|---|
-| `Prod` | Sólo releases. Cada commit es una versión etiquetada |
-| `develop` | Integración. Siempre debe estar en verde |
+| `Prod` | Releases only. Every commit is a tagged version |
+| `develop` | Integration. It must always be green |
 
-Las ramas de tarea nacen de `develop` y se nombran
-**`<tipo>/f<fase>-<slug>`**, con el slug **en inglés** — por ejemplo
-`fix/f0-protected-branches`, nunca `fix/f0-ramas-protegidas`. Tipos
-permitidos: `feat`, `fix`, `refactor`, `test`, `docs`, `build`, `ci`, `chore`.
+Task branches are created from `develop` and named
+**`<type>/f<phase>-<slug>`**, with the slug **in English** — for example
+`fix/f0-protected-branches`, never `fix/f0-ramas-protegidas`. Allowed types:
+`feat`, `fix`, `refactor`, `test`, `docs`, `build`, `ci`, `chore`.
 
-Una rama implementa **exactamente una tarea**. Si aparece trabajo imprevisto, se
-añade una tarea nueva al plan; no se amplía la que está en curso.
+A branch implements **exactly one task**. If unplanned work appears, a new task
+is added to the plan; the one in progress is not widened.
 
 ### Commits
 
-Conventional Commits **en inglés**, referenciando la tarea. El código y la
-documentación están en español; el historial de git no, porque es la convención
-dominante y sobrevive a un cambio de equipo.
+Conventional Commits **in English**, referencing the task. The code and the
+documentation are in English too: it is the dominant convention, and it
+survives a change of team.
 
 ```
 feat(pack-python): detect Poetry and uv and generate their pipeline
@@ -58,91 +58,89 @@ Implements F2-4. Adds the Python pack with ruff, mypy and pytest support,
 selecting the dependency manager from the files present in the repository.
 ```
 
-### Asistentes de IA
+### AI assistants
 
-Si trabajas con un asistente en este repositorio, sus límites operativos están
-en [CLAUDE.md](CLAUDE.md) y son de obligado cumplimiento. En resumen: **un
-asistente no ejecuta comandos git que modifiquen el estado ni escrituras en base
-de datos**. Deja los cambios en el árbol de trabajo y una persona los commitea.
+If you work with an assistant in this repository, its operating limits are in
+[CLAUDE.md](CLAUDE.md) and they are mandatory. In short: **an assistant does not
+run git commands that change state, nor database writes**. It leaves the changes
+in the working tree and a person commits them.
 
-Quien firma el commit responde de lo que entra en el historial.
+Whoever signs the commit answers for what enters the history.
 
-Al cerrar una tarea, el asistente entrega tres textos en inglés, listos para
-copiar —el **mensaje de commit**, el **título de la Pull Request** y su
-**descripción**— y pregunta quién va a revisar la PR.
+When a task is closed, the assistant delivers three texts in English, ready to
+copy —the **commit message**, the **Pull Request title** and its
+**description**— and asks who is going to review the PR.
 
-El título de la PR sigue el mismo formato de Conventional Commits que el commit,
-en una línea y por debajo de 70 caracteres. Es lo único visible en la lista de
-Pull Requests, así que debe decir qué cambia sin necesidad de abrirla.
+The PR title follows the same Conventional Commits format as the commit, on a
+single line and under 70 characters. It is the only thing visible in the Pull
+Request list, so it has to say what changes without opening it.
 
-### Revisión cuando no hay nadie disponible
+### Review when nobody is available
 
-Si la PR se quedaría bloqueada porque no hay otra persona que pueda revisarla, un
-asistente puede hacer la revisión, pero **siempre en un contexto nuevo, sin el
-historial de la conversación que produjo el código**.
+If the PR would be blocked because no other person can review it, an assistant
+may do the review, but **always in a fresh context, without the history of the
+conversation that produced the code**.
 
-Revisar el propio trabajo con el contexto que lo generó reproduce los mismos
-puntos ciegos: se dan por buenas las mismas suposiciones. Un contexto limpio sólo
-ve el diff y lo juzga por lo que dice.
+Reviewing your own work with the context that generated it reproduces the same
+blind spots: the same assumptions are taken for granted. A clean context only
+sees the diff and judges it by what it says.
 
-Esa revisión **entrega hallazgos; no aprueba ni integra**. El merge lo hace una
-persona. Y es una válvula para no bloquear el trabajo, no un sustituto de la
-revisión humana: si hay alguien disponible, revisa esa persona.
+That review **delivers findings; it does not approve or merge**. A person does
+the merge. And it is an escape valve so work is not blocked, not a substitute
+for human review: if someone is available, that person reviews.
 
-### Un hallazgo termina en un control
+### A finding ends in a control
 
-Lo que salga de una revisión se convierte en un test o en una comprobación de
-CI, o se registra como no mecanizable explicando por qué. Una regla añadida a un
-documento no cuenta: los documentos de reglas decaen a medida que crecen, y el
-propósito de este proyecto es precisamente sustituir reglas que se ignoran por
-controles que no se pueden saltar.
+Whatever comes out of a review becomes a test or a CI check, or is recorded as
+not mechanisable, saying why. A rule added to a document does not count: rule
+documents decay as they grow, and the purpose of this project is precisely to
+replace rules that get ignored with controls that cannot be skipped.
 
 ## Definition of Done
 
-**La lista canónica y completa está en el §4 de
-[docs/EXECUTION_PLAN.md](docs/EXECUTION_PLAN.md).** Si esta copia y aquélla
-difieren, manda el plan. En resumen, una tarea no está terminada hasta que
-cumple todo esto, además de sus criterios propios:
+**The canonical, complete list is in §4 of
+[docs/EXECUTION_PLAN.md](docs/EXECUTION_PLAN.md).** If this copy and that one
+differ, the plan wins. In short, a task is not finished until it meets all of
+this, on top of its own criteria:
 
-- `pnpm build`, `pnpm typecheck` y `pnpm test` en verde.
-- Cero `any` implícitos. Cero `@ts-expect-error` sin comentario que lo justifique.
-- Todo retorno público con su interfaz declarada.
-- Todo fichero generado para el cliente con comentarios explicativos en su idioma.
-- Toda ruta de error nueva es reversible: o participa del journal, o no escribe.
-- Tests para el comportamiento nuevo. Un bug se corrige empezando por el test
-  que lo reproduce.
-- La casilla de la tarea marcada en el plan, en la misma PR.
-- Ningún asistente ha ejecutado comandos git que modifiquen el estado ni
-  escrituras en base de datos.
-- Se han entregado el mensaje de commit y la descripción de la PR en inglés, y
-  se ha preguntado quién revisa.
-- Cada hallazgo de la revisión ha terminado en un control mecánico, o está
-  registrado como no mecanizable y por qué.
+- `pnpm build`, `pnpm typecheck` and `pnpm test` green.
+- Zero implicit `any`. Zero `@ts-expect-error` without a comment justifying it.
+- Every public return value with its declared interface.
+- Every file generated for the client with explanatory comments in its language.
+- Every new error path is reversible: it either takes part in the journal or
+  does not write.
+- Tests for the new behaviour. A bug is fixed starting with the test that
+  reproduces it.
+- The task checkbox ticked in the plan, in the same PR.
+- No assistant has run git commands that change state, nor database writes.
+- The commit message and the PR description have been delivered in English, and
+  someone has been asked who reviews.
+- Every review finding has ended in a mechanical control, or is recorded as not
+  mechanisable and why.
 
-## Escribir un pack
+## Writing a pack
 
-Un pack implementa la interfaz `StackPack` de
-[packs-sdk](packages/packs-sdk/src/contract.ts) con tres métodos:
+A pack implements the `StackPack` interface of
+[packs-sdk](packages/packs-sdk/src/contract.ts) with three methods:
 
-- **`detect(context)`** — ¿este pack aplica a este repositorio, y con qué confianza?
-- **`contribute(context)`** — qué operaciones quiere aportar. **Nunca escribe en disco.**
-- **`validate(context)`** — comprobaciones de salud para `doctor`.
+- **`detect(context)`** — does this pack apply to this repository, and with what confidence?
+- **`contribute(context)`** — which operations it wants to contribute. **It never writes to disk.**
+- **`validate(context)`** — health checks for `doctor`.
 
-Usa el DSL de [dsl.ts](packages/packs-sdk/src/dsl.ts) (`file`, `json`, `yaml`,
-`block`, `dep`, `cmd`) en lugar de construir objetos a mano.
+Use the DSL in [dsl.ts](packages/packs-sdk/src/dsl.ts) (`file`, `json`, `yaml`,
+`block`, `dep`, `cmd`) instead of building objects by hand.
 
-Todo pack debe pasar `checkPackConformance`. La regla que más sorprende es el
-**determinismo**: se llama a `contribute()` dos veces y se comparan los
-resultados. Si difieren, `plan` estaría mintiendo sobre lo que `apply` va a
-hacer, y todo el modelo de confianza del producto se cae.
+Every pack must pass `checkPackConformance`. The rule that surprises most is
+**determinism**: `contribute()` is called twice and the results are compared. If
+they differ, `plan` would be lying about what `apply` is going to do, and the
+whole trust model of the product falls apart.
 
-La guía completa llegará con la tarea F2-8. Mientras tanto,
-[packs/node-ts](packages/packs/node-ts/) es la referencia.
+The full guide will come with task F2-8. Meanwhile,
+[packs/node-ts](packages/packs/node-ts/) is the reference.
 
-## Hooks de pre-commit
+## Pre-commit hooks
 
-El repositorio tendrá hooks a partir de la tarea F0-4. Cuando existan, se pueden
-saltar con `--no-verify` en una emergencia real —una corrección urgente en
-producción a las tres de la madrugada—, pero **la PR siguiente debe arreglar lo
-que el hook habría detectado**. Saltárselos por costumbre convierte la
-herramienta en decorado.
+The repository will have hooks from task F0-4 onwards. Once they exist, they can
+be skipped with `--no-verify` in a real emergency —an urgent production fix at
+three in the morning—, but **the next PR must fix whatever the hook would have
+caught**. Skipping them out of habit turns the tool into decoration.

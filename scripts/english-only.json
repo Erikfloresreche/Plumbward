@@ -6,7 +6,6 @@
     ".github/workflows/e2e.yml",
     ".github/workflows/mutations.yml",
     ".gitignore",
-    "CONTRIBUTING.md",
     "SECURITY.md",
     "docs/ARCHITECTURE.md",
     "docs/BUSINESS_MODEL.md",
@@ -79,6 +78,13 @@
     "vitest.setup.ts"
   ],
   "exceptions": [
+    {
+      "path": "CONTRIBUTING.md",
+      "reason": "The branch-naming section shows a Spanish slug as the example of what is not allowed, next to its English equivalent.",
+      "fragments": [
+        "fix/f0-\u0072amas-protegidas"
+      ]
+    },
     {
       "path": "scripts/branch-names-corpus.json",
       "reason": "Test data of the branch-name control (F0-15): real branch names, and the Spanish ones are what the control must reject."
