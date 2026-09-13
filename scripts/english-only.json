@@ -6,7 +6,6 @@
     ".github/workflows/e2e.yml",
     ".github/workflows/mutations.yml",
     ".gitignore",
-    "docs/ARCHITECTURE.md",
     "docs/BUSINESS_MODEL.md",
     "docs/adr/0001-plan-before-apply.md",
     "docs/adr/0002-local-first-licensing.md",

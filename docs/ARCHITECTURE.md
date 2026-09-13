@@ -1,52 +1,52 @@
-# Arquitectura de Plumbward
+# Plumbward architecture
 
-Documento de referencia: qué hace el producto, cómo está construido y **por qué
-cada pieza está donde está**. Si vas a tocar el código, léelo antes.
+Reference document: what the product does, how it is built and **why each piece
+is where it is**. If you are going to touch the code, read it first.
 
-Para saber qué se construye a continuación, ve a
+To find out what gets built next, go to
 [EXECUTION_PLAN.md](EXECUTION_PLAN.md).
 
 ---
 
-## 1. El problema y la respuesta
+## 1. The problem and the answer
 
-Los asistentes de IA generan código mucho más rápido de lo que un humano puede
-revisarlo. El volumen de Pull Requests se dispara, los desarrolladores senior se
-convierten en cuello de botella y los estándares del proyecto se diluyen. La
-solución conocida —configurar CI, linters, hooks y escaneo de secretos— cuesta
-entre 8 y 16 horas por repositorio, y casi nadie las dedica.
+AI assistants generate code much faster than a human can review it. The volume
+of Pull Requests soars, senior developers become a bottleneck and the project's
+standards get diluted. The known solution —setting up CI, linters, hooks and
+secret scanning— costs between 8 and 16 hours per repository, and almost nobody
+spends them.
 
-Plumbward automatiza ese trabajo. Pero lo que define el producto no es *qué*
-instala, sino **cómo lo instala sin que puedas perder nada**. Todo el diseño
-parte de una sola idea:
+Plumbward automates that work. But what defines the product is not *what* it
+installs, but **how it installs it without you being able to lose anything**.
+The whole design starts from a single idea:
 
-> Nunca escribir en el repositorio de alguien sin haberle enseñado antes
-> exactamente qué va a pasar, y sin poder deshacerlo por completo después.
+> Never write to someone's repository without first showing them exactly what
+> is going to happen, and without being able to undo it completely afterwards.
 
-## 2. El ciclo de comandos
+## 2. The command cycle
 
-| Comando | Qué hace | ¿Escribe en disco? |
+| Command | What it does | Does it write to disk? |
 |---|---|---|
-| `scan` | Diagnostica el repositorio y lo puntúa de 0 a 100 | **Nunca** |
-| `plan` | Muestra el diff exacto de lo que haría | **Nunca** |
-| `apply` | Materializa el plan dejando registro reversible | Sí, con journal |
-| `rollback` | Deshace la última ejecución por completo | Sí, restaurando |
-| `doctor` | Verifica que lo instalado sigue sano | No |
+| `scan` | Diagnoses the repository and scores it from 0 to 100 | **Never** |
+| `plan` | Shows the exact diff of what it would do | **Never** |
+| `apply` | Materialises the plan, leaving a reversible record | Yes, with a journal |
+| `rollback` | Undoes the last run completely | Yes, restoring |
+| `doctor` | Checks that what was installed is still healthy | No |
 
-`scan` no requiere licencia por diseño: es el gancho comercial. El informe crea
-la necesidad que el resto del producto resuelve.
+`scan` does not require a licence by design: it is the commercial hook. The
+report creates the need that the rest of the product solves.
 
 ---
 
-## 3. La decisión central: separar el plan de la ejecución
+## 3. The central decision: separating the plan from the execution
 
-Es la decisión de la que se derivan casi todas las demás.
+It is the decision from which almost all the others derive.
 
-Lo intuitivo sería recorrer el repositorio y, según lo que se encuentre, ir
-escribiendo ficheros. Es lo que hacen la mayoría de generadores.
+The intuitive approach would be to walk the repository and write files according
+to what is found. It is what most generators do.
 
-**Aquí está prohibido.** Ningún módulo escribe en disco. Los módulos *describen
-su intención* devolviendo objetos:
+**Here it is forbidden.** No module writes to disk. Modules *describe their
+intent* by returning objects:
 
 ```ts
 {
@@ -54,203 +54,209 @@ su intención* devolviendo objetos:
   path: '.gitleaks.toml',
   content: '…',
   managed: true,
-  reason: 'Configura la detección de secretos antes de que lleguen al historial.',
+  reason: 'Sets up secret detection before secrets reach the history.',
 }
 ```
 
-Eso son **datos, no acciones**. Y los datos se pueden inspeccionar, ordenar,
-deduplicar, simular, mostrar y revertir. Un `fs.writeFile()` disperso por el
-código no permite nada de eso.
+Those are **data, not actions**. And data can be inspected, sorted,
+deduplicated, simulated, shown and reverted. An `fs.writeFile()` scattered
+across the code allows none of that.
 
-De ahí salen las cuatro propiedades que constituyen el producto:
+From there come the four properties that make up the product:
 
-**`plan` puede existir.** El usuario ve el resultado antes de autorizarlo. Sin
-esto no hay venta enterprise: ninguna empresa deja que un binario descargado con
-`npx` toque su repositorio a ciegas.
+**`plan` can exist.** The user sees the result before authorising it. Without
+this there is no enterprise sale: no company lets a binary downloaded with `npx`
+touch its repository blindly.
 
-**`apply` puede revertirse.** Como cada operación se ejecuta una a una y se sabe
-qué fichero toca, puede fotografiarse su estado anterior antes de tocarlo.
+**`apply` can be reverted.** Because each operation runs one at a time and the
+file it touches is known, its previous state can be photographed before touching
+it.
 
-**Los packs declaran, no actúan.** Un pack sólo devuelve operaciones; quien
-decide y escribe es el núcleo. Es una convención, no todavía una frontera
-técnica: ver §4.5 y la tarea F2-11 antes de aceptar packs de terceros.
+**Packs declare, they do not act.** A pack only returns operations; the core is
+what decides and writes. It is a convention, not yet a technical boundary: see
+§4.5 and task F2-11 before accepting third-party packs.
 
-**El resultado es determinista.** Mismo repositorio + misma configuración =
-mismo plan, siempre. Es lo que permite ejecutarlo en CI y confiar en el
-resultado.
+**The result is deterministic.** Same repository + same configuration = same
+plan, always. It is what allows running it in CI and trusting the result.
 
 ---
 
-## 4. Los cinco mecanismos de seguridad
+## 4. The five safety mechanisms
 
-### 4.1 Las operaciones son una unión cerrada — [core/src/types.ts](../packages/core/src/types.ts)
+### 4.1 Operations are a closed union — [core/src/types.ts](../packages/core/src/types.ts)
 
-Existen exactamente **seis** tipos de operación: `createFile`, `patchJson`,
-`patchYaml`, `ensureBlock`, `addDependency` y `execCommand`.
+There are exactly **six** operation kinds: `createFile`, `patchJson`,
+`patchYaml`, `ensureBlock`, `addDependency` and `execCommand`.
 
-Que sea una unión cerrada permite que el compilador exija tratar los casos
-nuevos, pero **hoy esa garantía sólo es real en parte del código**:
+Being a closed union lets the compiler demand that new cases are handled, but
+**today that guarantee is only real in part of the code**:
 
-| Dónde | ¿El compilador obliga? |
+| Where | Does the compiler enforce it? |
 |---|---|
-| `executeOperation` en `apply.ts` | Sí: cada rama retorna, sin `return` final |
-| `targetKey` y `describeOperation` en `plan.ts` | Sí |
-| `simulatePlan` en `simulate.ts` | **No**: el `switch` no tiene guarda, y un tipo nuevo se ignoraría en silencio |
-| `render.ts` | **No**: no discrimina por `kind` de forma exhaustiva |
-| `revertEntries` | No aplica: reproduce snapshots, no razona por tipo |
+| `executeOperation` in `apply.ts` | Yes: every branch returns, with no final `return` |
+| `targetKey` and `describeOperation` in `plan.ts` | Yes |
+| `simulatePlan` in `simulate.ts` | **No**: the `switch` has no guard, and a new kind would be silently ignored |
+| `render.ts` | **No**: it does not discriminate on `kind` exhaustively |
+| `revertEntries` | Not applicable: it replays snapshots, it does not reason by kind |
 
-El hueco de `simulate.ts` es el peligroso: un tipo nuevo no aparecería en `plan`
-pero sí se ejecutaría en `apply`, que es exactamente la divergencia que todo este
-diseño existe para evitar. Está registrado como tarea **F0-9**.
+The `simulate.ts` gap is the dangerous one: a new kind would not show up in
+`plan` but would run in `apply`, which is exactly the divergence this whole
+design exists to prevent. It is recorded as task **F0-9**.
 
-El campo `reason` es **obligatorio** en todas. No es documentación: es lo que se
-imprime en el plan. La suite de conformidad rechaza cualquier operación con un
-`reason` vacío. Un cambio que no se puede explicar no se aplica.
+The `reason` field is **mandatory** in all of them. It is not documentation: it
+is what gets printed in the plan. The conformance suite rejects any operation
+with an empty `reason`. A change that cannot be explained is not applied.
 
-### 4.2 La simulación usa una capa superpuesta — [core/src/simulate.ts](../packages/core/src/simulate.ts)
+### 4.2 The simulation uses an overlay — [core/src/simulate.ts](../packages/core/src/simulate.ts)
 
-`plan` no estima el resultado: lo **calcula**. Lee los ficheros reales, aplica
-todas las transformaciones en memoria sobre un `overlay` y muestra el resultado
-final.
+`plan` does not estimate the result: it **computes** it. It reads the real
+files, applies every transformation in memory on an `overlay` and shows the
+final result.
 
-Importa porque las operaciones se acumulan: si tres operaciones parchean
-`package.json`, la simulación debe reflejar las tres encadenadas, no la última.
-Por eso el plan puede distinguir entre "modificar" y "ya al día".
+It matters because operations accumulate: if three operations patch
+`package.json`, the simulation must reflect all three chained, not the last one.
+That is why the plan can tell "modify" from "already up to date".
 
-### 4.3 El journal guarda fotografías — [core/src/apply.ts](../packages/core/src/apply.ts)
+### 4.3 The journal keeps photographs — [core/src/apply.ts](../packages/core/src/apply.ts)
 
-Antes de tocar un fichero, `apply` guarda su contenido anterior en base64 dentro
-de `.governance/journal.json`, junto con si el fichero existía o no.
+Before touching a file, `apply` stores its previous content in base64 inside
+`.governance/journal.json`, together with whether the file existed or not.
 
-`rollback` no tiene que adivinar: recorre el journal al revés, restaura los
-contenidos y borra los ficheros que no existían. El criterio de éxito es
-literal: tras un `apply --no-install`, `git status --porcelain` debe quedar
-vacío.
+`rollback` does not have to guess: it walks the journal backwards, restores the
+contents and deletes the files that did not exist. The success criterion is
+literal: after an `apply --no-install`, `git status --porcelain` must be empty.
 
-**El journal recuerda en qué rama se escribió, y `rollback` sólo actúa ahí.**
-`apply` aísla los cambios en `chore/setup-ai-governance`, y el journal entra en
-el `.gitignore` que instala el pack, así que sobrevive a los checkouts. Un
-journal que recordase la rama de *partida* haría que `rollback` en `Prod`
-restaurase en `Prod` fotografías tomadas en la rama aislada: no revierte nada,
-borra lo que `Prod` tuviera desde entonces. Por eso `writtenOnBranch` se lee
-**después** de cambiar de rama, y en cualquier otra rama `rollback` se niega sin
-escribir y conserva el journal para poder revertir desde el sitio correcto.
+**The journal remembers which branch it was written on, and `rollback` only acts
+there.** `apply` isolates the changes in `chore/setup-ai-governance`, and the
+journal goes into the `.gitignore` the pack installs, so it survives checkouts.
+A journal that remembered the *starting* branch would make `rollback` on `Prod`
+restore on `Prod` photographs taken on the isolated branch: it reverts nothing,
+it deletes whatever `Prod` has had since then. That is why `writtenOnBranch` is
+read **after** switching branches, and on any other branch `rollback` refuses
+without writing and keeps the journal so it can be reverted from the right
+place.
 
-Con `--no-branch` y HEAD desacoplado no hay rama que anotar, y `writtenOnBranch`
-queda `null`. **Ese `null` se compara como cualquier otro nombre** (F0-29): el
-journal se revierte con HEAD desacoplado sobre el mismo commit, y se niega desde
-una rama aunque apunte a ese commit, por simetría con un journal con rama, que se
-niega con HEAD desacoplado. **Esa negativa no protege el trabajo sin
-commitear:** volver al commit con `git checkout` arrastra los cambios del árbol,
-y el `rollback` siguiente los sobrescribe, igual que con journals de rama. Ni la
-rama ni el commit dicen si los ficheros siguen siendo los que dejó `apply`;
-comprobarlo es la tarea **F0-38**. Se descartaron dos alternativas. Rechazar la combinación antes
-de escribir castiga un uso legítimo —las CI hacen checkout desacoplado— para
-proteger algo que el commit ya protege. Aceptarla sin `rollback`, como dejó
-F0-24, convertía en irreversible lo que antes se revertía.
+With `--no-branch` and a detached HEAD there is no branch to record, and
+`writtenOnBranch` stays `null`. **That `null` is compared like any other name**
+(F0-29): the journal is reverted with a detached HEAD on the same commit, and it
+is refused from a branch even if the branch points to that commit, by symmetry
+with a journal that has a branch, which is refused with a detached HEAD. **That
+refusal does not protect uncommitted work:** going back to the commit with
+`git checkout` carries the working-tree changes along, and the next `rollback`
+overwrites them, just as with branch journals. Neither the branch nor the commit
+says whether the files are still the ones `apply` left; checking it is task
+**F0-38**. Two alternatives were discarded. Rejecting the combination before
+writing punishes a legitimate use —CI runs check out a detached HEAD— to protect
+something the commit already protects. Accepting it without `rollback`, as F0-24
+left it, turned into irreversible what used to be revertible.
 
-**El nombre de la rama dice dónde estás, no si es el mismo sitio.** Una rama
-borrada y recreada con el mismo nombre sobre otro commit, o un commit hecho en
-la rama aislada después del `apply`, pasan una comprobación por nombre y pierden
-datos igual: las fotografías son del árbol que había en aquel commit. Por eso el
-journal guarda además `writtenOnCommit`, leído a la vez que `writtenOnBranch`, y
-`rollback` exige las dos cosas. Ese commit es también el de partida —`headMoved`
-aborta si HEAD se mueve entre el plan y la confirmación, y la rama aislada se
-crea desde HEAD sin commitear—, así que no hay un segundo campo que mantener, y
-el aviso de vuelta lo usa para nombrar adónde volver cuando se empezó con HEAD
-desacoplado.
+**The branch name says where you are, not whether it is the same place.** A
+branch deleted and recreated with the same name on another commit, or a commit
+made on the isolated branch after the `apply`, pass a check by name and lose
+data all the same: the photographs are of the tree that existed at that commit.
+That is why the journal also stores `writtenOnCommit`, read at the same time as
+`writtenOnBranch`, and `rollback` requires both. That commit is also the
+starting one —`headMoved` aborts if HEAD moves between the plan and the
+confirmation, and the isolated branch is created from HEAD without committing—,
+so there is no second field to maintain, and the return notice uses it to name
+where to go back to when the run started with a detached HEAD.
 
-Los journals de versiones anteriores no se revierten: la v1 guardaba la rama de
-partida y la v2 no guardaba el commit, y en ninguna de las dos se puede
-comprobar que se sigue en el mismo sitio. `readJournal` lanza
-`OutdatedJournalError` y remite a git, en la misma dirección que la ADR 0005:
-ante la duda, menos acción.
+Journals from earlier versions are not reverted: v1 stored the starting branch
+and v2 did not store the commit, and in neither of them can it be checked that
+you are still in the same place. `readJournal` throws `OutdatedJournalError` and
+refers you to git, in the same direction as ADR 0005: when in doubt, less
+action.
 
-Revertir tampoco deshace el `checkout`: los ficheros vuelven, la rama no. Por
-eso el journal guarda también `startedOnBranch`, y tanto `rollback` como la
-reversión automática de un `apply` fallido dicen en qué rama queda el
-repositorio y con qué comando volver a la de partida. Si la reversión automática
-**tampoco** pudo, el consejo cambia entero: quedan ficheros a medias, así que
-primero se revierte donde se está y sólo después se vuelve. Ni se propone el
-`checkout` todavía, ni se da el comando que borra la rama aislada: borrarla
-dejaría el `rollback` imposible, porque sólo revierte desde ella.
+Reverting does not undo the `checkout` either: the files come back, the branch
+does not. That is why the journal also stores `startedOnBranch`, and both
+`rollback` and the automatic reversion of a failed `apply` say which branch the
+repository is left on and which command takes you back to the starting one. If
+the automatic reversion **could not** do it either, the advice changes entirely:
+there are half-written files, so first you revert where you are and only then go
+back. Neither is the `checkout` proposed yet, nor is the command that deletes
+the isolated branch given: deleting it would make the `rollback` impossible,
+because it only reverts from that branch.
 
-**Hueco conocido:** las operaciones `execCommand` no registran snapshots. Lo que
-el gestor de paquetes escriba en el lockfile y en `node_modules` durante la
-instalación queda fuera del journal, y `rollback` no lo deshace. Tarea **F0-11**.
-Por eso tanto el test E2E como el guion de prueba de §7 usan `--no-install`.
+**Known gap:** `execCommand` operations do not record snapshots. What the
+package manager writes to the lockfile and to `node_modules` during installation
+stays outside the journal, and `rollback` does not undo it. Task **F0-11**.
+That is why both the E2E test and the test script in §7 use `--no-install`.
 
-Y lo más importante: **si `apply` falla a mitad, se revierte solo**. No existe el
-estado "medio configurado", que es el peor sitio donde dejar el repositorio de un
-cliente.
+And the most important thing: **if `apply` fails halfway, it reverts itself**.
+The "half configured" state does not exist, and it is the worst place to leave a
+client's repository.
 
-### 4.4 Bloques gestionados y cabeceras con hash — [ast/src/blocks.ts](../packages/ast/src/blocks.ts)
+### 4.4 Managed blocks and hashed headers — [ast/src/blocks.ts](../packages/ast/src/blocks.ts)
 
-Este mecanismo es lo que hará técnicamente posible el modelo de suscripción.
+This mechanism is what will make the subscription model technically possible.
 
-> **El comando `upgrade` todavía no existe** — es la tarea F4-2. Lo que sigue
-> describe el mecanismo ya construido sobre el que se apoyará, no un
-> comportamiento actual.
+> **The `upgrade` command does not exist yet** — it is task F4-2. What follows
+> describes the mechanism already built that it will rest on, not current
+> behaviour.
 
-Hay dos casos:
+The comments these files carry are generated for the client, so they follow the
+profile language. The examples show them in English, as F0-45 makes the default;
+until then the CLI writes them in Spanish.
 
-**Ficheros enteramente nuestros** (`.gitleaks.toml`, `eslint.config.js`). Llevan
-cabecera con hash del contenido generado:
+There are two cases:
+
+**Files that are entirely ours** (`.gitleaks.toml`, `eslint.config.js`). They
+carry a header with the hash of the generated content:
 
 ```
 # plumbward:managed v=0.1.0 hash=a3f2c81b0d94
-# Fichero generado por la CLI de gobernanza.
-# Si lo editas a mano, `plumbward upgrade` dejará de actualizarlo
-# y te avisará del conflicto en lugar de sobrescribir tus cambios.
+# File generated by the governance CLI.
+# If you edit it by hand, `plumbward upgrade` will stop updating it
+# and will warn you about the conflict instead of overwriting your changes.
 ```
 
-`upgrade` deberá recalcular el hash y compararlo. Si coincide, el cliente no
-tocó el fichero y se regenera con las reglas nuevas; si no coincide, lo
-personalizó y **se respeta y se avisa**, jamás se pisa.
+`upgrade` will have to recompute the hash and compare it. If it matches, the
+client did not touch the file and it is regenerated with the new rules; if it
+does not match, the client customised it and **it is respected and a warning is
+given**, never overwritten.
 
-**Cuidado al implementarlo:** `withManagedHeader` calcula el hash sobre el
-contenido generado **antes** de anteponer la cabecera. El valor guardado en
-`hash=` no es, por tanto, el hash del fichero tal como queda en disco. La
-comparación tiene que hacerse contra el cuerpo sin cabecera, no contra el
-fichero entero.
+**Careful when implementing it:** `withManagedHeader` computes the hash over the
+generated content **before** prepending the header. The value stored in `hash=`
+is therefore not the hash of the file as it ends up on disk. The comparison has
+to be made against the body without the header, not against the whole file.
 
-**Ficheros del cliente** (`.gitignore`, `tsconfig.json`). Sólo se inserta un
-fragmento entre marcadores:
+**Client files** (`.gitignore`, `tsconfig.json`). Only a fragment between
+markers is inserted:
 
 ```
 # >>> plumbward:begin gitignore-artifacts
-# Bloque gestionado automáticamente. No edites dentro de los marcadores:
-# `plumbward upgrade` regenerará su contenido.
+# Automatically managed block. Do not edit inside the markers:
+# `plumbward upgrade` will regenerate its content.
 .governance/journal.json
 # <<< plumbward:end gitignore-artifacts
 ```
 
-`upgrade` reescribe únicamente lo que hay **entre** los marcadores. Una sola
-línea fuera de ellos no se toca nunca.
+`upgrade` rewrites only what is **between** the markers. A single line outside
+them is never touched.
 
-### 4.5 Contención de rutas — [core/src/fs.ts](../packages/core/src/fs.ts)
+### 4.5 Path containment — [core/src/fs.ts](../packages/core/src/fs.ts)
 
-`resolveInRepo()` rechaza rutas absolutas y cualquier cosa que se escape con
-`../`. Hay un test E2E que verifica ese caso.
+`resolveInRepo()` rejects absolute paths and anything that escapes with `../`.
+An E2E test checks that case.
 
-**Lo que hoy NO cubre:** la comprobación es puramente léxica (`path.resolve` y
-`path.relative`, sin `realpath`). Si el repositorio contiene un enlace simbólico
-a un directorio de fuera, una ruta que pase por él supera la validación y la
-escritura sale del repositorio. Tarea **F0-10**.
+**What it does NOT cover today:** the check is purely lexical (`path.resolve`
+and `path.relative`, without `realpath`). If the repository contains a symbolic
+link to a directory outside it, a path that goes through it passes validation
+and the write leaves the repository. Task **F0-10**.
 
-Y hay un límite más importante que conviene no malinterpretar: **esto no es un
-sandbox**. Un pack es un objeto cargado en el mismo proceso de Node y nada le
-impide importar `node:fs` y escribir por su cuenta. Que no lo haga es una
-**convención verificada en revisión y en la suite de conformidad**, que sólo
-inspecciona las operaciones devueltas, no los efectos secundarios. Antes de
-aceptar packs de terceros hace falta una frontera real (tarea F2-11).
+And there is a more important limit that should not be misread: **this is not a
+sandbox**. A pack is an object loaded in the same Node process and nothing stops
+it from importing `node:fs` and writing on its own. That it does not do so is a
+**convention checked in review and in the conformance suite**, which only
+inspects the returned operations, not side effects. Before accepting
+third-party packs a real boundary is needed (task F2-11).
 
 ---
 
-## 5. Mapa de paquetes
+## 5. Package map
 
-Se parte en seis paquetes para **forzar que las dependencias vayan en una sola
-dirección**:
+It is split into six packages to **force dependencies to go in a single
+direction**:
 
 ```
                     ast
@@ -271,187 +277,188 @@ dirección**:
                     cli
 ```
 
-Las aristas exactas, tal como las declaran los `package.json`:
+The exact edges, as the `package.json` files declare them:
 
-| Paquete | Depende de |
+| Package | Depends on |
 |---|---|
-| `ast` | — (es una hoja) |
+| `ast` | — (it is a leaf) |
 | `core` | `ast` |
 | `scanner` | `core` |
 | `packs-sdk` | `core`, `scanner` |
 | `packs/node-ts` | `core`, `packs-sdk`, `scanner` |
 | `cli` | `ast`, `core`, `scanner`, `packs-sdk`, `pack-node-ts` |
 
-`ast` no sabe que existe `core`. `core` no sabe que existen los packs. Los packs
-no saben que existe la CLI. Si mañana hace falta una interfaz web o una GitHub
-Action, se reutiliza todo menos `cli`.
+`ast` does not know `core` exists. `core` does not know the packs exist. The
+packs do not know the CLI exists. If a web interface or a GitHub Action is
+needed tomorrow, everything but `cli` is reused.
 
-### `@plumbward/ast` — edición no destructiva
+### `@plumbward/ast` — non-destructive editing
 
-El problema: leer un `package.json` con `JSON.parse`, añadirle un script y
-escribirlo con `JSON.stringify` **destruye el formato y los comentarios del
-cliente**. En un `tsconfig.json` lleno de comentarios explicativos, eso es
-inaceptable.
+The problem: reading a `package.json` with `JSON.parse`, adding a script to it
+and writing it with `JSON.stringify` **destroys the client's formatting and
+comments**. In a `tsconfig.json` full of explanatory comments, that is
+unacceptable.
 
-| Fichero | Por qué existe |
+| File | Why it exists |
 |---|---|
-| [json.ts](../packages/ast/src/json.ts) | Parchea JSON con `comment-json`, preservando comentarios y orden de claves |
-| [yaml.ts](../packages/ast/src/yaml.ts) | Lo mismo para YAML, preservando comentarios y anclas |
-| [pointer.ts](../packages/ast/src/pointer.ts) | Punteros RFC-6901 (`/scripts/lint`) para señalar dónde parchear sin conocer la estructura |
-| [blocks.ts](../packages/ast/src/blocks.ts) | Bloques con marcadores y cabeceras gestionadas (§4.4) |
+| [json.ts](../packages/ast/src/json.ts) | Patches JSON with `comment-json`, preserving comments and key order |
+| [yaml.ts](../packages/ast/src/yaml.ts) | The same for YAML, preserving comments and anchors |
+| [pointer.ts](../packages/ast/src/pointer.ts) | RFC-6901 pointers (`/scripts/lint`) to point at where to patch without knowing the structure |
+| [blocks.ts](../packages/ast/src/blocks.ts) | Blocks with markers and managed headers (§4.4) |
 
-### `@plumbward/core` — el motor transaccional
+### `@plumbward/core` — the transactional engine
 
-| Fichero | Por qué existe |
+| File | Why it exists |
 |---|---|
-| [types.ts](../packages/core/src/types.ts) | Los seis tipos de operación y las estructuras de plan y journal |
-| [plan.ts](../packages/core/src/plan.ts) | `PlanBuilder`: acumula, deduplica, detecta choques entre packs y ordena |
-| [simulate.ts](../packages/core/src/simulate.ts) | Calcula el resultado sin escribir (§4.2) |
-| [apply.ts](../packages/core/src/apply.ts) | Ejecuta, fotografía, registra y auto-revierte (§4.3) |
-| [rollback.ts](../packages/core/src/rollback.ts) | Deshace desde el journal y lo borra para que no se aplique dos veces |
-| [fs.ts](../packages/core/src/fs.ts) | Contención de rutas y estilo de comentario por extensión |
-| [hash.ts](../packages/core/src/hash.ts) | SHA-256 para las cabeceras gestionadas y la baseline |
+| [types.ts](../packages/core/src/types.ts) | The six operation kinds and the plan and journal structures |
+| [plan.ts](../packages/core/src/plan.ts) | `PlanBuilder`: accumulates, deduplicates, detects clashes between packs and sorts |
+| [simulate.ts](../packages/core/src/simulate.ts) | Computes the result without writing (§4.2) |
+| [apply.ts](../packages/core/src/apply.ts) | Runs, photographs, records and self-reverts (§4.3) |
+| [rollback.ts](../packages/core/src/rollback.ts) | Undoes from the journal and deletes it so it is not applied twice |
+| [fs.ts](../packages/core/src/fs.ts) | Path containment and comment style by extension |
+| [hash.ts](../packages/core/src/hash.ts) | SHA-256 for the managed headers and the baseline |
 
-Dos detalles de `plan.ts` que conviene conocer:
+Two details of `plan.ts` worth knowing:
 
-**El orden de aplicación está codificado** y no es arbitrario: `createFile` →
-`ensureBlock` → `patchJson` → `patchYaml` → `addDependency` → `execCommand`. Un
-fichero debe existir antes de poder parchearlo, y las dependencias deben
-declararse antes de ejecutar comandos que las usen.
+**The application order is hard-coded** and it is not arbitrary: `createFile` →
+`ensureBlock` → `patchJson` → `patchYaml` → `addDependency` → `execCommand`. A
+file must exist before it can be patched, and dependencies must be declared
+before running commands that use them.
 
-**Los choques entre packs se detectan solos.** Si dos packs quieren escribir
-cosas distintas en `/scripts/lint`, el builder lo detecta comparando huellas y lo
-reporta como conflicto. Si quieren escribir lo mismo, lo deduplica en silencio.
-Esto es lo que permitirá que un repositorio Django + Next.js reciba dos packs sin
-que se pisen.
+**Clashes between packs are detected on their own.** If two packs want to write
+different things to `/scripts/lint`, the builder detects it by comparing
+fingerprints and reports it as a conflict. If they want to write the same thing,
+it deduplicates it silently. This is what will let a Django + Next.js repository
+receive two packs without them stepping on each other.
 
-### `@plumbward/scanner` — diagnóstico de sólo lectura
+### `@plumbward/scanner` — read-only diagnosis
 
-| Fichero | Por qué existe |
+| File | Why it exists |
 |---|---|
-| [git.ts](../packages/scanner/src/git.ts) | Estado del repositorio y **huella** (hash del primer commit) para vincular la licencia |
-| [walk.ts](../packages/scanner/src/walk.ts) | Recorrido de disco de respaldo cuando el directorio no es un repositorio git |
-| [sloc.ts](../packages/scanner/src/sloc.ts) | Cuenta líneas reales de código y clasifica el tamaño |
-| [stack.ts](../packages/scanner/src/stack.ts) | Detecta stack, gestor de paquetes y frameworks |
-| [maturity.ts](../packages/scanner/src/maturity.ts) | Puntúa 0-100 con pesos por señal |
+| [git.ts](../packages/scanner/src/git.ts) | Repository state and **fingerprint** (hash of the first commit) to tie the licence to |
+| [walk.ts](../packages/scanner/src/walk.ts) | Fallback disk walk when the directory is not a git repository |
+| [sloc.ts](../packages/scanner/src/sloc.ts) | Counts real lines of code and classifies the size |
+| [stack.ts](../packages/scanner/src/stack.ts) | Detects stack, package manager and frameworks |
+| [maturity.ts](../packages/scanner/src/maturity.ts) | Scores 0-100 with weights per signal |
 
-En `git.ts`, la función auxiliar `git()` **devuelve `undefined` cuando el comando
-falla** en lugar de lanzar: un repositorio sin commits, sin remoto, o que no es
-un repositorio, son casos normales y no errores.
+In `git.ts`, the helper `git()` **returns `undefined` when the command fails**
+instead of throwing: a repository without commits, without a remote, or that is
+not a repository, are normal cases and not errors.
 
-En `sloc.ts` están los umbrales que deciden cuánta dureza se puede aplicar:
-menos de 2.000 líneas es `greenfield`, hasta 50.000 es `ratchet`, por encima
+`sloc.ts` holds the thresholds that decide how much strictness can be applied:
+fewer than 2,000 lines is `greenfield`, up to 50,000 is `ratchet`, above that
 `non-disruptive`.
 
-`maturity.ts` es la pieza **comercial**: los pesos no reflejan lo difícil que es
-implantar cada señal, sino **cuánto dolor evita**. Por eso el escaneo de secretos
-pesa 14 y el DevContainer pesa 4. Cada señal ausente lleva un `hint` que es el
-argumento de venta.
+`maturity.ts` is the **commercial** piece: the weights do not reflect how hard
+each signal is to put in place, but **how much pain it prevents**. That is why
+secret scanning weighs 14 and the DevContainer weighs 4. Each missing signal
+carries a `hint` that is the sales argument.
 
-### `@plumbward/packs-sdk` — el contrato de extensión
+### `@plumbward/packs-sdk` — the extension contract
 
-Es el eje de escalado del negocio: añadir soporte para Laravel debe ser publicar
-un paquete, no modificar el núcleo.
+It is the business's scaling axis: adding support for Laravel must be publishing
+a package, not modifying the core.
 
-| Fichero | Por qué existe |
+| File | Why it exists |
 |---|---|
-| [contract.ts](../packages/packs-sdk/src/contract.ts) | La interfaz `StackPack` (`detect`, `contribute`, `validate`), el `Profile` y `AgentBoundaries` |
-| [dsl.ts](../packages/packs-sdk/src/dsl.ts) | `file()`, `json()`, `yaml()`, `block()`, `dep()`, `cmd()`: hacen que un pack se lea como una lista de requisitos |
-| [registry.ts](../packages/packs-sdk/src/registry.ts) | Selecciona los packs aplicables, los ordena por confianza y agrega sus operaciones |
-| [conformance.ts](../packages/packs-sdk/src/conformance.ts) | La suite que todo pack debe pasar para publicarse |
+| [contract.ts](../packages/packs-sdk/src/contract.ts) | The `StackPack` interface (`detect`, `contribute`, `validate`), the `Profile` and `AgentBoundaries` |
+| [dsl.ts](../packages/packs-sdk/src/dsl.ts) | `file()`, `json()`, `yaml()`, `block()`, `dep()`, `cmd()`: they make a pack read like a list of requirements |
+| [registry.ts](../packages/packs-sdk/src/registry.ts) | Selects the applicable packs, sorts them by confidence and aggregates their operations |
+| [conformance.ts](../packages/packs-sdk/src/conformance.ts) | The suite every pack must pass to be published |
 
-`conformance.ts` comprueba algo no obvio: **llama a `contribute()` dos veces y
-compara los resultados**. Si difieren, el pack no es determinista y `plan` estaría
-mintiendo sobre lo que `apply` va a hacer. Todo el modelo de confianza se cae por
-ahí, y por eso es una regla de conformidad y no un consejo.
+`conformance.ts` checks something non-obvious: **it calls `contribute()` twice
+and compares the results**. If they differ, the pack is not deterministic and
+`plan` would be lying about what `apply` is going to do. The whole trust model
+falls apart there, and that is why it is a conformance rule and not a piece of
+advice.
 
-### `@plumbward/pack-node-ts` — el único pack real hoy
+### `@plumbward/pack-node-ts` — the only real pack today
 
-[index.ts](../packages/packs/node-ts/src/index.ts) implementa el contrato; las
-plantillas están separadas por tema en `templates/`.
+[index.ts](../packages/packs/node-ts/src/index.ts) implements the contract; the
+templates are split by topic in `templates/`.
 
-Las plantillas son **funciones del escaneo y del perfil**, no ficheros estáticos.
-El ESLint generado difiere si el proyecto usa TypeScript, y la dureza de las
-reglas cambia según `strictness`.
+The templates are **functions of the scan and the profile**, not static files.
+The generated ESLint config differs if the project uses TypeScript, and the
+strictness of the rules changes with `strictness`.
 
-### `@plumbward/cli` — la interfaz
+### `@plumbward/cli` — the interface
 
-| Fichero | Por qué existe |
+| File | Why it exists |
 |---|---|
-| [index.ts](../packages/cli/src/index.ts) | Define los comandos con `cac` y envuelve todo en `guard()` para que ningún error salga como traza cruda |
-| [context.ts](../packages/cli/src/context.ts) | Escanea, carga el perfil y monta el registro de packs |
-| [commands.ts](../packages/cli/src/commands.ts) | La lógica de los cinco comandos |
-| [render.ts](../packages/cli/src/render.ts) | Todo el pintado de terminal, aislado del resto |
-| [diff.ts](../packages/cli/src/diff.ts) | Diff por líneas propio, sin dependencias |
+| [index.ts](../packages/cli/src/index.ts) | Defines the commands with `cac` and wraps everything in `guard()` so no error comes out as a raw stack trace |
+| [context.ts](../packages/cli/src/context.ts) | Scans, loads the profile and builds the pack registry |
+| [commands.ts](../packages/cli/src/commands.ts) | The logic of the five commands |
+| [render.ts](../packages/cli/src/render.ts) | All terminal rendering, isolated from the rest |
+| [diff.ts](../packages/cli/src/diff.ts) | Its own line diff, with no dependencies |
 
-**`context.ts` fusiona el perfil guardado sobre el recomendado.** Así, un
-`config.yml` escrito con una versión antigua sigue funcionando cuando se añaden
-campos nuevos.
+**`context.ts` merges the saved profile over the recommended one.** That way, a
+`config.yml` written with an old version keeps working when new fields are
+added.
 
-**`diff.ts` no usa una librería** a propósito: los ficheros generados son
-configuraciones de unos cientos de líneas, y una LCS cuadrática con tope de
-seguridad basta. Cada dependencia que no se arrastra es una vulnerabilidad menos
-y un arranque de `npx` más rápido.
+**`diff.ts` does not use a library** on purpose: the generated files are
+configurations of a few hundred lines, and a quadratic LCS with a safety cap is
+enough. Every dependency not dragged in is one vulnerability less and a faster
+`npx` start.
 
 ---
 
-## 6. El stack técnico y por qué cada pieza
+## 6. The technical stack and why each piece
 
-| Herramienta | Por qué ésa |
+| Tool | Why that one |
 |---|---|
-| **TypeScript estricto** | Con `noUncheckedIndexedAccess` y `exactOptionalPropertyTypes`. Vendemos rigor: no podemos generarlo con código laxo |
-| **pnpm workspaces** | Enlaces reales entre paquetes: se cambia `core` y `cli` lo ve sin republicar |
-| **turbo** | Cachea builds; sin él cada cambio recompila los seis paquetes |
-| **tsup** | Empaqueta a un ejecutable único. Crítico: `npx` se descarga entero en cada demo |
-| **vitest** | Rápido, con ESM y TypeScript nativos |
-| **cac** | Enrutador de comandos mínimo, sin el árbol de dependencias de alternativas más conocidas |
-| **@clack/prompts** | Confirmación interactiva de `apply`; será la base del wizard (F4-1) |
-| **execa** | Ejecuta procesos sin pasar por shell, lo que evita inyección de comandos |
-| **picocolors** | Color en terminal en 2 KB |
-| **comment-json** y **yaml** | Las dos únicas que preservan comentarios al reescribir |
+| **Strict TypeScript** | With `noUncheckedIndexedAccess` and `exactOptionalPropertyTypes`. We sell rigour: we cannot generate it with lax code |
+| **pnpm workspaces** | Real links between packages: `core` changes and `cli` sees it without republishing |
+| **turbo** | Caches builds; without it every change recompiles the six packages |
+| **tsup** | Bundles into a single executable. Critical: `npx` downloads it whole in every demo |
+| **vitest** | Fast, with native ESM and TypeScript |
+| **cac** | Minimal command router, without the dependency tree of better-known alternatives |
+| **@clack/prompts** | Interactive confirmation of `apply`; it will be the base of the wizard (F4-1) |
+| **execa** | Runs processes without going through a shell, which prevents command injection |
+| **picocolors** | Terminal colour in 2 KB |
+| **comment-json** and **yaml** | The only two that preserve comments when rewriting |
 
 ---
 
-## 7. Cómo verificar que funciona
+## 7. How to verify it works
 
-### Nivel 1 — Suite automática
+### Level 1 — Automated suite
 
 ```bash
 pnpm build && pnpm typecheck && pnpm test
 ```
 
-Los tests E2E de [e2e.test.ts](../packages/cli/test/e2e.test.ts) crean un
-repositorio real en un directorio temporal y verifican el ciclo completo:
+The E2E tests in [e2e.test.ts](../packages/cli/test/e2e.test.ts) create a real
+repository in a temporary directory and check the whole cycle:
 
-- El escáner detecta stack, tamaño y modo correctos.
-- **`plan` no escribe nada**: `git status` queda vacío después.
-- `apply` escribe y **`rollback` deja el repositorio byte a byte idéntico**,
-  incluido un comentario que el test inserta a mano en `tsconfig.json` para
-  comprobar que el parcheo no lo destruye.
-- **Un segundo `apply` no produce ningún cambio** (idempotencia).
-- Si una operación falla a mitad, se revierte sola.
-- El pack cumple la conformidad.
-- Un pack no puede escribir fuera del repositorio.
+- The scanner detects the right stack, size and mode.
+- **`plan` writes nothing**: `git status` is empty afterwards.
+- `apply` writes and **`rollback` leaves the repository byte-for-byte
+  identical**, including a comment the test inserts by hand in `tsconfig.json`
+  to check that patching does not destroy it.
+- **A second `apply` produces no change** (idempotence).
+- If an operation fails halfway, it reverts itself.
+- The pack passes conformance.
+- A pack cannot write outside the repository.
 
-### Nivel 2 — Dogfooding
+### Level 2 — Dogfooding
 
 ```bash
 node packages/cli/dist/index.js scan
 node packages/cli/dist/index.js plan --diff
 ```
 
-Ninguno escribe nada. `--diff` muestra el contenido exacto de cada fichero que se
-generaría.
+Neither writes anything. `--diff` shows the exact content of each file that
+would be generated.
 
-### Nivel 3 — Ciclo completo en un repositorio de usar y tirar
+### Level 3 — Full cycle on a throwaway repository
 
 ```bash
-# Desde la raíz del repositorio clonado:
+# From the root of the cloned repository:
 PLUMBWARD=$(pwd)/packages/cli/dist/index.js
 
-mkdir -p /tmp/prueba-plumbward && cd /tmp/prueba-plumbward
+mkdir -p /tmp/plumbward-trial && cd /tmp/plumbward-trial
 git init -b main && npm init -y
-echo "console.log('hola')" > index.js
+echo "console.log('hello')" > index.js
 git add -A && git commit -m "initial"
 
 node "$PLUMBWARD" plan --diff
@@ -459,30 +466,30 @@ node "$PLUMBWARD" apply --no-install
 git status --short
 node "$PLUMBWARD" doctor
 node "$PLUMBWARD" rollback
-git status --porcelain   # debe quedar VACÍO
+git status --porcelain   # must be EMPTY
 ```
 
-Esa última línea es la prueba definitiva. Conviene además ejecutar `apply` dos
-veces seguidas: la segunda debe informar de que el repositorio ya está conforme.
+That last line is the definitive test. It is also worth running `apply` twice in
+a row: the second one must report that the repository is already compliant.
 
-### Nivel 4 — Repositorios reales
+### Level 4 — Real repositories
 
-Tarea F6-2 del plan. Es el único filtro que detecta lo que los repositorios
-sintéticos no ven.
+Task F6-2 of the plan. It is the only filter that catches what synthetic
+repositories do not see.
 
 ---
 
-## 8. Cuestiones abiertas conocidas
+## 8. Known open questions
 
-Están documentadas aquí para que nadie las descubra dos veces:
+They are documented here so nobody discovers them twice:
 
-**Ser monorepo fuerza el modo `non-disruptive` sin mirar el tamaño.** Viene del
-PDF original, que trata "monorepo" y "grande" como sinónimos. Sobre este mismo
-repositorio, con ~4.300 líneas, aplica reglas suaves cuando podría permitirse las
-estrictas. A revisar en F2-7.
+**Being a monorepo forces `non-disruptive` mode regardless of size.** It comes
+from the original PDF, which treats "monorepo" and "large" as synonyms. On this
+very repository, with ~4,300 lines, it applies soft rules when it could afford
+the strict ones. To be reviewed in F2-7.
 
-**El pack de Node genera `GOVERNANCE.md` y `Makefile` en la raíz.** Sobre un
-monorepo eso puede chocar con lo que ya exista. A resolver en la Fase 2.
+**The Node pack generates `GOVERNANCE.md` and `Makefile` at the root.** On a
+monorepo that can clash with what already exists. To be solved in Phase 2.
 
-**Los límites operativos del asistente sólo existen en el pack de Node.** Deben
-vivir en el pack base, porque no dependen del lenguaje. Tarea F2-9.
+**The assistant's operating limits only exist in the Node pack.** They must live
+in the base pack, because they do not depend on the language. Task F2-9.
