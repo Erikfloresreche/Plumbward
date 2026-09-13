@@ -1,96 +1,106 @@
-# Plumbward — Instrucciones para asistentes de IA
+# Plumbward — Instructions for AI assistants
 
-CLI de gobernanza DevSecOps que analiza un repositorio y le instala CI, linters,
-hooks, escaneo de secretos y reglas de contexto para asistentes de IA.
+A DevSecOps governance CLI that analyses a repository and installs CI, linters,
+hooks, secret scanning and context rules for AI assistants.
 
-El plan de ejecución completo, con todas las tareas y sus criterios de
-aceptación, está en [docs/PLAN_DE_EJECUCION.md](docs/PLAN_DE_EJECUCION.md). **Léelo antes de
-empezar cualquier tarea** y marca su casilla al terminarla.
+The full execution plan, with every task and its acceptance criteria, is in
+[docs/PLAN_DE_EJECUCION.md](docs/PLAN_DE_EJECUCION.md). **Read it before
+starting any task** and tick its checkbox when you finish.
 
 ---
 
-## 0. Cómo retomar el proyecto desde cero
+## 0. How to pick up the project from scratch
 
-Si abres la sesión sin contexto previo —lo normal, porque cada tarea empieza en
-una sesión nueva (§6)—, todo lo necesario está en el repositorio. Léelo en este
-orden:
+If you open the session with no prior context —the normal case, because every
+task starts in a new session (§6)—, everything you need is in the repository.
+Read it in this order:
 
-| Orden | Fichero | Qué te da |
+| Order | File | What it gives you |
 |---|---|---|
-| 1 | Este fichero | Límites operativos y reglas de trabajo |
-| 2 | `docs/PLAN_DE_EJECUCION.md`, cabecera | **Dónde estamos**: la línea *Estado global* dice qué tareas están cerradas |
-| 3 | `docs/ARQUITECTURA.md` | Cómo funciona el código y **por qué** cada pieza está donde está |
-| 4 | `docs/MODELO_DE_NEGOCIO.md` | Qué vendemos, a quién, y qué no podemos prometer |
-| 5 | `docs/adr/` | Las decisiones grandes, con las alternativas descartadas |
-| 6 | `.claude/napkin.md` | Trucos del repo que ya costaron un error. Léelo entero: es corto a propósito |
+| 1 | This file | Operating limits and working rules |
+| 2 | `docs/PLAN_DE_EJECUCION.md`, header | **Where we are**: the global status line says which tasks are closed |
+| 3 | `docs/ARQUITECTURA.md` | How the code works and **why** each piece is where it is |
+| 4 | `docs/MODELO_DE_NEGOCIO.md` | What we sell, to whom, and what we cannot promise |
+| 5 | `docs/adr/` | The big decisions, with the alternatives that were discarded |
+| 6 | `.claude/napkin.md` | Repo tricks that already cost a mistake. Read it all: it is short on purpose |
 
-Del plan y de la arquitectura, lee sólo la tarea y las secciones que toca (§6).
+Of the plan and the architecture, read only the task and the sections it touches (§6).
 
-Comprueba el estado real antes de fiarte de lo escrito:
+Check the real state before trusting what is written:
 
 ```bash
-pnpm install                                                    # un clon recién hecho no trae dependencias
+pnpm install                                                    # a fresh clone has no dependencies
 git branch --show-current && git status --short
-gh run list --branch "$(git branch --show-current)" --limit 3   # la CI ya dice si está verde
+gh run list --branch "$(git branch --show-current)" --limit 3   # CI already says whether it is green
 pnpm check:coherencia
 ```
 
-**El orden de las tareas ya está decidido en el plan: es la cola de ejecución
-del §5.** Cuando alguien pregunta, con las palabras y en el idioma que sea, por
-el estado del plan o por la siguiente tarea, la respuesta sale de la cola: la
-siguiente es la primera. No se inventa otro orden en cada sesión. Si el
-desarrollador decide otra prioridad, se mueve la tarea en la cola, con su motivo,
-y `check:coherencia` comprueba que el nuevo orden respeta las dependencias. Si
-el estado real contradice la cola —una rama de tarea a medias, cambios sin
-commitear—, se dice antes de empezar otra cosa.
+**The order of the tasks is already decided in the plan: it is the execution
+queue in §5.** When anyone asks, in whatever words and language, about the
+state of the plan or the next task, the answer comes from the queue: the next
+one is the first. No other order is invented in each session. If the developer
+decides on another priority, the task is moved in the queue, with its reason,
+and `check:coherencia` checks that the new order respects the dependencies. If
+the real state contradicts the queue —a task branch half done, uncommitted
+changes—, say so before starting anything else.
 
 ---
 
-## 1. Límites operativos (innegociable)
+## 1. Operating limits (non-negotiable)
 
-### Prohibido ejecutar comandos git que modifiquen el estado
+### Forbidden: git commands that change state
 
 `commit`, `push`, `pull`, `fetch --prune`, `merge`, `rebase`, `checkout`,
 `switch`, `reset`, `revert`, `cherry-pick`, `stash`, `tag`, `branch -d`,
 `remote add/remove`, `clean`.
 
-**Los ejecuta a mano el desarrollador que esté trabajando en ese momento.** Deja
-los cambios en el árbol de trabajo, di con exactitud qué ficheros has tocado y
-entrega el mensaje de commit listo para copiar.
+**The developer working at the time runs them by hand.** Leave the changes in
+the working tree, say exactly which files you touched and deliver the commit
+message ready to copy.
 
-Sí puedes usar los de sólo lectura: `status`, `log`, `diff`, `show`,
+You may use the read-only ones: `status`, `log`, `diff`, `show`,
 `branch --list`, `branch --show-current`, `blame`, `ls-files`, `rev-parse`.
 
-`check:coherencia` comprueba que todo comando `git` de la §0 está en esta
-lista: si se añade uno a la guía sin permitirlo aquí, la CI lo dice.
+`check:coherencia` checks that every `git` command in §0 is in this list: if
+one is added to the guide without allowing it here, CI says so.
 
-**Por qué:** quien firma el commit responde de lo que entra en el historial. Un
-push automático mete código en un repositorio compartido sin que nadie lo haya
-mirado, y deshacerlo ya es un problema de todo el equipo, no de una máquina.
+**Why:** whoever signs the commit answers for what enters the history. An
+automatic push puts code in a shared repository without anyone having looked
+at it, and undoing it is then a problem for the whole team, not for one
+machine.
 
-### Prohibido ejecutar comandos de base de datos que escriban
+### Forbidden: database commands that write
 
-Migraciones (`migrate`, `db:push`, `db:seed`, `upgrade`), `INSERT`, `UPDATE`,
-`DELETE`, `DROP`, `TRUNCATE`, `ALTER`, restauraciones de copias de seguridad y
-cualquier CLI de base de datos que altere datos o esquema.
+Migrations (`migrate`, `db:push`, `db:seed`, `upgrade`), `INSERT`, `UPDATE`,
+`DELETE`, `DROP`, `TRUNCATE`, `ALTER`, backup restores and any database CLI
+that alters data or schema.
 
-**Los ejecuta a mano el desarrollador.** Escribe el fichero de migración o la
-consulta y explica cómo lanzarla, pero no la lances.
+**The developer runs them by hand.** Write the migration file or the query and
+explain how to run it, but do not run it.
 
-Sí puedes hacer `SELECT` de inspección y consultar el esquema si hay una
-conexión de desarrollo disponible.
+You may run inspection `SELECT`s and query the schema if a development
+connection is available.
 
-**Por qué:** una migración no tiene botón de deshacer. El coste de equivocarse
-no es un fichero mal escrito, son datos perdidos.
+**Why:** a migration has no undo button. The cost of a mistake is not a badly
+written file, it is lost data.
 
-### Mensajes de commit y de Pull Request, siempre en inglés
+### English, everywhere
 
-Aunque el código, los comentarios y la documentación de este repositorio estén
-en español, **todo mensaje de commit y toda descripción de PR se redacta en
-inglés**. Se entregan como texto, para que el desarrollador los use al hacer el
-commit él mismo.
+Code, identifiers, comments, tests, documentation, commit messages and Pull
+Request titles and descriptions: **all in English**. Commit messages and PR
+texts are delivered as text, for the developer to use when making the commit.
 
-Formato: Conventional Commits, con el identificador de la tarea en el cuerpo.
+Only two exceptions:
+
+- Files generated **for the client** follow the language of their profile (§4).
+- Files listed in `scripts/english-only.json`: pending translation (F0-16,
+  F0-18, F0-42 to F0-45) or permanent exceptions, each with its reason. New
+  text in a pending file is written in English too.
+
+`pnpm check:coherencia` fails on Spanish anywhere else, and on a listed file
+that no longer has any.
+
+Format: Conventional Commits, with the task identifier in the body.
 
 ```
 feat(pack-python): detect Poetry and uv and generate their pipeline
@@ -99,160 +109,163 @@ Implements F2-4. Adds the Python pack with ruff, mypy and pytest support,
 selecting the dependency manager from the files present in the repository.
 ```
 
-### Al terminar una tarea, entrega siempre estos tres textos
+### When a task is finished, always deliver these three texts
 
-No basta con decir que la tarea está hecha. Se entregan, listos para copiar:
+Saying the task is done is not enough. Deliver, ready to copy:
 
-1. **El mensaje de commit**, en inglés, en Conventional Commits, citando el
-   identificador de la tarea en el cuerpo.
-2. **El título de la Pull Request**, en inglés y en una sola línea. Mismo
-   formato de Conventional Commits que el commit, por debajo de 70 caracteres.
-   Es lo único que se ve en la lista de PRs y en las notificaciones, así que
-   tiene que decir qué cambia sin que haya que abrirla.
-3. **La descripción de la Pull Request**, en inglés, siguiendo
-   `.github/PULL_REQUEST_TEMPLATE.md`: tarea, qué cambia y por qué, criterios de
-   aceptación copiados del plan, y cómo se ha verificado.
+1. **The commit message**, in English, in Conventional Commits, citing the
+   task identifier in the body.
+2. **The Pull Request title**, in English and on a single line. Same
+   Conventional Commits format as the commit, under 70 characters. It is the
+   only thing shown in the PR list and in notifications, so it has to say what
+   changes without opening it.
+3. **The Pull Request description**, in English, following
+   `.github/PULL_REQUEST_TEMPLATE.md`: task, what changes and why, acceptance
+   criteria copied from the plan, and how it was verified.
 
-Y a continuación se pregunta al desarrollador, **sin darlo por hecho**:
+Then ask the developer, **without taking it for granted**:
 
-> ¿Quieres que revise yo la Pull Request, o se ocupa otra persona del equipo?
+> Do you want me to review the Pull Request, or will someone else on the team?
 
-### Revisar una Pull Request propia: sólo en contexto nuevo
+### Reviewing your own Pull Request: only in a fresh context
 
-Si el desarrollador pide la revisión porque no hay nadie más disponible y la PR
-se quedaría bloqueada, se hace **abriendo un contexto nuevo, sin el historial de
-la conversación que produjo el código**.
+If the developer asks for the review because nobody else is available and the
+PR would be blocked, it is done **by opening a fresh context, without the
+history of the conversation that produced the code**.
 
-**Por qué:** revisar tu propio trabajo con el contexto que lo generó reproduce
-exactamente los mismos puntos ciegos. Se dan por buenas las mismas suposiciones
-y se pasan por alto los mismos casos. Un contexto limpio sólo tiene delante el
-diff, y lo juzga por lo que dice, no por lo que se pretendía que dijera.
+**Why:** reviewing your own work with the context that generated it reproduces
+exactly the same blind spots. The same assumptions are taken for granted and
+the same cases are missed. A clean context only has the diff in front of it,
+and judges it by what it says, not by what it was meant to say.
 
-La revisión busca fallos de corrección, incumplimientos del Definition of Done,
-choques con los invariantes de arquitectura e incoherencias con el plan.
-**Entrega hallazgos; no aprueba ni integra.** El merge lo hace siempre una
-persona.
+The review looks for correctness bugs, breaches of the Definition of Done,
+clashes with the architecture invariants and inconsistencies with the plan.
+**It delivers findings; it does not approve or merge.** A person always does
+the merge.
 
-Esto es una válvula de escape para no bloquear el trabajo, no un sustituto de la
-revisión humana. Cuando hay otra persona disponible, revisa esa persona.
+This is an escape valve so work is not blocked, not a substitute for human
+review. When another person is available, that person reviews.
 
-### Un hallazgo termina en un control, no en una regla escrita
+### A finding ends in a control, not in a written rule
 
-Cuando una revisión encuentra algo, **se convierte en un control mecánico** —un
-test, una comprobación en CI— o **se registra explícitamente como no
-mecanizable, diciendo por qué**.
+When a review finds something, **it becomes a mechanical control** —a test, a
+CI check— or **it is explicitly recorded as not mechanisable, saying why**.
 
-Nunca "lo apunto aquí y ya".
+Never "I'll just note it here".
 
-**Por qué:** este fichero ya pasa de las 200 líneas. A las 400 nadie las aplica de
-forma fiable, ni una persona ni un asistente, porque cada regla nueva diluye a
-las demás. Un test que falla, falla siempre, y no depende de que alguien se
-acuerde. Es la misma tesis que vende el producto —las reglas se ignoran, los
-controles no— aplicada a nosotros.
+**Why:** this file is already over 200 lines. At 400 nobody applies them
+reliably, neither a person nor an assistant, because every new rule dilutes the
+others. A test that fails always fails, and does not depend on anyone
+remembering. It is the same thesis the product sells —rules get ignored,
+controls do not— applied to ourselves.
 
-Hay hallazgos que no se pueden mecanizar: afirmar en la documentación que existe
-una frontera de seguridad que el código no implementa, por ejemplo. Para esa
-clase, la defensa es la revisión en contexto nuevo, y se dice.
-
----
-
-## 2. Invariantes de arquitectura
-
-No se rompen sin una ADR en `docs/adr/` que lo justifique:
-
-1. **Nadie escribe en disco por su cuenta.** Todo módulo declara su intención
-   emitiendo `Operation[]`. Sólo `applyPlan` materializa, y deja journal para
-   poder revertir.
-2. **`.governance/config.yml` es la fuente de verdad.** La CLI es una función
-   determinista de él: mismo config + mismo repo = mismo plan, siempre.
-3. **El catálogo de packs es el eje de escalado.** Soportar un stack nuevo es
-   publicar un paquete que implemente `StackPack` y pase la conformidad. El
-   núcleo no se toca.
+Some findings cannot be mechanised: claiming in the documentation that a
+security boundary exists when the code does not implement it, for example. For
+that class, the defence is the fresh-context review, and it is said so.
 
 ---
 
-## 3. Flujo de trabajo
+## 2. Architecture invariants
 
-- Ramas: `Prod` (releases) y `develop` (integración). Una rama por tarea del
-  plan, nombrada `<tipo>/f<fase>-<slug>` **con el slug en inglés** —el nombre de
-  rama queda en el historial igual que el commit—, nacida de `develop`. Ejemplo:
-  `fix/f0-protected-branches`. `pnpm check:coherencia` lo comprueba en cada PR.
-- Una rama implementa **exactamente una tarea**. Si aparece trabajo imprevisto,
-  se añade una tarea nueva al plan; no se amplía la actual.
-- El desarrollador crea las ramas y hace los merges. Tú indicas cuál toca.
+They are not broken without an ADR in `docs/adr/` that justifies it:
+
+1. **Nobody writes to disk on their own.** Every module declares its intent by
+   emitting `Operation[]`. Only `applyPlan` materialises, and it leaves a
+   journal so it can be reverted.
+2. **`.governance/config.yml` is the source of truth.** The CLI is a
+   deterministic function of it: same config + same repo = same plan, always.
+3. **The pack catalogue is the scaling axis.** Supporting a new stack is
+   publishing a package that implements `StackPack` and passes conformance.
+   The core is not touched.
 
 ---
 
-## 4. Estándares de código
+## 3. Workflow
 
-- TypeScript estricto. `any` prohibido; usa `unknown` y estrecha el tipo.
-- Toda función exportada declara su tipo de retorno. Interfaces para todo
-  contrato público.
-- Los ficheros que se generan **para el cliente** llevan comentarios
-  explicativos en el idioma que indique su perfil, nunca literales sueltos.
-- Todo comportamiento nuevo llega con su prueba. Un bug se corrige empezando por
-  la prueba que lo reproduce.
-- Ninguna ruta de error nueva puede dejar el repositorio a medias: o participa
-  del journal, o no escribe.
+- Branches: `Prod` (releases) and `develop` (integration). One branch per plan
+  task, named `<type>/f<phase>-<slug>` **with the slug in English** —the branch
+  name stays in the history just like the commit—, created from `develop`.
+  Example: `fix/f0-protected-branches`. `pnpm check:coherencia` checks it on
+  every PR.
+- A branch implements **exactly one task**. If unplanned work appears, a new
+  task is added to the plan; the current one is not widened.
+- The developer creates the branches and does the merges. You say which one is
+  next.
 
-## 5. Comandos
+---
+
+## 4. Code standards
+
+- Strict TypeScript. `any` is forbidden; use `unknown` and narrow the type.
+- Every exported function declares its return type. Interfaces for every public
+  contract.
+- Files generated **for the client** carry explanatory comments in the language
+  their profile sets, never bare literals.
+- Every new behaviour comes with its test. A bug is fixed starting with the test
+  that reproduces it.
+- No new error path may leave the repository half done: it either takes part in
+  the journal or does not write.
+
+## 5. Commands
 
 ```bash
 pnpm install
 pnpm build       # turbo run build
 pnpm typecheck
 pnpm test        # vitest run
-pnpm vitest run <ruta>         # en local, sólo lo que tocas (§6)
+pnpm vitest run <path>         # locally, only what you touch (§6)
 ```
 
 ---
 
-## 6. Conservación de tokens y sesiones atómicas (obligatorio)
+## 6. Token conservation and atomic sessions (mandatory)
 
-Cada paso de una conversación reenvía la conversación entera. Una sesión larga
-no cuesta más por lo que se escribe, sino por todo lo que se arrastra.
+Every step of a conversation resends the whole conversation. A long session
+does not cost more for what is written, but for everything it drags along.
 
-1. **Una tarea, una sesión.** No se acumulan tareas, ramas ni rondas de revisión
-   en un mismo chat. Al mergear una PR o cerrar un hito, se abre una sesión
-   nueva: la §0 y el plan bastan para retomar.
-2. **Lo pesado va a la CI.** Mutaciones, e2e y la batería completa corren en
-   GitHub Actions. En local, sólo los tests de lo que se toca: `pnpm vitest run <ruta>`.
-3. **Lecturas dirigidas.** Nunca un fichero grande ni el repositorio entero:
-   `grep -n` y rangos de líneas exactos. El plan pasa de 2.000 líneas.
-4. **En una PR abierta sólo se corrigen los bloqueantes.** Los seguimientos van
-   al plan como tarea nueva.
-5. **Revisión proporcional.** La primera revisión es completa, en contexto
-   nuevo. Después, sólo el diff de las correcciones y con un modelo ligero
-   (Haiku o Sonnet), nunca el pesado. Una corrección pequeña ya probada con
-   mutantes no lleva otra ronda. Nunca se relee ni se recompila el repositorio
-   entero para revisar una corrección.
-6. **Cierre manual y sesión nueva.** El asistente deja la tarea lista y entrega
-   los textos. El merge lo hace el desarrollador. Todo lo siguiente, sin
-   excepción, empieza en una sesión nueva: el asistente lo dice al cerrar.
+1. **One task, one session.** Tasks, branches and review rounds are not piled
+   up in the same chat. When a PR is merged or a milestone is closed, a new
+   session is opened: §0 and the plan are enough to pick up.
+2. **Heavy work goes to CI.** Mutations, e2e and the full suite run in GitHub
+   Actions. Locally, only the tests of what you touch: `pnpm vitest run <path>`.
+3. **Targeted reads.** Never a large file or the whole repository: `grep -n`
+   and exact line ranges. The plan is over 2,000 lines.
+4. **On an open PR only blockers are fixed.** Follow-ups go to the plan as a
+   new task.
+5. **Proportional review.** The first review is complete, in a fresh context.
+   After that, only the diff of the fixes and with a light model (Haiku or
+   Sonnet), never the heavy one. A small fix already tested with mutants does
+   not get another round. The whole repository is never re-read or rebuilt to
+   review a fix.
+6. **Manual close and new session.** The assistant leaves the task ready and
+   delivers the texts. The developer does the merge. Everything after that,
+   without exception, starts in a new session: the assistant says so when
+   closing.
 
-**Por qué:** la sesión de la PR #7 (F0-14) gastó más del 80 % de la ventana de
-uso: cinco rondas de revisión en contexto nuevo, y cada seguimiento corregido
-dentro de la PR provocaba otra ronda.
+**Why:** the session of PR #7 (F0-14) used more than 80 % of the usage window:
+five review rounds in a fresh context, and each follow-up fixed inside the PR
+triggered another round.
 
-**No mecanizable:** ningún control puede ver cuánto dura una sesión ni qué se
-lee en ella. La defensa es esta sección y la pregunta de la §0.
+**Not mechanisable:** no control can see how long a session lasts or what is
+read in it. The defence is this section and the question in §0.
 
-### Herramientas de agente
+### Agent tools
 
-- **napkin** (`blader/napkin`): runbook del repo en `.claude/napkin.md`. La skill
-  está en `.agents/skills/napkin/`, fijada en `skills-lock.json` y enlazada desde
-  `.claude/skills/napkin`, que es donde Claude Code la busca. Se añade una
-  entrada cuando algo no mecanizable ya ha costado un error; lo mecanizable va a
-  un control. Se cura sólo al añadir, aunque la skill pida hacerlo en cada
-  lectura. El repositorio es público: nada personal.
-  `pnpm check:coherencia` comprueba el hash de la skill, el enlace, y que el
-  runbook cumple sus reglas (fecha, "Do instead", máximo 10 por categoría).
-- **caveman**: plugin opcional de cada desarrollador, no se versiona. Comprime
-  sólo las respuestas del chat; commits, PRs, documentación, napkin y memoria
-  van en prosa normal. Recorta tokens de salida, que son una parte mínima del
-  gasto: no sustituye a la regla 1.
-- **Prohibido `caveman-setup` y cualquier gateway que enrute las peticiones del
-  asistente por un servicio externo.** Contradice la postura local-first y sin
-  telemetría ([ADR 0002](docs/adr/0002-licenciamiento-local-first.md)).
-- Una skill nueva es código de terceros con acceso al repositorio: se revisa
-  entera antes de instalarla, con `npx skills add`, para que quede en el lock.
+- **napkin** (`blader/napkin`): the repo runbook in `.claude/napkin.md`. The
+  skill is in `.agents/skills/napkin/`, pinned in `skills-lock.json` and linked
+  from `.claude/skills/napkin`, which is where Claude Code looks for it. An
+  entry is added when something not mechanisable has already cost a mistake;
+  what can be mechanised goes to a control. It is curated only when adding,
+  even though the skill asks for it on every read. The repository is public:
+  nothing personal.
+  `pnpm check:coherencia` checks the skill hash, the link, and that the runbook
+  follows its rules (date, "Do instead", at most 10 per category).
+- **caveman**: an optional plugin of each developer, not versioned. It only
+  compresses chat replies; commits, PRs, documentation, napkin and memory are
+  written in normal prose. It cuts output tokens, which are a tiny part of the
+  spend: it does not replace rule 1.
+- **Forbidden: `caveman-setup` and any gateway that routes the assistant's
+  requests through an external service.** It contradicts the local-first,
+  no-telemetry stance ([ADR 0002](docs/adr/0002-licenciamiento-local-first.md)).
+- A new skill is third-party code with access to the repository: review it in
+  full before installing it, with `npx skills add`, so it ends up in the lock.

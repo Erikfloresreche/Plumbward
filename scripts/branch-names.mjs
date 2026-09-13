@@ -36,7 +36,7 @@ export const PERMANENT_BRANCHES = ['Prod', 'develop']
  * terminación reconoce. Todas son inequívocamente españolas — `metricas`, no
  * `metrics`; `guia`, no `guide` — para no rechazar nombres ingleses válidos.
  */
-const SPANISH_WORDS = new Set([
+export const SPANISH_WORDS = new Set([
   'rama', 'ramas', 'regla', 'reglas', 'prueba', 'pruebas', 'paquete', 'informe',
   'guia', 'flujo', 'flujos', 'controles', 'propio', 'documentacion', 'unica',
   'unico', 'cobertura', 'umbral', 'trinquete', 'metricas', 'reales',

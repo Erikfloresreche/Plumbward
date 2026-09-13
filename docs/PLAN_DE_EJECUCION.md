@@ -5,8 +5,8 @@
 > Cada tarea se cierra actualizando su casilla en este fichero, dentro de la
 > misma Pull Request que la implementa.
 
-**Última actualización:** 2026-09-12
-**Estado global:** Fase 0 en curso — F0-1, F0-3, F0-5, F0-8, F0-13, F0-14, F0-15, F0-17, F0-24, F0-27, F0-29, F0-30 y F0-40 completadas. Quedan F0-2, F0-4, F0-6, F0-7, F0-9 a F0-12, F0-16, F0-18 a F0-23, F0-25, F0-26, F0-28, F0-31 a F0-39 y F0-41 a F0-45.
+**Última actualización:** 2026-09-13
+**Estado global:** Fase 0 en curso — F0-1, F0-3, F0-5, F0-8, F0-13, F0-14, F0-15, F0-17, F0-24, F0-27, F0-29, F0-30, F0-40 y F0-41 completadas. Quedan F0-2, F0-4, F0-6, F0-7, F0-9 a F0-12, F0-16, F0-18 a F0-23, F0-25, F0-26, F0-28, F0-31 a F0-39 y F0-42 a F0-45.
 **Producto:** Plumbward · https://github.com/Erikfloresreche/Plumbward
 **Modelo de negocio:** suscripción anual por repositorio — ver
 [MODELO_DE_NEGOCIO.md](MODELO_DE_NEGOCIO.md)
@@ -1705,7 +1705,7 @@ en el §5 y la revisión.
 
 ---
 
-### [ ] F0-41 — El inglés, idioma principal: el control y las instrucciones del asistente
+### [x] F0-41 — El inglés, idioma principal: el control y las instrucciones del asistente
 **Rama:** `chore/f0-english-only-control` · **Depende de:** F0-40
 
 **Origen:** decisión del desarrollador del 2026-09-13. Todo el repositorio pasa a
@@ -3072,7 +3072,6 @@ controles que vigilan el trabajo de la fase van antes que ese trabajo.
 
 #### Fase 0 · 1. El inglés, idioma principal
 
-- **F0-41** — el control que impide español nuevo y las instrucciones que se leen en cada sesión.
 - **F0-16** — nombres de ficheros e identificadores, para que las traducciones caigan en su ruta definitiva.
 - **F0-42** — el plan, lo más leído después de `CLAUDE.md`.
 - **F0-18** — el resto de la documentación y todas las ADR.
