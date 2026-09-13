@@ -6,7 +6,7 @@
 > checkbox in this file, inside the same Pull Request that implements it.
 
 **Last updated:** 2026-09-13
-**Global status:** Phase 0 in progress — F0-1, F0-3, F0-5, F0-8, F0-13, F0-14, F0-15, F0-16, F0-17, F0-24, F0-27, F0-29, F0-30, F0-40 and F0-41 completed. Remaining: F0-2, F0-4, F0-6, F0-7, F0-9 to F0-12, F0-18 to F0-23, F0-25, F0-26, F0-28, F0-31 to F0-39 and F0-42 to F0-47.
+**Global status:** Phase 0 in progress — F0-1, F0-3, F0-5, F0-8, F0-13, F0-14, F0-15, F0-16, F0-17, F0-24, F0-27, F0-29, F0-30, F0-40 and F0-41 completed. Remaining: F0-2, F0-4, F0-6, F0-7, F0-9 to F0-12, F0-18 to F0-23, F0-25, F0-26, F0-28, F0-31 to F0-39 and F0-42 to F0-48.
 **Product:** Plumbward · https://github.com/Erikfloresreche/Plumbward
 **Business model:** annual subscription per repository — see
 [BUSINESS_MODEL.md](BUSINESS_MODEL.md)
@@ -1788,7 +1788,7 @@ fresh-context review of each translation PR, comparing with the original.
 ---
 
 ### [ ] F0-42 — The execution plan in English
-**Branch:** `docs/f0-english-plan` · **Depends on:** F0-16
+**Branch:** `docs/f0-english-plan` · **Depends on:** F0-16, F0-48
 
 **Origin:** F0-41. The plan is over 3,000 lines and is, after `CLAUDE.md`, what
 is read the most: every task starts by reading its own.
@@ -1801,7 +1801,8 @@ is read the most: every task starts by reading its own.
    plan, `branch-names.mjs`, `execution-queue.mjs` and their tests change in the
    same commit; the minimum assertions of both prevent a green without looking
    at anything.
-3. Remove the plan from the F0-41 pending list.
+3. Register the Spanish literals the plan keeps as fragment exceptions (F0-48),
+   and remove the plan from the F0-41 pending list.
 4. Because of its size, over several sessions: one batch per part of the plan,
    each with its own commit on the same branch and `pnpm check:coherence` green.
    It is still one task and one PR.
@@ -1812,7 +1813,9 @@ is read the most: every task starts by reading its own.
   `<!-- queue:start -->`); header, §1 to §4, this task, and §5 to §7.
 - [x] Batch 2: Phase 0, first half (F0-1 to F0-20).
 - [x] Batch 3: Phase 0, second half (F0-21 to F0-46).
-- [ ] Batch 4: Phases 1 to 6, and the plan out of the pending list.
+- [x] Batch 4: Phases 1 to 6.
+- [ ] Close, after F0-48: the kept literals registered as fragment exceptions,
+  and the plan out of the pending list.
 
 **What becomes a mechanical control:** the F0-41 one over the plan, and the
 tests of the two parsers with the new format. The queue control also fails
@@ -1979,1176 +1982,1259 @@ rule in §6 and the fresh-context review.
 
 ---
 
-## FASE 1 — Internacionalización del motor de plantillas
+### [ ] F0-48 — Exceptions by text fragment in the English control
+**Branch:** `chore/f0-english-fragment-exceptions` · **Depends on:** F0-41
 
-**Objetivo:** que `Profile.language` funcione de verdad.
-**Estimación:** 1-2 sesiones.
-**Por qué ahora y no después:** hoy hay **un** pack que traducir. Después de la
-Fase 2 habrá cinco. El coste de este refactor se multiplica por cinco si se
-pospone, y es exactamente el tipo de deuda que el producto dice combatir.
-**Criterio de salida:** `language: en` en el config produce un repositorio
-íntegramente en inglés, con la misma estructura de ficheros que `language: es`.
+**Origin:** batch 4 of F0-42, 2026-09-13. `scripts/english-only.json` only
+excuses whole files, and the plan keeps Spanish on purpose: closed branch
+names, former check names, pre-rename identifiers, a real mutation entry name,
+the characters the detector looks for. Taking the plan out of the pending list
+turns `check:coherence` red. The two alternatives were discarded:
+- Listing the whole plan as an exception: the control would stop reading the
+  most read file after `CLAUDE.md`, and a new Spanish paragraph would pass.
+- Rewriting the literals in English: they are facts, and F0-42 changes the
+  language, not the facts.
+
+**Work:**
+1. An entry of `exceptions` may declare `fragments`: exact literals allowed in
+   that file. The file is scanned with those literals removed, and any other
+   Spanish fails as today. An entry without `fragments` still excuses the
+   whole file.
+2. A space in a fragment also matches a line break and its indentation: a
+   literal the text wraps across two lines, like the former e2e check name in
+   F0-13, is declared once.
+3. The staleness rule reaches fragments: one that no longer appears in its
+   file, or that contains no Spanish, fails.
+4. A fragment shorter than ten characters fails: it would excuse one word
+   everywhere in the file instead of one literal.
+5. Document the format in the header of `scripts/english-only.mjs`.
+
+**What becomes a mechanical control:** each rule above is a test in
+`scripts/english-only.test.mjs` that fails against the F0-41 code.
+
+**Acceptance criteria:**
+- Spanish outside the declared fragments of a file turns `check:coherence` red.
+- A fragment missing from its file, with no Spanish, or under ten characters
+  turns it red.
+- Every Spanish literal batches 2 and 3 of F0-42 kept in the plan can be
+  declared as a fragment, the one wrapped across two lines included, without
+  excusing the prose around it.
 
 ---
 
-### [ ] F1-1 — Paquete `@plumbward/i18n`
+## PHASE 1 — Internationalisation of the template engine
+
+**Objective:** make `Profile.language` really work.
+**Estimate:** 1-2 work sessions.
+**Why now and not later:** today there is **one** pack to translate. After
+Phase 2 there will be five. The cost of this refactor is multiplied by five if
+it is postponed, and it is exactly the kind of debt the product claims to fight.
+**Phase exit criterion:** `language: en` in the config produces a repository
+entirely in English, with the same file structure as `language: es`.
+
+---
+
+### [ ] F1-1 — `@plumbward/i18n` package
 **Branch:** `feat/f1-i18n-package` · **Depends on:** Phase 0 complete
 
-**Trabajo:**
-1. Paquete nuevo con un catálogo tipado: las claves de `en` derivan del tipo del
-   catálogo `es`, de modo que **falte una traducción es un error de compilación**.
-2. API mínima: `translator(language)` devuelve una función `t(clave, valores)`
-   con interpolación tipada.
-3. Soporte para bloques de texto largo (las cabeceras de comentarios de los
-   ficheros generados), no sólo cadenas cortas.
-4. Decidir y documentar la convención de claves: `pack.nodeTs.eslint.cabecera`.
+**Work:**
+1. New package with a typed catalogue: the `en` keys derive from the type of
+   the `es` catalogue, so that **a missing translation is a compile error**.
+2. Minimum API: `translator(language)` returns a function `t(key, values)`
+   with typed interpolation.
+3. Support for long text blocks (the comment headers of the generated files),
+   not only short strings.
+4. Decide and document the key convention: `pack.nodeTs.eslint.header`.
 
-**Criterios de aceptación:**
-- Añadir una clave a `es` sin añadirla a `en` rompe `pnpm typecheck`.
-- El paquete no depende de ningún otro paquete del monorepo (es una hoja).
+**Acceptance criteria:**
+- Adding a key to `es` without adding it to `en` breaks `pnpm typecheck`.
+- The package depends on no other package of the monorepo (it is a leaf).
 
 ---
 
-### [ ] F1-2 — Migrar el pack de Node/TS a los catálogos
+### [ ] F1-2 — Migrate the Node/TS pack to the catalogues
 **Branch:** `refactor/f1-node-ts-i18n` · **Depends on:** F1-1
 
-**Trabajo:**
-1. Extraer todo el texto en español de `packages/packs/node-ts/src/templates/*`
-   (CI, reglas de IA, tooling, docs) al catálogo.
-2. Traducir al inglés.
-3. Traducir también los `reason` de cada operación: son lo que el usuario lee en
-   `plumbward plan`, la pantalla más importante del producto.
+**Work:**
+1. Extract all the Spanish text in `packages/packs/node-ts/src/templates/*`
+   (CI, AI rules, tooling, docs) to the catalogue.
+2. Translate it into English.
+3. Also translate the `reason` of each operation: it is what the user reads in
+   `plumbward plan`, the most important screen of the product.
 
-**Criterios de aceptación:**
-- Ni un literal en español fuera del catálogo (regla de lint que lo verifique si
-  es viable; si no, revisión manual documentada).
-- Los ficheros generados en inglés son idiomáticos, no traducción literal.
+**Acceptance criteria:**
+- Not one Spanish literal outside the catalogue (a lint rule that checks it, if
+  viable; if not, a documented manual review).
+- The files generated in English are idiomatic, not a literal translation.
 
 ---
 
-### [ ] F1-3 — Mensajes de la CLI en ambos idiomas
+### [ ] F1-3 — CLI messages in both languages
 **Branch:** `refactor/f1-cli-i18n` · **Depends on:** F1-1
 
-**Trabajo:**
-1. Migrar [render.ts](../packages/cli/src/render.ts) y
-   [commands.ts](../packages/cli/src/commands.ts) al catálogo.
-2. Resolución del idioma, por orden de precedencia:
-   `--lang` → `.governance/config.yml` → `$LANG` del sistema → `es`.
-3. `plumbward scan` debe poder elegir idioma **antes** de que exista config.
+**Work:**
+1. Migrate [render.ts](../packages/cli/src/render.ts) and
+   [commands.ts](../packages/cli/src/commands.ts) to the catalogue.
+2. Language resolution, in order of precedence:
+   `--lang` → `.governance/config.yml` → system `$LANG` → `es`.
+3. `plumbward scan` must be able to choose the language **before** a config
+   exists.
 
-**Criterios de aceptación:**
-- `plumbward scan --lang en` en un repo sin configurar sale íntegro en inglés.
+**Acceptance criteria:**
+- `plumbward scan --lang en` on an unconfigured repo comes out entirely in
+  English.
 
 ---
 
-### [ ] F1-4 — Test de paridad entre idiomas
+### [ ] F1-4 — Parity test between languages
 **Branch:** `test/f1-language-parity` · **Depends on:** F1-2, F1-3
 
-**Por qué:** el riesgo real de la i18n no es traducir mal, es que el plan
-**haga cosas distintas** según el idioma. Eso rompería el determinismo.
+**Why:** the real risk of i18n is not translating badly, it is the plan
+**doing different things** depending on the language. That would break
+determinism.
 
-**Trabajo:**
-1. Test que genera el plan con `es` y con `en` sobre el mismo repo de prueba y
-   compara: mismo número de operaciones, mismas rutas, mismo orden, mismos
-   comandos. Sólo puede diferir el contenido textual.
-2. Test que verifica que ninguna traducción quedó vacía o igual a su clave.
+**Work:**
+1. A test that generates the plan with `es` and with `en` over the same test
+   repo and compares: same number of operations, same paths, same order, same
+   commands. Only the textual content may differ.
+2. A test that checks that no translation was left empty or equal to its key.
 
-**Criterios de aceptación:**
-- Si alguien añade una operación condicionada por idioma, el test falla.
+**Acceptance criteria:**
+- If someone adds an operation conditioned by language, the test fails.
 
 ---
-### [ ] F1-5 — Procedencia: cada regla cita su fuente
+### [ ] F1-5 — Provenance: each rule cites its source
 **Branch:** `feat/f1-rule-provenance` · **Depends on:** F1-1
 
-**Por qué en esta fase:** es la misma lección que la i18n. Hoy hay un pack;
-después de la Fase 2 habrá cinco, y añadir un campo obligatorio al contrato con
-cinco packs escritos cuesta cinco veces más.
+**Why in this phase:** it is the same lesson as i18n. Today there is one pack;
+after Phase 2 there will be five, and adding a mandatory field to the contract
+with five packs written costs five times more.
 
-**Por qué importa comercialmente:** desactiva la objeción *"¿por qué debería
-fiarme de vuestros estándares?"*. La respuesta pasa a ser: **ninguna regla es
-opinión nuestra, cada una cita la documentación oficial y la versión en que se
-apoya**. Y le da al asistente de IA una fuente verificable en lugar de una
-afirmación, que es la diferencia entre que aplique la regla y que se la invente.
+**Why it matters commercially:** it defuses the objection *"why should I trust
+your standards?"*. The answer becomes: **no rule is our opinion, each one cites
+the official documentation and the version it relies on**. And it gives the AI
+assistant a verifiable source instead of an assertion, which is the difference
+between it applying the rule and making it up.
 
-**Trabajo:**
-1. Añadir al contrato de `packs-sdk` una estructura de procedencia: URL de la
-   documentación oficial, versión de la herramienta y fecha de comprobación.
-2. Hacerla obligatoria para las reglas de seguridad y de estilo generadas;
-   opcional donde sea una convención propia, y en ese caso **decirlo
-   explícitamente** en el fichero generado.
-3. La suite de conformidad rechaza una regla de seguridad sin procedencia.
-4. `doctor` avisa cuando una fuente lleva más de un año sin revisarse.
+**Work:**
+1. Add to the `packs-sdk` contract a provenance structure: URL of the official
+   documentation, tool version and date it was checked.
+2. Make it mandatory for the generated security and style rules; optional where
+   it is a convention of our own, and in that case **say so explicitly** in the
+   generated file.
+3. The conformance suite rejects a security rule without provenance.
+4. `doctor` warns when a source has gone more than a year without review.
 
-**Criterios de aceptación:**
-- Los ficheros de reglas generados citan su fuente junto a cada regla.
-- Un pack con una regla de seguridad sin procedencia no pasa la conformidad.
-
----
-
-## FASE 2 — Cobertura de stacks
-
-**Objetivo:** que la herramienta **nunca** se quede sin hacer nada, sea cual sea
-el repositorio.
-**Estimación:** 4-6 sesiones. Es la fase más larga y la de mayor retorno comercial.
-**Por qué importa:** hoy, un repo que no sea Node recibe un conflicto bloqueante
-y cero valor. Eso es una demo fallida delante de un cliente. Con esta fase, el
-mercado direccionable pasa de "agencias JavaScript" a "cualquier equipo".
-**Criterio de salida:** `plumbward apply` produce valor real en repos de Node,
-Python, PHP/Laravel, Go y en uno de un stack no soportado.
+**Acceptance criteria:**
+- The generated rule files cite their source next to each rule.
+- A pack with a security rule without provenance does not pass conformance.
 
 ---
 
-### [ ] F2-1 — Detección multi-stack en el escáner
+## PHASE 2 — Stack coverage
+
+**Objective:** the tool **never** ends up doing nothing, whatever the
+repository.
+**Estimate:** 4-6 work sessions. It is the longest phase and the one with the
+highest commercial return.
+**Why it matters:** today, a repo that is not Node gets a blocking conflict and
+zero value. That is a failed demo in front of a client. With this phase, the
+addressable market goes from "JavaScript agencies" to "any team".
+**Phase exit criterion:** `plumbward apply` produces real value on Node,
+Python, PHP/Laravel and Go repos, and on one with an unsupported stack.
+
+---
+
+### [ ] F2-1 — Multi-stack detection in the scanner
 **Branch:** `feat/f2-scanner-multistack` · **Depends on:** Phase 1 complete
 
-**Estado actual:** [stack.ts](../packages/scanner/src/stack.ts) sólo reconoce
-`node-ts` y `go`.
+**Current state:** [stack.ts](../packages/scanner/src/stack.ts) only recognises
+`node-ts` and `go`.
 
-**Trabajo:**
-1. Añadir detectores, cada uno con su evidencia y su nivel de confianza:
-   - **Python** — `pyproject.toml` (y dentro: Poetry / uv / PDM / setuptools),
-     `requirements.txt`, `Pipfile`. Frameworks: FastAPI, Django, Flask.
+**Work:**
+1. Add detectors, each with its evidence and its confidence level:
+   - **Python** — `pyproject.toml` (and inside it: Poetry / uv / PDM /
+     setuptools), `requirements.txt`, `Pipfile`. Frameworks: FastAPI, Django,
+     Flask.
    - **PHP** — `composer.json`. Frameworks: Laravel (`artisan`), Symfony.
    - **Java/Kotlin** — `pom.xml`, `build.gradle(.kts)`. Spring Boot.
    - **.NET** — `*.csproj`, `*.sln`.
    - **Ruby** — `Gemfile`. Rails.
    - **Rust** — `Cargo.toml`.
-2. Un repo puede devolver **varios** stacks: el políglota es la norma, no la
-   excepción (un backend Django con un frontend Next.js).
-3. Extender `LanguageStat` y el conteo de SLOC a las extensiones nuevas.
-4. Extender el informe de madurez con señales por lenguaje (`ruff`/`phpstan`/
-   `golangci-lint` ya están contemplados en
-   [maturity.ts](../packages/scanner/src/maturity.ts); revisar Java y .NET).
+2. A repo can return **several** stacks: polyglot is the norm, not the
+   exception (a Django backend with a Next.js frontend).
+3. Extend `LanguageStat` and the SLOC count to the new extensions.
+4. Extend the maturity report with per-language signals (`ruff`/`phpstan`/
+   `golangci-lint` are already considered in
+   [maturity.ts](../packages/scanner/src/maturity.ts); review Java and .NET).
 
-**Criterios de aceptación:**
-- Tests con `package.json` de ejemplo por cada gestor y framework listado.
-- Un repo Django + Next.js devuelve dos stacks, ordenados por SLOC real.
-- El escáner sigue sin escribir nada en disco (invariante).
+**Acceptance criteria:**
+- Tests with a sample `package.json` for each manager and framework listed.
+- A Django + Next.js repo returns two stacks, ordered by real SLOC.
+- The scanner still writes nothing to disk (invariant).
 
 ---
 
-### [ ] F2-2 — Pack universal de respaldo
+### [ ] F2-2 — Universal fallback pack
 **Branch:** `feat/f2-pack-base` · **Depends on:** F2-1
 
-**Por qué es la tarea más rentable de la fase:** cubre de golpe *todos* los
-stacks que no tengan pack propio, y da valor inmediato en cualquier repositorio
-del mundo. Es lo que convierte un "no soportado" en una venta.
+**Why it is the most profitable task of the phase:** it covers at once *every*
+stack with no pack of its own, and gives immediate value in any repository in
+the world. It is what turns an "unsupported" into a sale.
 
-**Trabajo:**
-1. Pack `base` que **siempre** aplica, con confianza baja (0.1) para que nunca
-   sea el pack principal.
-2. Aporta lo que es independiente del lenguaje:
-   - Escaneo de secretos con Gitleaks (config + workflow).
+**Work:**
+1. A `base` pack that **always** applies, with low confidence (0.1) so that it
+   is never the main pack.
+2. It contributes what does not depend on the language:
+   - Secret scanning with Gitleaks (config + workflow).
    - `.editorconfig`, `.gitattributes`.
-   - `CODEOWNERS`, `SECURITY.md`, plantillas de PR e issues.
-   - `.env.example` derivado de las variables que el escáner encuentre en el código.
-   - Reglas de contexto de IA genéricas (`AGENTS.md`) construidas a partir del
-     escaneo: stacks detectados, estructura, comandos.
-   - Actualización de dependencias (Dependabot/Renovate) según los ecosistemas
-     detectados.
-3. Eliminar de [registry.ts](../packages/packs-sdk/src/registry.ts) el conflicto
-   bloqueante "no se ha reconocido ningún stack": deja de poder ocurrir.
+   - `CODEOWNERS`, `SECURITY.md`, PR and issue templates.
+   - `.env.example` derived from the variables the scanner finds in the code.
+   - Generic AI context rules (`AGENTS.md`) built from the scan: detected
+     stacks, structure, commands.
+   - Dependency updates (Dependabot/Renovate) according to the detected
+     ecosystems.
+3. Remove from [registry.ts](../packages/packs-sdk/src/registry.ts) the
+   blocking "no stack has been recognised" conflict: it can no longer happen.
 
-**Criterios de aceptación:**
-- `plumbward apply` sobre un repo de un lenguaje sin pack (p. ej. Elixir)
-  instala escaneo de secretos, CODEOWNERS y reglas de IA, y no falla.
-- El pack `base` nunca duplica lo que ya aporta un pack específico (lo verifica
-  el `PlanBuilder`, que debe reportar conflicto si ocurre).
+**Acceptance criteria:**
+- `plumbward apply` on a repo in a language with no pack (e.g. Elixir)
+  installs secret scanning, CODEOWNERS and AI rules, and does not fail.
+- The `base` pack never duplicates what a specific pack already contributes
+  (checked by the `PlanBuilder`, which must report a conflict if it happens).
 
 ---
 
-### [ ] F2-3 — Kit de pruebas de conformidad reutilizable
+### [ ] F2-3 — Reusable conformance test kit
 **Branch:** `test/f2-conformance-kit` · **Depends on:** F2-2
 
-**Por qué antes de escribir cuatro packs:** sin esto, cada pack se testea de una
-forma distinta y la calidad diverge. Y cuando abramos el catálogo a terceros
-(el eje de escalado del negocio), esta suite es lo único que impide que un pack
-mal escrito destroce el repositorio de un cliente.
+**Why before writing four packs:** without this, each pack is tested in a
+different way and quality diverges. And when we open the catalogue to third
+parties (the scaling axis of the business), this suite is the only thing that
+stops a badly written pack from wrecking a client's repository.
 
-**Trabajo:**
-1. Paquete `@plumbward/pack-testkit`.
-2. `describePackConformance(pack, escenarios)`: batería estándar que ejecuta
-   `checkPackConformance` sobre varios repos sintéticos y comprueba además:
-   - **Idempotencia**: aplicar dos veces no produce cambios la segunda.
-   - **Reversibilidad**: `apply` + `rollback` deja el repo byte a byte idéntico.
-   - **No destructividad**: nunca pisa un fichero preexistente del cliente sin
-     declararlo como conflicto.
-   - **Respeto del modo**: en `non-disruptive` no toca ficheros de código fuente.
-   - **Paridad de idioma**: genera en `es` y en `en` con la misma estructura.
-3. Utilidades para construir repos de prueba en memoria/tmp.
-4. Migrar los tests existentes de `node-ts` al kit.
+**Work:**
+1. `@plumbward/pack-testkit` package.
+2. `describePackConformance(pack, scenarios)`: a standard battery that runs
+   `checkPackConformance` over several synthetic repos and also checks:
+   - **Idempotence**: applying twice produces no changes the second time.
+   - **Reversibility**: `apply` + `rollback` leaves the repo byte for byte
+     identical.
+   - **Non-destructiveness**: it never overwrites a pre-existing client file
+     without declaring it as a conflict.
+   - **Respect for the mode**: in `non-disruptive` it does not touch source code
+     files.
+   - **Language parity**: it generates in `es` and in `en` with the same
+     structure.
+3. Utilities to build test repos in memory/tmp.
+4. Migrate the existing `node-ts` tests to the kit.
 
-**Criterios de aceptación:**
-- Un pack nuevo se valida con menos de 20 líneas de test.
-- Introducir a propósito un fallo (p. ej. sobrescribir un fichero del cliente)
-  hace fallar el kit.
+**Acceptance criteria:**
+- A new pack is validated with fewer than 20 lines of test.
+- Deliberately introducing a failure (e.g. overwriting a client file) makes the
+  kit fail.
 
 ---
 
-### [ ] F2-4 — Pack de Python
+### [ ] F2-4 — Python pack
 **Branch:** `feat/f2-pack-python` · **Depends on:** F2-3
 
-**Trabajo:**
-1. Detección del gestor: uv → Poetry → PDM → pip, y respeto del que ya use el repo.
-2. Aporta: `ruff` (lint + formato), `mypy` (estricto o gradual según
-   `strictness`), `pytest` con cobertura, `pre-commit`, `bandit` o `pip-audit`
-   para seguridad, workflows de CI con matriz de versiones de Python.
-3. Reglas de IA específicas: tipado, gestión de entornos virtuales, estructura
-   de proyecto, y el patrón del framework detectado (FastAPI vs Django).
-4. Parcheo no destructivo de `pyproject.toml` — requiere **soporte TOML en
-   `@plumbward/ast`**, que hoy sólo tiene JSON y YAML. Es la parte cara de esta
-   tarea: presupuestarla aparte y usar un parser que preserve comentarios.
+**Work:**
+1. Manager detection: uv → Poetry → PDM → pip, respecting the one the repo
+   already uses.
+2. It contributes: `ruff` (lint + format), `mypy` (strict or gradual according
+   to `strictness`), `pytest` with coverage, `pre-commit`, `bandit` or
+   `pip-audit` for security, CI workflows with a matrix of Python versions.
+3. Specific AI rules: typing, virtual environment management, project
+   structure, and the pattern of the detected framework (FastAPI vs Django).
+4. Non-destructive patching of `pyproject.toml` — it requires **TOML support in
+   `@plumbward/ast`**, which today only has JSON and YAML. It is the expensive
+   part of this task: budget it separately and use a parser that preserves
+   comments.
 
-**Criterios de aceptación:**
-- Pasa el kit de conformidad en repos con Poetry, con uv y con `requirements.txt`.
-- Un `pyproject.toml` con comentarios y formato propio conserva ambos tras el parcheo.
+**Acceptance criteria:**
+- Passes the conformance kit on repos with Poetry, with uv and with
+  `requirements.txt`.
+- A `pyproject.toml` with comments and its own formatting keeps both after
+  patching.
 
 ---
 
-### [ ] F2-5 — Pack de PHP / Laravel
+### [ ] F2-5 — PHP / Laravel pack
 **Branch:** `feat/f2-pack-php-laravel` · **Depends on:** F2-3
 
-**Por qué tiene prioridad alta pese a no ser el stack de moda:** es el stack
-dominante en el segmento de **agencias de desarrollo españolas**, que es
-justamente el comprador del paquete de 4.000 €.
+**Why it has high priority despite not being the fashionable stack:** it is the
+dominant stack in the segment of **Spanish development agencies**, which is
+precisely the buyer of the €4,000 package.
 
-**Trabajo:**
-1. Detección de Laravel (`artisan`, `composer.json`) frente a Symfony frente a PHP puro.
-2. Aporta: PHPStan o Psalm con nivel según `strictness`, Laravel Pint o
-   PHP-CS-Fixer, PHPUnit o Pest, `composer audit`, workflows con matriz de PHP.
-3. Parcheo no destructivo de `composer.json` (es JSON: reutiliza `@plumbward/ast`).
-4. Reglas de IA específicas de Laravel: dónde va la lógica de negocio, uso de
-   Eloquent, form requests, evitar consultas N+1 — los errores exactos que
-   comete un asistente de IA en Laravel.
+**Work:**
+1. Detection of Laravel (`artisan`, `composer.json`) versus Symfony versus plain
+   PHP.
+2. It contributes: PHPStan or Psalm with a level according to `strictness`,
+   Laravel Pint or PHP-CS-Fixer, PHPUnit or Pest, `composer audit`, workflows
+   with a PHP matrix.
+3. Non-destructive patching of `composer.json` (it is JSON: it reuses
+   `@plumbward/ast`).
+4. Laravel-specific AI rules: where the business logic goes, use of Eloquent,
+   form requests, avoiding N+1 queries — the exact mistakes an AI assistant
+   makes in Laravel.
 
-**Criterios de aceptación:**
-- Pasa el kit sobre un esqueleto de Laravel real.
-- Los scripts de Composer se añaden sin pisar los que ya tuviera el proyecto.
+**Acceptance criteria:**
+- Passes the kit on a real Laravel skeleton.
+- Composer scripts are added without overwriting the ones the project already
+  had.
 
 ---
 
-### [ ] F2-6 — Pack de Go
+### [ ] F2-6 — Go pack
 **Branch:** `feat/f2-pack-go` · **Depends on:** F2-3
 
-**Trabajo:**
-1. El escáner ya detecta Go; falta el pack.
-2. Aporta: `golangci-lint` con conjunto de linters razonado, `gofumpt`,
-   `go vet`, `govulncheck`, `go test -race -cover`, workflows con matriz.
-3. Reglas de IA: manejo de errores idiomático, contextos, interfaces pequeñas.
-4. Ojo: Go no tiene "dependencias de desarrollo". Verificar que
-   `AddDependencyOp` con `manager: 'go'` se traduce a algo sensato en
-   [apply.ts](../packages/core/src/apply.ts) (`go install` de herramientas, o
-   un `tools.go`). Si no encaja, es una corrección del núcleo, no del pack.
+**Work:**
+1. The scanner already detects Go; the pack is missing.
+2. It contributes: `golangci-lint` with a reasoned set of linters, `gofumpt`,
+   `go vet`, `govulncheck`, `go test -race -cover`, workflows with a matrix.
+3. AI rules: idiomatic error handling, contexts, small interfaces.
+4. Careful: Go has no "development dependencies". Check that
+   `AddDependencyOp` with `manager: 'go'` translates into something sensible in
+   [apply.ts](../packages/core/src/apply.ts) (`go install` of tools, or a
+   `tools.go`). If it does not fit, it is a fix to the core, not to the pack.
 
-**Criterios de aceptación:**
-- Pasa el kit sobre un módulo Go y sobre un monorepo con varios `go.mod`.
+**Acceptance criteria:**
+- Passes the kit on a Go module and on a monorepo with several `go.mod`.
 
 ---
 
-### [ ] F2-7 — Composición de packs en monorepos
+### [ ] F2-7 — Pack composition in monorepos
 **Branch:** `feat/f2-monorepo` · **Depends on:** F2-4, F2-5, F2-6
 
-**Por qué:** el escáner ya detecta monorepos y los fuerza a `non-disruptive`,
-pero los packs siguen razonando sobre la raíz. En un monorepo con `apps/api`
-en Python y `apps/web` en Next.js, hoy se genera una configuración incoherente.
-Y los monorepos son, por tamaño, los clientes de ticket más alto.
+**Why:** the scanner already detects monorepos and forces them to
+`non-disruptive`, but the packs still reason about the root. In a monorepo with
+`apps/api` in Python and `apps/web` in Next.js, an incoherent configuration is
+generated today. And monorepos are, by size, the highest-ticket clients.
 
-**Trabajo:**
-1. Extender `RepoContext` con los **workspaces** detectados (pnpm/yarn/turbo/
-   nx/lerna/Cargo/Go), cada uno con su ruta y sus stacks.
-2. Permitir que un pack contribuya operaciones **con prefijo de ruta** por
-   workspace, sin que los packs tengan que saber de monorepos.
-3. CI que sólo ejecuta los jobs de los workspaces afectados por el diff.
-4. Estrategia clara para la raíz: config compartida arriba, específica abajo.
+**Work:**
+1. Extend `RepoContext` with the detected **workspaces** (pnpm/yarn/turbo/
+   nx/lerna/Cargo/Go), each with its path and its stacks.
+2. Allow a pack to contribute operations **with a path prefix** per workspace,
+   without packs having to know about monorepos.
+3. CI that only runs the jobs of the workspaces affected by the diff.
+4. A clear strategy for the root: shared config at the top, specific config
+   below.
 
-**Criterios de aceptación:**
-- Un monorepo Python + Next.js recibe dos configuraciones coherentes y una CI
-  que sólo corre lo que cambia.
-- Los packs de F2-4 a F2-6 funcionan sin modificarlos.
+**Acceptance criteria:**
+- A Python + Next.js monorepo gets two coherent configurations and a CI that
+  only runs what changes.
+- The packs from F2-4 to F2-6 work without modifying them.
 
 ---
 
-### [ ] F2-8 — Guía para autores de packs
+### [ ] F2-8 — Guide for pack authors
 **Branch:** `docs/f2-pack-authoring-guide` · **Depends on:** F2-7
 
-**Por qué:** es la palanca de escalado del negocio. Si un cliente enterprise
-puede escribir su propio pack con sus estándares internos, deja de comprar una
-herramienta y empieza a construir sobre una plataforma. Eso cambia el precio y
-la permanencia.
+**Why:** it is the scaling lever of the business. If an enterprise client can
+write its own pack with its internal standards, it stops buying a tool and
+starts building on a platform. That changes the price and the retention.
 
-**Trabajo:**
-1. `docs/AUTORAR_PACKS.md`: contrato, DSL, ejemplos, errores frecuentes.
-2. Plantilla ejecutable: `packages/packs/_template/`.
-3. Documentar las garantías que el kit de conformidad verifica y por qué.
+**Work:**
+1. `docs/PACK_AUTHORING.md`: contract, DSL, examples, common mistakes.
+2. Executable template: `packages/packs/_template/`.
+3. Document the guarantees the conformance kit checks, and why.
 
-**Criterios de aceptación:**
-- Alguien externo al proyecto escribe un pack mínimo siguiendo sólo la guía.
+**Acceptance criteria:**
+- Someone outside the project writes a minimal pack following only the guide.
 
 ---
-### [ ] F2-12 — Instalar las herramientas de agente que cada stack necesita
+### [ ] F2-12 — Install the agent tooling each stack needs
 **Branch:** `feat/f2-agent-skills` · **Depends on:** F2-2
 
-**Por qué:** hoy generamos ficheros de reglas. Pero un equipo que trabaja con
-Claude Code, Cursor o Copilot necesita más que un `.cursorrules`: necesita las
-*skills* y la configuración de agente adecuadas a su stack. **Nadie está
-empaquetando esto**, y es de lo más diferenciador que podemos ofrecer.
+**Why:** today we generate rule files. But a team working with Claude Code,
+Cursor or Copilot needs more than a `.cursorrules`: it needs the *skills* and
+the agent configuration suited to its stack. **Nobody is packaging this**, and
+it is one of the most differentiating things we can offer.
 
-**Trabajo:**
-1. Detectar qué asistentes usa el equipo (ya está en `Profile.aiAssistants`) y
-   qué herramientas de agente admite cada uno.
-2. Instalar, según el stack detectado:
-   - Skills de Claude Code en el directorio que corresponda.
-   - Reglas de Cursor en `.cursor/rules/`, troceadas por dominio en lugar de un
-     único fichero monolítico.
-   - `AGENTS.md` genérico para el resto de asistentes.
-   - Configuración de servidores MCP que tengan sentido para ese stack, **sin
-     instalar ninguno automáticamente**: se proponen y decide el equipo.
-3. Que todo lo generado pase por el mismo mecanismo de bloques gestionados, para
-   que `upgrade` pueda actualizarlo sin pisar lo que el equipo añada.
-4. **Proponer herramientas de agente de terceros** (origen: F0-17, donde las
-   usamos nosotros): napkin como runbook del repositorio y la parte local de
-   caveman para comprimir las respuestas. Se proponen, nunca se instalan sin
-   confirmación (ADR 0005), con versión y hash fijados en un lock y el enlace
-   que cada asistente necesita para cargarlas.
-5. **No recomendar ningún gateway en la nube** que enrute las peticiones del
-   asistente por un tercero, como `caveman-setup`: contradice la postura
-   local-first y sin telemetría (ADR 0002) y es un problema de cumplimiento para
-   el cliente.
-6. Una skill o plugin de terceros ejecuta con acceso al repositorio del cliente:
-   revisar sus hooks y scripts antes de incluirla en el catálogo.
-7. Portar a `doctor` los controles de F0-17: hash de cada skill contra su lock,
-   enlace presente, y runbook dentro de sus reglas de curación.
+**Work:**
+1. Detect which assistants the team uses (already in `Profile.aiAssistants`)
+   and which agent tooling each one supports.
+2. Install, according to the detected stack:
+   - Claude Code skills in the matching directory.
+   - Cursor rules in `.cursor/rules/`, split by domain instead of a single
+     monolithic file.
+   - A generic `AGENTS.md` for the rest of the assistants.
+   - Configuration of the MCP servers that make sense for that stack, **without
+     installing any automatically**: they are proposed and the team decides.
+3. Everything generated goes through the same managed-block mechanism, so that
+   `upgrade` can update it without overwriting what the team adds.
+4. **Propose third-party agent tools** (origin: F0-17, where we use them
+   ourselves): napkin as the repository runbook and the local part of caveman
+   to compress replies. They are proposed, never installed without confirmation
+   (ADR 0005), with version and hash pinned in a lock and the link each
+   assistant needs to load them.
+5. **Do not recommend any cloud gateway** that routes the assistant's requests
+   through a third party, like `caveman-setup`: it contradicts the local-first,
+   no-telemetry stance (ADR 0002) and is a compliance problem for the client.
+6. A third-party skill or plugin runs with access to the client's repository:
+   review its hooks and scripts before including it in the catalogue.
+7. Port the F0-17 controls to `doctor`: hash of each skill against its lock,
+   link present, and runbook within its curation rules.
 
-**Criterios de aceptación:**
-- Un repositorio de Node/TS recibe skills y reglas coherentes entre los tres
-  asistentes, sin instrucciones contradictorias entre ficheros.
-- Nada se conecta a un servicio externo sin confirmación explícita.
-- Una skill alterada respecto a su lock hace fallar `doctor`.
+**Acceptance criteria:**
+- A Node/TS repository gets skills and rules that are coherent across the three
+  assistants, with no contradictory instructions between files.
+- Nothing connects to an external service without explicit confirmation.
+- A skill altered with respect to its lock makes `doctor` fail.
 
 ---
 
-### [ ] F2-13 — Snapshots dorados de lo que genera cada pack
+### [ ] F2-13 — Golden snapshots of what each pack generates
 **Branch:** `test/f2-pack-snapshots` · **Depends on:** F2-3, F0-12
 
-**Por qué:** un pack produce ficheros que acaban dentro del repositorio del
-cliente. Hoy nada impide que un refactor cambie un marcador, un identificador de
-bloque o el nombre de un script generado **sin que ningún test se entere** —
-exactamente lo que pasó en F0-8 con el identificador del bloque de `.gitignore`.
+**Why:** a pack produces files that end up inside the client's repository.
+Today nothing stops a refactor from changing a marker, a block identifier or the
+name of a generated script **without any test noticing** — exactly what
+happened in F0-8 with the identifier of the `.gitignore` block.
 
-**Trabajo:**
-1. Extender el kit de conformidad con snapshots de la salida completa de cada
-   pack sobre repositorios sintéticos representativos.
-2. Marcar explícitamente qué partes de esa salida son **tokens persistidos** —
-   los que se escriben en ficheros del cliente y no pueden cambiar sin
-   migración— y hacer que su cambio falle con un mensaje que lo explique, en
-   lugar de simplemente actualizar el snapshot.
-3. Cubrir también el diff entre versiones: qué cambiaría un `upgrade`.
+**Work:**
+1. Extend the conformance kit with snapshots of the full output of each pack
+   over representative synthetic repositories.
+2. Explicitly mark which parts of that output are **persisted tokens** — the
+   ones written into client files, which cannot change without a migration—
+   and make a change to them fail with a message that explains it, instead of
+   simply updating the snapshot.
+3. Also cover the diff between versions: what an `upgrade` would change.
 
-**Criterios de aceptación:**
-- Cambiar un marcador o un identificador de bloque falla con un mensaje que
-  nombra la migración que haría falta.
-- Actualizar un snapshot exige una acción consciente, nunca un `--update` a
-  ciegas en la CI.
+**Acceptance criteria:**
+- Changing a marker or a block identifier fails with a message that names the
+  migration that would be needed.
+- Updating a snapshot requires a conscious action, never a blind `--update` in
+  CI.
 
 ---
 
-### [ ] F2-11 — Frontera real para packs de terceros
+### [ ] F2-11 — A real boundary for third-party packs
 **Branch:** `feat/f2-pack-isolation` · **Depends on:** F2-8
 
-**Origen:** revisión de F0-5.
+**Origin:** review of F0-5.
 
-**Por qué importa:** la documentación afirmaba que un pack "no tiene acceso al
-sistema de ficheros". Es falso: un pack es un objeto cargado en el mismo proceso
-de Node y puede importar `node:fs` y escribir donde quiera. `checkPackConformance`
-sólo inspecciona las **operaciones devueltas**; no puede observar efectos
-secundarios.
+**Why it matters:** the documentation claimed that a pack "has no access to the
+file system". It is false: a pack is an object loaded in the same Node process
+and can import `node:fs` and write wherever it wants. `checkPackConformance`
+only inspects the **returned operations**; it cannot observe side effects.
 
-Mientras el CLI sólo cargue packs incluidos en su propio paquete, el riesgo es
-teórico. En el momento en que se abra el catálogo —que es la palanca de escalado
-del negocio (F2-8)— instalar un pack pasa a ser ejecutar código arbitrario en la
-máquina del cliente. Esta tarea es **bloqueante para aceptar packs externos**.
+As long as the CLI only loads packs included in its own package, the risk is
+theoretical. The moment the catalogue opens —which is the scaling lever of the
+business (F2-8)— installing a pack becomes running arbitrary code on the
+client's machine. This task is **blocking for accepting external packs**.
 
-**Trabajo:**
-1. Decidir el mecanismo: ejecutar los packs en un `worker_thread` con permisos
-   recortados, en un proceso hijo con el modelo de permisos de Node
-   (`--experimental-permission`), o firmar y auditar los packs del catálogo.
-   Escribir una ADR con la elección.
-2. Implementarlo y añadir al kit de conformidad una prueba que detecte un pack
-   que intente escribir directamente.
-3. Hasta entonces, dejar explícito en la documentación y en la salida del CLI
-   que sólo se cargan packs de confianza.
+**Work:**
+1. Decide the mechanism: run the packs in a `worker_thread` with trimmed
+   permissions, in a child process with the Node permission model
+   (`--experimental-permission`), or sign and audit the catalogue packs.
+   Write an ADR with the choice.
+2. Implement it, and add to the conformance kit a test that detects a pack that
+   tries to write directly.
+3. Until then, state explicitly in the documentation and in the CLI output that
+   only trusted packs are loaded.
 
-**Criterios de aceptación:**
-- Un pack que intenta escribir por su cuenta es detectado o impedido.
-- La ADR justifica el mecanismo elegido y lo que deja fuera.
+**Acceptance criteria:**
+- A pack that tries to write on its own is detected or prevented.
+- The ADR justifies the chosen mechanism and what it leaves out.
 
 ---
 
-### [ ] F2-9 — Llevar los límites operativos del asistente al pack base
+### [ ] F2-9 — Take the assistant's operating limits to the base pack
 **Branch:** `refactor/f2-boundaries-to-base-pack` · **Depends on:** F2-2
 
-**Estado:** implementado **sólo** en el pack de Node/TypeScript (sección 7 de las
-reglas generadas, más las instrucciones de Copilot), con el contrato
-`AgentBoundaries` ya en el `Profile`. Falta generalizarlo.
+**Status:** implemented **only** in the Node/TypeScript pack (section 7 of the
+generated rules, plus the Copilot instructions), with the `AgentBoundaries`
+contract already in the `Profile`. It still has to be generalised.
 
-**Por qué el pack base es su sitio:** que un asistente no ejecute `git push` ni
-una migración no tiene nada que ver con el lenguaje del proyecto. Dejarlo en
-`node-ts` significa que un cliente de Laravel o Django no lo recibe, que es
-justo donde una migración mal lanzada hace más daño.
+**Why the base pack is its place:** an assistant not running `git push` or a
+migration has nothing to do with the language of the project. Leaving it in
+`node-ts` means that a Laravel or Django client does not get it, which is
+exactly where a badly launched migration does the most damage.
 
-**Trabajo:**
-1. Mover `boundariesSection` del pack de Node al pack base.
-2. Publicarla en todos los ficheros de contexto de IA que genere el pack base
-   (`AGENTS.md`, `CLAUDE.md`, `.cursorrules`, `copilot-instructions.md`), sin
-   duplicarla en los packs de stack.
-3. Ampliar la lista de comandos prohibidos con los propios de cada ecosistema
-   detectado: `php artisan migrate`, `python manage.py migrate`, `alembic
+**Work:**
+1. Move `boundariesSection` from the Node pack to the base pack.
+2. Publish it in every AI context file the base pack generates (`AGENTS.md`,
+   `CLAUDE.md`, `.cursorrules`, `copilot-instructions.md`), without duplicating
+   it in the stack packs.
+3. Extend the list of forbidden commands with those of each detected ecosystem:
+   `php artisan migrate`, `python manage.py migrate`, `alembic
    upgrade`, `prisma migrate deploy`, `rails db:migrate`, `goose up`.
-4. Traducir la sección a los catálogos i18n de la Fase 1.
-5. Comprobación de salud en `doctor`: avisar si los ficheros de reglas de IA se
-   han editado a mano y han perdido la sección.
-6. **Protocolo de conservación de tokens** (origen: F0-17), en la misma sección y
-   en todos los ficheros de reglas de IA: una tarea por sesión, lo pesado a la
-   CI, lecturas dirigidas con `grep` y rangos de líneas, y en una PR abierta
-   sólo bloqueantes. Es independiente del stack y del asistente: se escribe una
-   vez en la configuración central y se traduce a `CLAUDE.md`, `AGENTS.md`,
-   `.cursorrules` y `.github/copilot-instructions.md`.
+4. Translate the section into the i18n catalogues of Phase 1.
+5. Health check in `doctor`: warn if the AI rule files have been edited by hand
+   and have lost the section.
+6. **Token conservation protocol** (origin: F0-17), in the same section and in
+   every AI rule file: one task per session, heavy work to CI, targeted reads
+   with `grep` and line ranges, and on an open PR only blockers. It does not
+   depend on the stack or on the assistant: it is written once in the central
+   configuration and translated into `CLAUDE.md`, `AGENTS.md`, `.cursorrules`
+   and `.github/copilot-instructions.md`.
 
-**Criterios de aceptación:**
-- Un repositorio de cualquier stack recibe los límites, con los comandos de
-  migración propios de su ecosistema nombrados explícitamente.
-- Desactivar `agentBoundaries.git` en el perfil los elimina de todos los
-  ficheros generados a la vez, y la numeración de secciones sigue siendo válida.
-- La sección aparece igual en español y en inglés.
-- El protocolo de conservación de tokens aparece en todos los ficheros de
-  reglas de IA generados, con el mismo contenido.
-
----
-
-## FASE 3 — Gobernanza real: modos de aplicación y flujo de trabajo
-
-**Objetivo:** que la herramienta sirva en repositorios grandes y con legado, no
-sólo en proyectos nuevos.
-**Estimación:** 3-4 sesiones.
-**Por qué importa:** un repo de 200.000 líneas es donde más duele el problema
-que vendemos y donde está el ticket alto — y es justo donde una herramienta que
-active reglas estrictas de golpe genera 4.000 errores y se desinstala en diez
-minutos. Los modos `ratchet` y `non-disruptive` ya se **calculan** en
-[sloc.ts](../packages/scanner/src/sloc.ts) pero hoy **no cambian nada**.
-**Criterio de salida:** aplicar la herramienta a un repo grande y desordenado
-deja la CI en verde desde el primer día, y aun así impide que empeore.
+**Acceptance criteria:**
+- A repository of any stack gets the limits, with the migration commands of its
+  own ecosystem named explicitly.
+- Disabling `agentBoundaries.git` in the profile removes them from every
+  generated file at once, and the section numbering is still valid.
+- The section reads the same in Spanish and in English.
+- The token conservation protocol appears in every generated AI rule file, with
+  the same content.
 
 ---
 
-### [ ] F3-1 — Baseline: fotografía de la deuda existente
+## PHASE 3 — Real governance: application modes and workflow
+
+**Objective:** the tool works on large repositories with legacy code, not only
+on new projects.
+**Estimate:** 3-4 work sessions.
+**Why it matters:** a 200,000-line repo is where the problem we sell hurts the
+most and where the high ticket is — and it is exactly where a tool that turns
+strict rules on all at once generates 4,000 errors and gets uninstalled in ten
+minutes. The `ratchet` and `non-disruptive` modes are already **computed** in
+[sloc.ts](../packages/scanner/src/sloc.ts) but today **they change nothing**.
+**Phase exit criterion:** applying the tool to a large, messy repo leaves CI
+green from day one, and still prevents it from getting worse.
+
+---
+
+### [ ] F3-1 — Baseline: a snapshot of the existing debt
 **Branch:** `feat/f3-baseline` · **Depends on:** Phase 2 complete
 
-**Trabajo:**
-1. Generar `.governance/baseline.json` (la constante `BASELINE_FILE` ya existe
-   en [types.ts](../packages/core/src/types.ts), sin implementación detrás).
-2. Contenido: por fichero y por regla, el número de infracciones **aceptadas**
-   en el momento de instalar, más metadatos (fecha, versión, comando que lo generó).
-3. Comando `plumbward baseline --update`, que exige que el árbol esté limpio
-   y explica en la salida qué se está aceptando y qué implica.
-4. El baseline es **legible y revisable en una PR**: nada de blobs binarios.
+**Work:**
+1. Generate `.governance/baseline.json` (the `BASELINE_FILE` constant already
+   exists in [types.ts](../packages/core/src/types.ts), with no implementation
+   behind it).
+2. Content: per file and per rule, the number of violations **accepted** at
+   installation time, plus metadata (date, version, command that generated it).
+3. A `plumbward baseline --update` command, which requires a clean tree and
+   explains in its output what is being accepted and what it implies.
+4. The baseline is **readable and reviewable in a PR**: no binary blobs.
 
-**Criterios de aceptación:**
-- Regenerar el baseline sobre un repo sin cambios produce un fichero idéntico
-  (determinismo).
-- El fichero explica en su cabecera, en el idioma configurado, qué es y cómo se
-  reduce.
+**Acceptance criteria:**
+- Regenerating the baseline over an unchanged repo produces an identical file
+  (determinism).
+- The file explains in its header, in the configured language, what it is and
+  how it is reduced.
 
 ---
 
-### [ ] F3-2 — Modo trinquete: reglas estrictas sólo sobre lo que cambia
+### [ ] F3-2 — Ratchet mode: strict rules only on what changes
 **Branch:** `feat/f3-ratchet-staged` · **Depends on:** F3-1
 
-**Trabajo:**
-1. En modo `ratchet`, los hooks aplican las reglas estrictas **sólo a los
-   ficheros en staged**, y las reglas suaves al resto.
-2. En modo `non-disruptive`, los hooks sólo avisan; nada bloquea.
-3. Configuración generada de forma que el desarrollador entienda por qué su
-   fichero se valida distinto que el de al lado (comentarios explicativos).
+**Work:**
+1. In `ratchet` mode, the hooks apply the strict rules **only to the staged
+   files**, and the soft rules to the rest.
+2. In `non-disruptive` mode, the hooks only warn; nothing blocks.
+3. Configuration generated so that the developer understands why their file is
+   validated differently from the one next to it (explanatory comments).
 
-**Criterios de aceptación:**
-- En un repo con 500 errores preexistentes, un commit de un fichero limpio pasa.
-- Un commit que toca un fichero con deuda exige arreglar **sólo las líneas que toca**.
+**Acceptance criteria:**
+- In a repo with 500 pre-existing errors, a commit of a clean file passes.
+- A commit that touches a file with debt requires fixing **only the lines it
+  touches**.
 
 ---
 
-### [ ] F3-3 — CI que audita únicamente el diff de la Pull Request
+### [ ] F3-3 — CI that audits only the diff of the Pull Request
 **Branch:** `feat/f3-diff-only-ci` · **Depends on:** F3-2
 
-**Por qué:** es la promesa comercial literal del producto — "reducción del 40%
-en tiempos de revisión de PRs" — y hoy no está implementada.
+**Why:** it is the literal commercial promise of the product — "40% reduction
+in PR review times" — and today it is not implemented.
 
-**Trabajo:**
-1. Workflows que calculan los ficheros cambiados frente a la rama base y
-   ejecutan linter, tipos y escaneo de secretos sólo sobre ellos.
-2. Comentario automático en la PR con el resumen: qué se validó, qué mejoró y
-   qué empeoró respecto al baseline.
-3. Cubrir el caso del PR grande y el de la rama desactualizada.
+**Work:**
+1. Workflows that compute the changed files against the base branch and run the
+   linter, types and secret scanning only on them.
+2. An automatic comment on the PR with the summary: what was validated, what
+   improved and what got worse with respect to the baseline.
+3. Cover the case of the large PR and that of the outdated branch.
 
-**Criterios de aceptación:**
-- Una PR de 3 ficheros en un repo de 200.000 líneas se valida en menos de un minuto.
-- El comentario es útil para un revisor humano, no ruido.
+**Acceptance criteria:**
+- A 3-file PR in a 200,000-line repo is validated in under a minute.
+- The comment is useful for a human reviewer, not noise.
 
 ---
 
-### [ ] F3-4 — El trinquete: prohibido empeorar
+### [ ] F3-4 — The ratchet: no getting worse
 **Branch:** `feat/f3-ratchet-metrics` · **Depends on:** F3-3
 
-**Por qué:** es la diferencia entre "instalamos linters" y "gobernanza". Y es lo
-que hace que la licencia se renueve: el valor se acumula mes a mes de forma medible.
+**Why:** it is the difference between "we install linters" and "governance".
+And it is what makes the licence renew: the value accumulates month after
+month, in a measurable way.
 
-**Trabajo:**
-1. La CI compara las métricas de la PR contra el baseline y **falla si la deuda
-   sube**, aunque los valores absolutos sigan siendo altos.
-2. Cuando una PR reduce la deuda, el baseline se actualiza automáticamente a la
-   baja: el trinquete nunca retrocede.
-3. `plumbward report` muestra la evolución de la puntuación de madurez y de la
-   deuda en el tiempo.
+**Work:**
+1. CI compares the metrics of the PR against the baseline and **fails if the
+   debt goes up**, even if the absolute values are still high.
+2. When a PR reduces the debt, the baseline is automatically updated downwards:
+   the ratchet never goes back.
+3. `plumbward report` shows the evolution of the maturity score and of the debt
+   over time.
 
-**Criterios de aceptación:**
-- Una PR que añade un `any` nuevo falla, aunque el repo tenga 3.000.
-- Una PR que elimina 10 infracciones baja el baseline en el mismo merge.
+**Acceptance criteria:**
+- A PR that adds a new `any` fails, even if the repo has 3,000.
+- A PR that removes 10 violations lowers the baseline in the same merge.
 
 ---
 
-### [ ] F3-5 — Gobierno del flujo de ramas (feature de producto)
+### [ ] F3-5 — Governance of the branch flow (product feature)
 **Branch:** `feat/f3-branch-governance` · **Depends on:** F2-2
 
-**Por qué:** es la pregunta 1 del wizard en el PDF y hoy no existe nada.
-Nosotros estamos usando este flujo internamente (§3): esta tarea convierte esa
-práctica en producto.
+**Why:** it is question 1 of the wizard in the PDF and today nothing exists. We
+are using this flow internally (§3): this task turns that practice into
+product.
 
-**Trabajo:**
-1. El pack `base` genera y documenta la estrategia de ramas elegida en el perfil,
-   **con los nombres de rama del perfil** —configurados, o propuestos y
-   confirmados, nunca supuestos:
-   `Prod`, `main`, `trunk` o lo que use el equipo (ver F0-14).
-2. Convención de nombres de rama en el idioma del historial
-   (`agentBoundaries.commitLanguage`, inglés por defecto), con formato
-   `<tipo>/<descripción>`, y **un control que la verifique en CI** leyendo la
-   rama desde `GITHUB_HEAD_REF` —nunca interpolándola en un `run:`, porque el
-   nombre de rama lo controla quien abre la PR—. Las reglas de IA generadas ya lo
-   piden desde el 2026-09-11; falta el control en el repo del cliente.
-2. Genera las **reglas de protección de rama** como fichero declarativo
-   (ruleset de GitHub) más las instrucciones para aplicarlas. Aplicarlas
-   automáticamente requiere token de administración: se ofrece, **nunca se
-   asume**, y sólo con confirmación explícita.
-3. Genera plantillas de PR e issues, y `CODEOWNERS` a partir de los autores
-   reales que devuelve el historial de git.
-4. Documenta el flujo en el `GOVERNANCE.md` que ya genera el pack de Node.
+**Work:**
+1. The `base` pack generates and documents the branch strategy chosen in the
+   profile, **with the branch names of the profile** —configured, or proposed
+   and confirmed, never assumed:
+   `Prod`, `main`, `trunk` or whatever the team uses (see F0-14).
+2. A branch naming convention in the language of the history
+   (`agentBoundaries.commitLanguage`, English by default), with the format
+   `<type>/<description>`, and **a control that checks it in CI** reading the
+   branch from `GITHUB_HEAD_REF` —never interpolating it into a `run:`, because
+   the branch name is controlled by whoever opens the PR—. The generated AI
+   rules have asked for it since 2026-09-11; the control in the client's repo
+   is missing.
+2. It generates the **branch protection rules** as a declarative file (GitHub
+   ruleset) plus the instructions to apply them. Applying them automatically
+   requires an admin token: it is offered, **never assumed**, and only with
+   explicit confirmation.
+3. It generates PR and issue templates, and `CODEOWNERS` from the real authors
+   the git history returns.
+4. It documents the flow in the `GOVERNANCE.md` the Node pack already
+   generates.
 
-**Lo aprendido configurándolo a mano en F0-13**, que concreta el diseño:
+**What configuring it by hand in F0-13 taught**, which makes the design
+concrete:
 
-- **Los checks obligatorios salen de los workflows generados.** Deben coincidir
-  exactamente con el `name` de cada job, y los de matriz se expanden (`Node
-  22.13`, `Node 24`…). Si la matriz cambia y la regla no, todas las PRs quedan
-  bloqueadas para siempre. Como Plumbward genera las dos cosas, calcula la lista
-  exacta y en cada `upgrade` actualiza ambas a la vez. **Es la ventaja que no
-  tiene una herramienta que sólo protege ramas.** `doctor` avisa si un check
-  obligatorio no corresponde a ningún job.
-- **Aprobaciones según el equipo:** 0 para un desarrollador solo, que con 1 no
-  podría mergear nunca sus propias PRs; 1 o más para equipos.
-- **Qué ramas proteger:** `integration` y `release` del perfil, más la rama por
-  defecto de GitHub, que se lee de la API. Proteger una rama de más es barato;
-  lo que nunca se deduce es desde cuál se despliega. Si falta `release`, se
-  protege lo que se sabe y se avisa (ADR 0005).
-- **Es una operación remota nueva**, fuera de las seis operaciones locales del
-  núcleo, así que requiere una **ADR**. Debe conservar las garantías: `plan`
-  muestra la regla exacta, se leen primero las existentes para no pisarlas,
-  `apply` sólo con confirmación explícita, y el journal guarda su identificador
-  para que `rollback` la borre.
-- **Requiere permisos de administración:** se usa la sesión de `gh` que ya
-  tenga el usuario, sin guardar nunca el token.
-- **Límite de GitHub:** las reglas se aplican en repositorios públicos con
-  cualquier plan, pero en privados exigen Pro, Team o Enterprise. Detectarlo y
-  explicarlo, en lugar de crear una regla que GitHub ignora sin avisar.
-- Multiplataforma: GitLab y Bitbucket tienen APIs equivalentes.
+- **The required checks come from the generated workflows.** They must match
+  the `name` of each job exactly, and matrix ones are expanded (`Node
+  22.13`, `Node 24`…). If the matrix changes and the rule does not, every PR is
+  blocked forever. Since Plumbward generates both, it computes the exact list
+  and updates both at once on every `upgrade`. **It is the advantage a tool
+  that only protects branches does not have.** `doctor` warns if a required
+  check matches no job.
+- **Approvals according to the team:** 0 for a solo developer, who with 1 could
+  never merge their own PRs; 1 or more for teams.
+- **Which branches to protect:** `integration` and `release` from the profile,
+  plus the GitHub default branch, which is read from the API. Protecting one
+  branch too many is cheap; what is never inferred is which one is deployed
+  from. If `release` is missing, what is known is protected and a warning is
+  given (ADR 0005).
+- **It is a new remote operation**, outside the six local operations of the
+  core, so it requires an **ADR**. It must keep the guarantees: `plan` shows the
+  exact rule, the existing ones are read first so as not to overwrite them,
+  `apply` only with explicit confirmation, and the journal stores its identifier
+  so that `rollback` deletes it.
+- **It requires admin permissions:** it uses the `gh` session the user already
+  has, never storing the token.
+- **GitHub limit:** rules apply on public repositories with any plan, but on
+  private ones they require Pro, Team or Enterprise. Detect it and explain it,
+  instead of creating a rule GitHub ignores without warning.
+- Multi-platform: GitLab and Bitbucket have equivalent APIs.
 
-**Criterios de aceptación:**
-- Tras aplicar, el repo del cliente tiene documentado su flujo y las
-  protecciones listas para activar.
-- Nada toca la configuración remota del repositorio sin confirmación explícita.
-- Los checks obligatorios coinciden con los jobs generados, y cambiar la matriz
-  actualiza la regla en el mismo `upgrade`.
+**Acceptance criteria:**
+- After applying, the client's repo has its flow documented and the protections
+  ready to turn on.
+- Nothing touches the remote configuration of the repository without explicit
+  confirmation.
+- The required checks match the generated jobs, and changing the matrix updates
+  the rule in the same `upgrade`.
 
 ---
 
-### [ ] F3-6 — Flujo de entrega y revisión asistida en las reglas generadas
+### [ ] F3-6 — Delivery flow and assisted review in the generated rules
 **Branch:** `feat/f3-delivery-workflow` · **Depends on:** F3-5
 
-**Por qué:** el cuello de botella que el producto promete resolver no es escribir
-el código, es **revisarlo**. Un equipo pequeño, o uno en el que sólo queda una
-persona un viernes por la tarde, acumula PRs sin revisar y acaba mergeando sin
-mirar. Esta tarea convierte en producto el flujo que ya usamos internamente
-(§3.3): el asistente del cliente entrega los textos y, si hace falta, revisa.
+**Why:** the bottleneck the product promises to solve is not writing the code,
+it is **reviewing it**. A small team, or one where only one person is left on a
+Friday afternoon, piles up unreviewed PRs and ends up merging without looking.
+This task turns into product the flow we already use internally (§3.3): the
+client's assistant delivers the texts and, if needed, reviews.
 
-**Trabajo:**
-1. El pack base añade a las reglas de IA generadas una sección de **flujo de
-   entrega**: al cerrar una unidad de trabajo, el asistente entrega el mensaje de
-   commit, el **título** de la PR y su descripción, en el idioma que indique
-   `agentBoundaries.commitLanguage`, con el formato de la plantilla de PR que
-   genere el propio pack. El título en una línea y bajo 70 caracteres: es lo
-   único que se ve en la lista de PRs.
-2. Regla explícita de **revisión en contexto nuevo**: si el desarrollador pide
-   que el asistente revise la PR, debe hacerlo sin el historial que produjo el
-   código. Es el punto que hace que la revisión valga algo; sin él, el asistente
-   se limita a confirmar sus propias suposiciones.
-3. Regla de **preguntar antes**: nunca asumir que revisa el asistente. Se ofrece;
-   decide el equipo.
-4. La revisión **entrega hallazgos, no aprueba ni integra**. El merge lo hace una
-   persona, siempre. Debe quedar escrito en las reglas generadas para que no se
-   erosione con el uso.
-5. Nueva opción de perfil `assistedReview` (por defecto activa) para que un
-   equipo con revisión humana garantizada pueda desactivar el ofrecimiento.
-6. **Revisión proporcional** (origen: F0-17). La primera revisión es completa;
-   las siguientes se limitan al diff de las correcciones y usan un modelo ligero.
-   Una corrección pequeña ya probada no lleva otra ronda. Al cerrar, el
-   asistente recuerda que el merge es del desarrollador y que lo siguiente
-   empieza en una sesión nueva (F3-10 lo automatiza).
+**Work:**
+1. The base pack adds to the generated AI rules a **delivery flow** section:
+   when a unit of work is closed, the assistant delivers the commit message,
+   the PR **title** and its description, in the language set by
+   `agentBoundaries.commitLanguage`, with the format of the PR template the
+   pack itself generates. The title on one line and under 70 characters: it is
+   the only thing seen in the PR list.
+2. An explicit **fresh-context review** rule: if the developer asks the
+   assistant to review the PR, it must do so without the history that produced
+   the code. It is what makes the review worth something; without it, the
+   assistant only confirms its own assumptions.
+3. An **ask first** rule: never assume the assistant reviews. It is offered;
+   the team decides.
+4. The review **delivers findings, it does not approve or merge**. The merge is
+   done by a person, always. It must be written in the generated rules so that
+   it does not erode with use.
+5. A new profile option `assistedReview` (on by default) so that a team with
+   guaranteed human review can turn the offer off.
+6. **Proportional review** (origin: F0-17). The first review is complete; the
+   following ones are limited to the diff of the fixes and use a light model. A
+   small fix already tested does not get another round. When closing, the
+   assistant reminds that the merge belongs to the developer and that what
+   follows starts in a new session (F3-10 automates it).
 
-**Criterios de aceptación:**
-- Un repositorio configurado recibe el flujo de entrega en sus ficheros de reglas
-  de IA, coherente con la plantilla de PR y el flujo de ramas que se le generan.
-- Desactivar `assistedReview` elimina la parte de revisión pero mantiene la
-  entrega de los mensajes.
-- La sección deja explícito que la revisión asistida es una válvula contra el
-  bloqueo, no un sustituto de la revisión humana.
-- Las reglas generadas limitan las revisiones de seguimiento al diff de las
-  correcciones.
+**Acceptance criteria:**
+- A configured repository gets the delivery flow in its AI rule files, coherent
+  with the PR template and the branch flow generated for it.
+- Disabling `assistedReview` removes the review part but keeps the delivery of
+  the messages.
+- The section makes explicit that assisted review is a relief valve against
+  being blocked, not a substitute for human review.
+- The generated rules limit follow-up reviews to the diff of the fixes.
 
 ---
 
-### [ ] F3-7 — Leyes de testing acopladas al cambio
+### [ ] F3-7 — Testing laws coupled to the change
 **Branch:** `feat/f3-test-coupling` · **Depends on:** F3-3
 
-**Por qué:** es la queja número uno sobre el código generado con IA — llega sin
-pruebas— y es **mecánicamente comprobable**, que es lo que la convierte en
-control y no en consejo.
+**Why:** it is the number one complaint about AI-generated code — it arrives
+without tests— and it is **mechanically checkable**, which is what makes it a
+control and not advice.
 
-**Trabajo:**
-1. Comparar el diff de la Pull Request con los símbolos exportados que toca:
-   - Función exportada **nueva** sin prueba que la cubra → falla.
-   - Función exportada **modificada** cuya prueba no se ha tocado → avisa.
-   - Función exportada **eliminada** con pruebas huérfanas → falla.
-2. Respetar el modo: en `non-disruptive` sólo avisa, nunca bloquea.
-3. Vía de escape explícita y auditable: una anotación que exima un símbolo
-   concreto, **con motivo obligatorio**, visible en la revisión.
-4. Que el mensaje de error diga qué fichero de prueba falta y dónde crearlo.
+**Work:**
+1. Compare the diff of the Pull Request with the exported symbols it touches:
+   - **New** exported function with no test that covers it → fails.
+   - **Modified** exported function whose test has not been touched → warns.
+   - **Removed** exported function with orphan tests → fails.
+2. Respect the mode: in `non-disruptive` it only warns, it never blocks.
+3. An explicit, auditable escape hatch: an annotation that exempts a specific
+   symbol, **with a mandatory reason**, visible in the review.
+4. The error message says which test file is missing and where to create it.
 
-**Criterios de aceptación:**
-- Una PR que añade una función exportada sin prueba se bloquea con un mensaje
-  accionable.
-- La exención requiere escribir un motivo y queda visible en la PR.
+**Acceptance criteria:**
+- A PR that adds an exported function without a test is blocked with an
+  actionable message.
+- The exemption requires writing a reason and stays visible in the PR.
 
 ---
 
-### [ ] F3-8 — Postura de seguridad, más allá de los secretos
+### [ ] F3-8 — Security posture, beyond secrets
 **Branch:** `feat/f3-security-posture` · **Depends on:** F3-3
 
-**Por qué:** Gitleaks detecta tokens filtrados. No detecta **puertas abiertas**,
-que es la otra mitad del problema y la que un asistente de IA introduce con más
-facilidad porque copia ejemplos de documentación pensados para desarrollo local.
+**Why:** Gitleaks detects leaked tokens. It does not detect **open doors**,
+which are the other half of the problem, and the half an AI assistant
+introduces most easily, because it copies documentation examples meant for
+local development.
 
-**Trabajo:**
-1. Controles para configuraciones inseguras por defecto, con la fuente oficial
-   que respalda cada uno (F1-5): `CORS: *`, modo depuración activo en producción,
-   puertos expuestos innecesariamente, autenticación permisiva, cookies sin
-   `Secure` ni `HttpOnly`, TLS desactivado.
-2. Detección de variables de entorno usadas en el código pero ausentes de
-   `.env.example`, y al revés.
-3. Detección de credenciales por defecto en ficheros de contenedor y de
-   `docker-compose`.
-4. Cada hallazgo explica **por qué es un problema** y cómo se corrige. Un aviso
-   que no enseña se acaba silenciando.
+**Work:**
+1. Controls for insecure default configurations, with the official source that
+   backs each one (F1-5): `CORS: *`, debug mode on in production, needlessly
+   exposed ports, permissive authentication, cookies without `Secure` or
+   `HttpOnly`, TLS disabled.
+2. Detection of environment variables used in the code but missing from
+   `.env.example`, and the other way round.
+3. Detection of default credentials in container and `docker-compose` files.
+4. Each finding explains **why it is a problem** and how it is fixed. A warning
+   that does not teach ends up silenced.
 
-**Criterios de aceptación:**
-- Los controles funcionan sobre los stacks con pack propio.
-- Cada control cita su fuente oficial.
-- Cero falsos positivos sobre los repositorios de prueba de F6-2; un control
-  ruidoso se desactiva antes que tolerarlo.
+**Acceptance criteria:**
+- The controls work on the stacks with a pack of their own.
+- Each control cites its official source.
+- Zero false positives on the F6-2 test repositories; a noisy control is
+  disabled rather than tolerated.
 
 ---
 
-### [ ] F3-9 — Controles derivados de incidentes
+### [ ] F3-9 — Controls derived from incidents
 **Branch:** `feat/f3-incident-derived-controls` · **Depends on:** F3-7, F0-12
 
-**Por qué es la funcionalidad con más foso de todo el plan:** el trinquete
-impide empeorar en métricas. Esto impide **repetir un fallo concreto**. Al año,
-la configuración de Plumbward de un cliente contiene los errores que su equipo
-ya no comete — y eso no lo replica un competidor publicando un repositorio, ni
-lo regala una plataforma. Es coste de cambio real.
+**Why it is the feature with the widest moat in the whole plan:** the ratchet
+prevents getting worse in metrics. This prevents **repeating a specific
+failure**. After a year, a client's Plumbward configuration contains the
+mistakes its team no longer makes — and a competitor does not replicate that by
+publishing a repository, nor does a platform give it away. It is a real
+switching cost.
 
-**Trabajo:**
-1. Un **catálogo de controles parametrizables**: cadena prohibida, fichero
-   obligatorio, acoplamiento símbolo-test, coherencia entre documentación y
-   comandos, token persistido que no puede cambiar, configuración insegura.
-2. Flujo que convierte un hallazgo en una instancia de uno de esos controles con
-   dos o tres respuestas. **No se deriva un control de prosa arbitraria**: se
-   elige plantilla y se parametriza. Prometer lo contrario sería vender magia.
-3. Los controles resultantes se versionan en el repositorio del cliente, en
-   formato legible, y se revisan en una PR como cualquier otro cambio.
-4. El registro de controles derivados alimenta el informe de F4-4: *"este año
-   convertisteis 23 incidencias en controles; ninguna se ha repetido"*. **Es el
-   informe de renovación, no hay que construirlo aparte.**
+**Work:**
+1. A **catalogue of parameterisable controls**: forbidden string, mandatory
+   file, symbol-test coupling, coherence between documentation and commands,
+   persisted token that cannot change, insecure configuration.
+2. A flow that turns a finding into an instance of one of those controls with
+   two or three answers. **A control is not derived from arbitrary prose**: a
+   template is chosen and parameterised. Promising otherwise would be selling
+   magic.
+3. The resulting controls are versioned in the client's repository, in a
+   readable format, and reviewed in a PR like any other change.
+4. The register of derived controls feeds the F4-4 report: *"this year you
+   turned 23 incidents into controls; none has happened again"*. **It is the
+   renewal report, it does not have to be built separately.**
 
-**Criterios de aceptación:**
-- Un hallazgo típico se convierte en control en menos de un minuto.
-- El control resultante es legible por una persona que no estuvo en la
-  incidencia.
-- Desactivar un control exige motivo escrito, visible en la revisión.
+**Acceptance criteria:**
+- A typical finding becomes a control in under a minute.
+- The resulting control is readable by a person who was not in the incident.
+- Disabling a control requires a written reason, visible in the review.
 
 ---
 
-### [ ] F3-10 — Cierre de sesión guiado: `plumbward session close`
+### [ ] F3-10 — Guided session close: `plumbward session close`
 **Branch:** `feat/f3-session-close` · **Depends on:** F3-6, F1-3
 
-**Origen:** F0-17. El protocolo de conservación de tokens pide abrir una sesión
-nueva al cerrar cada tarea, pero hacerlo a mano es fricción: hay que recordar
-qué sigue y redactar el arranque. Un paso manual y farragoso se salta; un
-comando que lo deja todo en el portapapeles se usa. Es la tesis del producto
-—los controles vencen a las reglas— aplicada al coste.
+**Origin:** F0-17. The token conservation protocol asks for a new session to be
+opened when each task closes, but doing it by hand is friction: you have to
+remember what comes next and write the opening. A manual, cumbersome step gets
+skipped; a command that leaves everything on the clipboard gets used. It is the
+thesis of the product —controls beat rules— applied to cost.
 
-**Trabajo:**
-1. `plumbward session close [--next="<tarea>"]`, como subcomando: el resto de la
-   CLI usa verbos sueltos (`scan`, `plan`, `apply`), no `session:close`.
-2. **Precondiciones.** Árbol limpio —ni cambios ni ficheros sin seguimiento— y
-   rama empujada. Si algo falla, lo lista y no hace nada más.
-3. **Siguiente tarea.** Sin `--next`, la primera pendiente cuyas dependencias
-   estén cerradas, leída del plan que declare `.governance/config.yml`
-   (`session.plan`: ruta y patrón de cabecera; por defecto `### [ ] <ID> — <título>`).
-   El cliente no tiene nuestro `EXECUTION_PLAN.md`: la fuente es configurable.
-4. **Prompt de arranque con punteros, no con contenido.** Repositorio, tarea y
-   su rama, último commit (hash y `--stat`) y qué leer y en qué orden. **Nunca el
-   diff**: meterlo en el prompt es justo el contexto arrastrado que se quiere
-   evitar; la sesión nueva lo pide si lo necesita. En el idioma del perfil.
-5. Copia al portapapeles (`pbcopy`, `wl-copy`/`xclip`, `clip.exe`). Sin
-   portapapeles (SSH, CI), lo imprime. No escribe en disco, así que no emite
-   `Operation[]`; mismo config y mismo repo dan el mismo prompt (invariante 2).
-6. Mensaje final: el merge lo hace el desarrollador, y hay que abrir una sesión
-   nueva del asistente y pegar el prompt.
-7. **Sin `clear`.** Limpiar la terminal no vacía el contexto del asistente: lo
-   vacía la sesión nueva. Borrar la pantalla sólo esconde lo que el desarrollador
-   quizá quería leer.
+**Work:**
+1. `plumbward session close [--next="<task>"]`, as a subcommand: the rest of
+   the CLI uses standalone verbs (`scan`, `plan`, `apply`), not
+   `session:close`.
+2. **Preconditions.** Clean tree —no changes and no untracked files— and the
+   branch pushed. If something fails, it lists it and does nothing else.
+3. **Next task.** Without `--next`, the first pending task whose dependencies
+   are closed, read from the plan that `.governance/config.yml` declares
+   (`session.plan`: path and header pattern; by default `### [ ] <ID> — <title>`).
+   The client does not have our `EXECUTION_PLAN.md`: the source is configurable.
+4. **An opening prompt with pointers, not content.** Repository, task and its
+   branch, last commit (hash and `--stat`) and what to read and in what order.
+   **Never the diff**: putting it in the prompt is exactly the dragged-along
+   context we want to avoid; the new session asks for it if it needs it. In the
+   language of the profile.
+5. Copy to the clipboard (`pbcopy`, `wl-copy`/`xclip`, `clip.exe`). Without a
+   clipboard (SSH, CI), it prints it. It does not write to disk, so it does not
+   emit `Operation[]`; the same config and the same repo give the same prompt
+   (invariant 2).
+6. Final message: the merge is done by the developer, and a new assistant
+   session has to be opened and the prompt pasted into it.
+7. **No `clear`.** Clearing the terminal does not empty the assistant's
+   context: the new session does. Clearing the screen only hides what the
+   developer perhaps wanted to read.
 
-**Lo que no se puede prometer:**
-- "Cero tokens": la sesión nueva sigue cargando las reglas y el prompt de
-  sistema. Se promete **sin contexto acumulado**, que es lo que cuesta.
-- "El cliente ve cuánto ahorra": no hay telemetría (ADR 0002). Medirlo exigiría
-  un informe local leyendo los registros de cada asistente. Es otra tarea, y hay
-  que decidir antes si entra en `BUSINESS_MODEL.md`.
+**What cannot be promised:**
+- "Zero tokens": the new session still loads the rules and the system prompt.
+  What is promised is **no accumulated context**, which is what costs.
+- "The client sees how much it saves": there is no telemetry (ADR 0002).
+  Measuring it would require a local report reading the logs of each
+  assistant. It is another task, and whether it goes into `BUSINESS_MODEL.md`
+  has to be decided first.
 
-**Criterios de aceptación:**
-- Con el árbol sucio o la rama sin empujar, falla, lista la causa y no copia nada.
-- Mismo config y mismo repositorio producen el mismo prompt, byte a byte.
-- El prompt no contiene ningún diff y cabe en menos de 20 líneas.
-- Sin portapapeles disponible, imprime el prompt y termina con éxito.
-- Mensajes en español y en inglés.
-
----
-
-## FASE 4 — Ciclo de vida del producto instalado
-
-**Objetivo:** que la herramienta sirva el día 200, no sólo el día 1.
-**Estimación:** 3-4 sesiones.
-**Por qué importa:** el cliente paga una **suscripción anual**, y lo único que
-justifica renovarla es el valor nuevo que llega cada versión
-([ADR 0004](adr/0004-annual-subscription.md)). Sin `upgrade` y sin el motor
-de recurrencia de F4-5 a F4-8, no hay segundo año.
-**Criterio de salida:** un repo configurado hace seis meses se actualiza a las
-reglas nuevas sin perder ni una sola personalización del cliente.
+**Acceptance criteria:**
+- With a dirty tree or the branch not pushed, it fails, lists the cause and
+  copies nothing.
+- The same config and the same repository produce the same prompt, byte for
+  byte.
+- The prompt contains no diff and fits in fewer than 20 lines.
+- With no clipboard available, it prints the prompt and exits successfully.
+- Messages in Spanish and in English.
 
 ---
 
-### [ ] F4-1 — Wizard interactivo `plumbward init`
+## PHASE 4 — Lifecycle of the installed product
+
+**Objective:** the tool is useful on day 200, not only on day 1.
+**Estimate:** 3-4 work sessions.
+**Why it matters:** the client pays an **annual subscription**, and the only
+thing that justifies renewing it is the new value each version brings
+([ADR 0004](adr/0004-annual-subscription.md)). Without `upgrade` and without
+the recurrence engine of F4-5 to F4-8, there is no second year.
+**Phase exit criterion:** a repo configured six months ago updates to the new
+rules without losing a single client customisation.
+
+---
+
+### [ ] F4-1 — Interactive wizard `plumbward init`
 **Branch:** `feat/f4-wizard-init` · **Depends on:** Phase 3 complete
 
-**Trabajo:**
-1. Comando `init` con `@clack/prompts` (ya es dependencia del CLI).
-2. Preguntas, **con un valor por defecto derivado del escaneo** para que pulsar
-   Enter dé un resultado correcto —salvo la rama de despliegue, que no lo tiene
-   a propósito—:
-   - Estrategia de ramas (F3-5).
-   - Destino de despliegue por entorno **y la rama desde la que se despliega**
-     (`branches.release`). Es lo único que Plumbward nunca deduce (ADR 0005): se
-     pregunta siempre, sin valor por defecto.
-   - Nivel de estrictez, mostrando cuántos errores generaría cada opción **sobre
-     su repo real** — el escáner ya tiene los datos para calcularlo.
-   - Asistentes de IA en uso.
-   - **Límites operativos del asistente** (`agentBoundaries`): si puede ejecutar
-     git y migraciones, y en qué idioma redacta los mensajes de commit. Por
-     defecto los tres activos; desactivarlos debe requerir una acción consciente.
-   - Docker Compose y DevContainer.
-   - Idioma.
-3. El wizard **no ejecuta nada**: sólo produce el `Profile` y lo escribe en
-   `.governance/config.yml`. Después encadena a `plan`.
-4. `--yes` para CI y `--profile <fichero>` para que una agencia aplique el mismo
-   perfil a diez repositorios sin repetir el cuestionario.
+**Work:**
+1. An `init` command with `@clack/prompts` (already a dependency of the CLI).
+2. Questions, **with a default value derived from the scan** so that pressing
+   Enter gives a correct result —except the deployment branch, which has none
+   on purpose—:
+   - Branch strategy (F3-5).
+   - Deployment target per environment **and the branch it is deployed from**
+     (`branches.release`). It is the only thing Plumbward never infers (ADR
+     0005): it is always asked, with no default value.
+   - Strictness level, showing how many errors each option would generate **on
+     their real repo** — the scanner already has the data to compute it.
+   - AI assistants in use.
+   - **Assistant operating limits** (`agentBoundaries`): whether it can run git
+     and migrations, and in which language it writes the commit messages. By
+     default all three are on; turning them off must require a conscious
+     action.
+   - Docker Compose and DevContainer.
+   - Language.
+3. The wizard **runs nothing**: it only produces the `Profile` and writes it to
+   `.governance/config.yml`. Then it chains into `plan`.
+4. `--yes` for CI and `--profile <file>` so that an agency can apply the same
+   profile to ten repositories without repeating the questionnaire.
 
-**Criterios de aceptación:**
-- `init --yes` en un repo cualquiera produce un config válido sin interacción.
-- Cancelar a mitad no deja nada escrito.
-- El wizard es reejecutable: parte del config existente si lo hay.
+**Acceptance criteria:**
+- `init --yes` on any repo produces a valid config without interaction.
+- Cancelling halfway leaves nothing written.
+- The wizard can be run again: it starts from the existing config if there is
+  one.
 
 ---
 
-### [ ] F4-2 — `plumbward upgrade` con detección de personalizaciones
+### [ ] F4-2 — `plumbward upgrade` with customisation detection
 **Branch:** `feat/f4-upgrade-drift` · **Depends on:** F4-1
 
-**Por qué:** es el corazón del modelo de suscripción, y el mecanismo ya está
-medio construido: las cabeceras de fichero gestionado (`withManagedHeader`) y
-los bloques delimitados (`ensureBlock`) existen precisamente para esto.
+**Why:** it is the heart of the subscription model, and the mechanism is
+already half built: the managed file headers (`withManagedHeader`) and the
+delimited blocks (`ensureBlock`) exist precisely for this.
 
-**Trabajo:**
-1. Comparar el hash registrado en la cabecera de cada fichero gestionado con el
-   contenido actual para clasificar: **intacto** (se regenera), **modificado por
-   el cliente** (se respeta y se avisa) o **borrado** (se pregunta).
-2. En ficheros con bloques delimitados, actualizar sólo el interior del bloque.
-3. `plumbward upgrade --dry-run` que muestre el diff exacto, igual que `plan`.
-4. Informe claro de qué se actualizó, qué se respetó y qué requiere decisión humana.
-5. Migraciones entre versiones del formato de `config.yml`.
+**Work:**
+1. Compare the hash recorded in the header of each managed file with the
+   current content, to classify it: **intact** (it is regenerated), **modified
+   by the client** (it is respected and a warning is given) or **deleted** (the
+   user is asked).
+2. In files with delimited blocks, update only the inside of the block.
+3. `plumbward upgrade --dry-run`, which shows the exact diff, just like `plan`.
+4. A clear report of what was updated, what was respected and what requires a
+   human decision.
+5. Migrations between versions of the `config.yml` format.
 
-**Caso concreto que ya existe:** un `ci-prod.yml` generado por una versión
-anterior de Plumbward desde una rama deducida sigue ahí tras actualizar, porque
-`apply` no pisa ficheros existentes. Hoy sólo lo detecta `doctor` (F0-14);
-`upgrade` debe poder regenerarlo o retirarlo. Lo mismo con un `ci-dev.yml`
-antiguo que filtre `pull_request` por rama: las Pull Requests a otras ramas no
-se revisan. `doctor` lo avisa desde F0-14; `upgrade` debe quitar el filtro.
-**Criterios de aceptación:**
-- Un fichero generado y luego editado a mano **nunca** se pisa.
-- Un fichero generado e intacto se actualiza a la versión nueva.
-- `upgrade` es reversible con `rollback`, igual que `apply`.
+**A concrete case that already exists:** a `ci-prod.yml` generated by an earlier
+version of Plumbward from an inferred branch is still there after updating,
+because `apply` does not overwrite existing files. Today only `doctor` detects
+it (F0-14); `upgrade` must be able to regenerate or remove it. The same goes for
+an old `ci-dev.yml` that filters `pull_request` by branch: Pull Requests to
+other branches are not checked. `doctor` has warned about it since F0-14;
+`upgrade` must remove the filter.
+**Acceptance criteria:**
+- A file generated and then edited by hand is **never** overwritten.
+- A file generated and left intact is updated to the new version.
+- `upgrade` is reversible with `rollback`, just like `apply`.
 
 ---
 
 ### [ ] F4-3 — `doctor --fix`
 **Branch:** `feat/f4-doctor-fix` · **Depends on:** F4-2
 
-**Trabajo:**
-1. Los `HealthCheck` ya declaran `fixHint`. Añadir un campo opcional que aporte
-   las `Operation[]` que arreglan el problema.
-2. `doctor --fix` construye un plan con esas operaciones y lo pasa por el mismo
-   flujo de confirmación, journal y rollback. Sin atajos.
-3. Salida en JSON (`--json`) para consumirla desde CI.
+**Work:**
+1. The `HealthCheck`s already declare `fixHint`. Add an optional field that
+   provides the `Operation[]` that fix the problem.
+2. `doctor --fix` builds a plan with those operations and passes it through the
+   same confirmation, journal and rollback flow. No shortcuts.
+3. JSON output (`--json`) to consume it from CI.
 
-**Criterios de aceptación:**
-- `doctor --fix` deja el repo en verde en los casos que declara poder arreglar.
-- Nunca escribe fuera del flujo transaccional.
+**Acceptance criteria:**
+- `doctor --fix` leaves the repo green in the cases it declares it can fix.
+- It never writes outside the transactional flow.
 
 ---
 
-### [ ] F4-4 — Informe comercial `plumbward report`
+### [ ] F4-4 — Commercial report `plumbward report`
 **Branch:** `feat/f4-sales-report` · **Depends on:** F4-3
 
-**Por qué:** el que decide la compra no es quien ejecuta el CLI, y no va a leer
-una salida de terminal. Este informe es la herramienta de venta: se genera
-gratis, se comparte por correo y crea la necesidad que el producto resuelve.
+**Why:** whoever decides the purchase is not whoever runs the CLI, and they will
+not read terminal output. This report is the sales tool: it is generated for
+free, shared by email and creates the need the product solves.
 
-**Trabajo:**
-1. `plumbward report --html` produce un informe autocontenido: puntuación de
-   madurez, señales ausentes con su impacto, estimación de horas de trabajo
-   DevOps que la herramienta ahorra, y comparación antes/después.
-2. `--json` para integraciones.
-3. Diseño sobrio y profesional, sin dependencias externas ni telemetría.
+**Work:**
+1. `plumbward report --html` produces a self-contained report: maturity score,
+   missing signals with their impact, an estimate of the DevOps work hours the
+   tool saves, and a before/after comparison.
+2. `--json` for integrations.
+3. A sober, professional design, with no external dependencies and no
+   telemetry.
 
-**Criterios de aceptación:**
-- El HTML se abre sin conexión y se lee bien en móvil.
-- Los números que muestra se pueden justificar con los datos del escaneo; nada
-  inventado.
+**Acceptance criteria:**
+- The HTML opens offline and reads well on a phone.
+- The numbers it shows can be justified with the scan data; nothing made up.
 
 ---
 
-### [ ] F4-5 — Detectar que hay una versión nueva, sin telemetría
+### [ ] F4-5 — Detect that there is a new version, without telemetry
 **Branch:** `feat/f4-version-detection` · **Depends on:** F4-2
 
-**Por qué:** es la primera pieza del motor de recurrencia
-([BUSINESS_MODEL.md §6](BUSINESS_MODEL.md)). Si el cliente no se
-entera de que hay algo nuevo, la suscripción no se renueva.
+**Why:** it is the first piece of the recurrence engine
+([BUSINESS_MODEL.md §6](BUSINESS_MODEL.md)). If the client does not find out
+that there is something new, the subscription is not renewed.
 
-**Trabajo:**
-1. Consultar el registro público de npm para saber si hay versión más reciente.
-   **Nunca una API nuestra**: no queremos saber quién ejecuta qué.
-2. Caché local con tiempo de vida razonable, para no consultar en cada ejecución.
-3. Aviso discreto al final de `scan` y `doctor`, jamás bloqueante.
-4. `--no-update-check` y variable de entorno equivalente, para entornos aislados
-   y para CI.
+**Work:**
+1. Query the public npm registry to know whether there is a more recent
+   version. **Never an API of ours**: we do not want to know who runs what.
+2. A local cache with a reasonable lifetime, so as not to query on every run.
+3. A discreet notice at the end of `scan` and `doctor`, never blocking.
+4. `--no-update-check` and an equivalent environment variable, for isolated
+   environments and for CI.
 
-**Criterios de aceptación:**
-- Sin red, el CLI funciona igual y no se retrasa ni un segundo.
-- No se envía ningún dato identificable a ningún servidor.
+**Acceptance criteria:**
+- Without network, the CLI works the same and is not delayed by a single
+  second.
+- No identifiable data is sent to any server.
 
 ---
 
-### [ ] F4-6 — Changelog dirigido: sólo lo que aplica a este repositorio
+### [ ] F4-6 — Targeted changelog: only what applies to this repository
 **Branch:** `feat/f4-targeted-changelog` · **Depends on:** F4-5
 
-**Por qué:** esta es la pieza que no hace nadie. Un changelog genérico se ignora.
-Uno que dice *"de los 14 cambios de esta versión, estos 3 te afectan porque usas
-Next.js y no tienes contenedores"* se lee entero.
+**Why:** this is the piece nobody builds. A generic changelog gets ignored. One
+that says *"of the 14 changes in this version, these 3 affect you because you
+use Next.js and have no containers"* gets read in full.
 
-**Trabajo:**
-1. Que cada entrada del changelog declare a qué stacks, modos y capacidades
-   aplica. Es un cambio en el formato de release, no sólo en el CLI.
-2. Cruzar el changelog con el escaneo del repositorio y mostrar **sólo** lo
-   relevante, con el resto colapsado.
-3. Enlazar cada entrada con el cambio concreto que produciría en su repositorio,
-   para poder ir directo a `upgrade --dry-run`.
+**Work:**
+1. Each changelog entry declares which stacks, modes and capabilities it
+   applies to. It is a change in the release format, not only in the CLI.
+2. Cross the changelog with the scan of the repository and show **only** what
+   is relevant, with the rest collapsed.
+3. Link each entry to the specific change it would produce in the repository,
+   to go straight to `upgrade --dry-run`.
 
-**Criterios de aceptación:**
-- Dos repositorios de stacks distintos ven changelogs distintos de la misma
-  versión.
-- Una entrada sin metadatos de aplicabilidad no pasa la CI del release.
+**Acceptance criteria:**
+- Two repositories of different stacks see different changelogs of the same
+  version.
+- An entry without applicability metadata does not pass the release CI.
 
 ---
 
-### [ ] F4-7 — Catálogo de capacidades y oferta continua
+### [ ] F4-7 — Capability catalogue and continuous offer
 **Branch:** `feat/f4-capability-catalog` · **Depends on:** F4-6
 
-**Por qué:** es lo que convierte la herramienta de "configurador que se ejecuta
-una vez" en "servicio que mejora tu repositorio cada trimestre". Sin esto, la
-suscripción no tiene defensa.
+**Why:** it is what turns the tool from a "configurator that runs once" into a
+"service that improves your repository every quarter". Without this, the
+subscription has no defence.
 
-**Trabajo:**
-1. Un catálogo declarativo de capacidades, cada una con sus requisitos: qué
-   stack necesita, qué debe existir ya en el repositorio, qué modo la permite.
-2. Tras un `upgrade`, volver a escanear y comparar contra el catálogo para
-   encontrar lo que el repositorio **ahora** admite y no tiene.
-3. Presentarlo como oferta, nunca como acción: *"ahora sabemos dockerizar
-   proyectos como el tuyo. ¿Lo hacemos?"*.
-4. Recordar lo rechazado para no volver a proponerlo en cada ejecución. Una
-   herramienta que insiste se desinstala.
+**Work:**
+1. A declarative catalogue of capabilities, each with its requirements: which
+   stack it needs, what must already exist in the repository, which mode allows
+   it.
+2. After an `upgrade`, scan again and compare against the catalogue, to find
+   what the repository **now** supports and does not have.
+3. Present it as an offer, never as an action: *"we now know how to dockerise
+   projects like yours. Shall we do it?"*.
+4. Remember what was rejected, so as not to propose it again on every run. A
+   tool that insists gets uninstalled.
 
-**Criterios de aceptación:**
-- Añadir una capacidad al catálogo hace que los repositorios que la admiten la
-  vean ofrecida, sin tocar código del CLI.
-- Rechazar una oferta la silencia hasta que el usuario la pida.
+**Acceptance criteria:**
+- Adding a capability to the catalogue makes the repositories that support it
+  see it offered, without touching CLI code.
+- Rejecting an offer silences it until the user asks for it.
 
 ---
 
-### [ ] F4-8 — Flujos guiados, empezando por dockerizar Node/TS
+### [ ] F4-8 — Guided flows, starting with dockerising Node/TS
 **Branch:** `feat/f4-guided-flows` · **Depends on:** F4-7
 
-**Por qué:** hay capacidades que no se pueden generar a ciegas. Dockerizar exige
-saber qué servicios hay, qué puertos, si existe base de datos y cómo se
-construye el proyecto. Un asistente que pregunte lo mínimo y genere el resto es
-un ahorro de horas muy visible — y muy demostrable en una venta.
+**Why:** some capabilities cannot be generated blindly. Dockerising requires
+knowing which services there are, which ports, whether there is a database and
+how the project is built. An assistant that asks the minimum and generates the
+rest is a very visible saving of hours — and a very demonstrable one in a sale.
 
-**Riesgo, y por eso empezamos por uno solo:** si prometemos "yo te dockerizo el
-proyecto", pasamos a ser dueños de todos los modos de fallo de todos los stacks.
-Es el riesgo N2 del modelo de negocio. **Node/TypeScript primero, y no se amplía
-hasta que funcione sin soporte manual.**
+**Risk, and that is why we start with only one:** if we promise "I'll dockerise
+your project", we become the owners of every failure mode of every stack. It is
+risk N2 of the business model. **Node/TypeScript first, and it is not extended
+until it works without manual support.**
 
-**Trabajo:**
-1. Motor de flujos guiados sobre `@clack/prompts`, reutilizable por otras
-   capacidades.
-2. Primer flujo: dockerización de Node/TS. Detectar gestor de paquetes, script
-   de build, puertos, servicios externos y variables de entorno; preguntar sólo
-   lo que no se pueda deducir.
-3. Generar `Dockerfile` multi-etapa, `.dockerignore`, `docker-compose.yml` para
-   desarrollo, y documentación en el idioma del perfil.
-4. **El resultado sigue siendo un `ChangePlan`**: revisable con `plan`, aplicable
-   con `apply`, reversible con `rollback`. Ni un atajo.
-5. Verificar que la imagen construye antes de dar la capacidad por completada.
+**Work:**
+1. A guided-flow engine on `@clack/prompts`, reusable by other capabilities.
+2. First flow: dockerising Node/TS. Detect the package manager, build script,
+   ports, external services and environment variables; ask only what cannot be
+   inferred.
+3. Generate a multi-stage `Dockerfile`, `.dockerignore`, a `docker-compose.yml`
+   for development, and documentation in the language of the profile.
+4. **The result is still a `ChangePlan`**: reviewable with `plan`, applicable
+   with `apply`, reversible with `rollback`. Not a single shortcut.
+5. Check that the image builds before considering the capability complete.
 
-**Criterios de aceptación:**
-- Sobre un proyecto Next.js y sobre uno de Express, la imagen generada construye
-  y arranca.
-- Cancelar a mitad del flujo no deja nada escrito.
-- El flujo no pregunta nada que el escáner pudiera haber deducido.
-
----
-
-## FASE 5 — Licenciamiento local-first
-
-**Objetivo:** cobrar, sin romper la confianza que hace vendible el producto.
-**Estimación:** 3-4 sesiones (más el servicio, que es un proyecto aparte).
-**Decisión de negocio tomada el 2026-09-08:** ver `docs/adr/0002`. Todo el
-código viaja en el paquete NPM. La licencia se valida en red **sólo** en `init`
-y `upgrade`. `scan`, `plan`, `apply`, `rollback` y `doctor` funcionan **offline
-y para siempre**. No se inyecta nada que pueda hacer fallar la CI del cliente.
-**Criterio de salida:** el producto se puede vender y facturar, y pasa una
-revisión de proveedor de un departamento de seguridad corporativo.
+**Acceptance criteria:**
+- On a Next.js project and on an Express one, the generated image builds and
+  starts.
+- Cancelling halfway through the flow leaves nothing written.
+- The flow asks nothing the scanner could have inferred.
 
 ---
 
-### [ ] F5-1 — Paquete `@plumbward/licensing`
+## PHASE 5 — Local-first licensing
+
+**Objective:** get paid, without breaking the trust that makes the product
+sellable.
+**Estimate:** 3-4 work sessions (plus the service, which is a separate project).
+**Business decision taken on 2026-09-08:** see `docs/adr/0002`. All the code
+ships in the NPM package. The licence is validated over the network **only** in
+`init` and `upgrade`. `scan`, `plan`, `apply`, `rollback` and `doctor` work
+**offline and forever**. Nothing is injected that could make the client's CI
+fail.
+**Phase exit criterion:** the product can be sold and invoiced, and it passes a
+vendor review by a corporate security department.
+
+---
+
+### [ ] F5-1 — `@plumbward/licensing` package
 **Branch:** `feat/f5-licensing-sdk` · **Depends on:** Phase 4 complete
 
-**Trabajo:**
-1. Cliente HTTPS de la API de licencias, con tiempos de espera cortos y
-   mensajes de error que digan qué hacer.
-2. Huella del repositorio: la lógica ya existe en
-   [git.ts](../packages/scanner/src/git.ts) (`fingerprint` a partir del primer
-   commit, con la URL remota como respaldo). Sólo hay que consumirla.
-3. Verificación **criptográfica local** de la licencia recibida (firma de clave
-   pública embebida en el paquete). Así el CLI valida sin llamar a la API en
-   cada ejecución.
-4. Qué se envía, documentado en el README y visible con `--verbose`:
-   token, huella del repositorio, versión del CLI. **Nunca** código, ni rutas,
-   ni nombres de fichero, ni el correo del desarrollador.
+**Work:**
+1. HTTPS client for the licence API, with short timeouts and error messages
+   that say what to do.
+2. Repository fingerprint: the logic already exists in
+   [git.ts](../packages/scanner/src/git.ts) (`fingerprint` from the first
+   commit, with the remote URL as fallback). It only has to be consumed.
+3. **Local cryptographic** verification of the received licence (a signature
+   checked with a public key embedded in the package). That way the CLI
+   validates without calling the API on every run.
+4. What is sent, documented in the README and visible with `--verbose`: token,
+   repository fingerprint, CLI version. **Never** code, paths, file names or
+   the developer's email.
 
-**Criterios de aceptación:**
-- Sin red, un repo ya licenciado sigue funcionando por completo.
-- Una licencia manipulada a mano se rechaza por firma inválida.
-- El usuario puede ver exactamente qué se envía antes de que se envíe.
+**Acceptance criteria:**
+- Without network, an already licensed repo keeps working completely.
+- A licence tampered with by hand is rejected for an invalid signature.
+- The user can see exactly what is sent before it is sent.
 
 ---
 
-### [ ] F5-2 — Servicio de licencias
+### [ ] F5-2 — Licence service
 **Branch:** separate repository · **Depends on:** F5-1
 
-**Trabajo:**
-1. API mínima: emitir, validar, vincular a huella, listar y revocar.
-2. Modelo de datos: licencia → huellas vinculadas, con el límite del plan
-   (1 repo, o 5-10 en el paquete de agencia).
-3. Integración con la pasarela de pago: comprar emite el token automáticamente.
-4. Panel para el cliente: sus licencias, sus repos vinculados y **la posibilidad
-   de desvincular él mismo**, sin abrir un ticket. Un repo se migra o se
-   renombra; si eso obliga a escribir un correo, la experiencia se rompe.
+**Work:**
+1. Minimum API: issue, validate, bind to a fingerprint, list and revoke.
+2. Data model: licence → bound fingerprints, with the limit of the plan
+   (1 repo, or 5-10 in the agency package).
+3. Integration with the payment gateway: buying issues the token
+   automatically.
+4. Client dashboard: their licences, their bound repos and **the ability to
+   unbind a repo themselves**, without opening a ticket. A repo gets migrated
+   or renamed; if that forces writing an email, the experience breaks.
 
-**Criterios de aceptación:**
-- Usar una licencia de 1 repo en un segundo repo devuelve un error claro que
-  explica cómo desvincular o ampliar.
-- El panel permite resolverlo sin intervención humana por nuestra parte.
+**Acceptance criteria:**
+- Using a 1-repo licence on a second repo returns a clear error that explains
+  how to unbind or upgrade.
+- The dashboard lets the client solve it without human intervention on our
+  side.
 
 ---
 
-### [ ] F5-3 — Permisos por plan (entitlements)
+### [ ] F5-3 — Permissions per plan (entitlements)
 **Branch:** `feat/f5-entitlements` · **Depends on:** F5-2
 
-**Trabajo:**
-1. La licencia declara a qué packs y funcionalidades da derecho.
-2. Gratis y sin licencia, para siempre: `scan` y `report`. Son el gancho.
-3. La fecha de fin de actualizaciones se registra en el config: pasada esa
-   fecha, `upgrade` deja de traer reglas nuevas, pero **todo lo instalado sigue
-   funcionando**. No se rompe nada nunca.
+**Work:**
+1. The licence declares which packs and features it entitles to.
+2. Free and without a licence, forever: `scan` and `report`. They are the hook.
+3. The end date of updates is recorded in the config: after that date,
+   `upgrade` stops bringing new rules, but **everything installed keeps
+   working**. Nothing ever breaks.
 
-**Criterios de aceptación:**
-- Una licencia caducada no degrada ni bloquea un repositorio ya configurado.
-- El aviso de caducidad es informativo y aparece con antelación suficiente.
+**Acceptance criteria:**
+- An expired licence neither degrades nor blocks an already configured
+  repository.
+- The expiry notice is informative and appears well in advance.
 
 ---
 
-### [ ] F5-4 — Tolerancia a fallos de red
+### [ ] F5-4 — Tolerance to network failures
 **Branch:** `feat/f5-offline-grace` · **Depends on:** F5-3
 
-**Trabajo:**
-1. Si la API no responde durante un `upgrade`, se usa la licencia firmada en
-   caché mientras siga vigente.
-2. Ninguna caída de nuestra infraestructura puede bloquear el trabajo de un cliente.
-3. Test que simula la API caída y verifica que todo sigue.
+**Work:**
+1. If the API does not respond during an `upgrade`, the cached signed licence
+   is used while it is still valid.
+2. No outage of our infrastructure may block a client's work.
+3. A test that simulates the API being down and checks that everything carries
+   on.
 
-**Criterios de aceptación:**
-- Con la API apagada, todos los comandos funcionan con una licencia válida en caché.
+**Acceptance criteria:**
+- With the API switched off, every command works with a valid cached licence.
 
 ---
 
-### [ ] F5-5 — Suscripción anual y tramos por volumen
+### [ ] F5-5 — Annual subscription and volume tiers
 **Branch:** `feat/f5-annual-subscription` · **Depends on:** F5-3
 
-**Origen:** decisión de negocio del 2026-09-09,
-[ADR 0004](adr/0004-annual-subscription.md). Sustituye al modelo de pago
-único con doce meses de actualizaciones.
+**Origin:** business decision of 2026-09-09,
+[ADR 0004](adr/0004-annual-subscription.md). It replaces the one-off payment
+model with twelve months of updates.
 
-**Trabajo:**
-1. La licencia firmada lleva **fecha de expiración**, verificable en local contra
-   la clave pública embebida.
-2. Revalidación contra la API **sólo en `upgrade`**. Nunca en `scan`, `plan`,
-   `apply`, `doctor` ni `rollback`.
-3. Tramos por volumen de repositorios para agencias, con vinculación y
-   desvinculación autogestionada desde el panel.
-4. Avisos de caducidad con antelación suficiente y por canales que el cliente
-   vea: salida del CLI y correo.
-5. **Una suscripción caducada deja de traer reglas nuevas y nada más.** No
-   degrada, no bloquea, no desinstala. El cliente conserva para siempre lo que
-   tenía el último día que pagó.
+**Work:**
+1. The signed licence carries an **expiry date**, verifiable locally against
+   the embedded public key.
+2. Revalidation against the API **only in `upgrade`**. Never in `scan`, `plan`,
+   `apply`, `doctor` or `rollback`.
+3. Tiers by number of repositories for agencies, with self-service binding and
+   unbinding from the dashboard.
+4. Expiry notices well in advance and through channels the client sees: CLI
+   output and email.
+5. **An expired subscription stops bringing new rules and nothing else.** It
+   does not degrade, does not block, does not uninstall. The client keeps
+   forever what they had on the last day they paid.
 
-**Criterios de aceptación:**
-- Un repositorio con la suscripción vencida sigue funcionando por completo con
-  la configuración que ya tenía.
-- Sin red, un repositorio con licencia vigente en caché no se ve afectado.
-- El paso de un tramo a otro no obliga a reconfigurar ningún repositorio.
-
----
-
-## FASE 6 — Distribución y lanzamiento
-
-**Objetivo:** que exista un producto comprable.
-**Estimación:** 2-3 sesiones.
-**Criterio de salida:** un cliente ejecuta `npx @tu-empresa/plumbward scan`, ve
-el valor, paga y aplica.
+**Acceptance criteria:**
+- A repository with an expired subscription keeps working completely with the
+  configuration it already had.
+- Without network, a repository with a valid cached licence is not affected.
+- Moving from one tier to another does not force reconfiguring any repository.
 
 ---
 
-### [ ] F6-1 — Publicación en NPM
+## PHASE 6 — Distribution and launch
+
+**Objective:** a product that can be bought exists.
+**Estimate:** 2-3 work sessions.
+**Phase exit criterion:** a client runs `npx @your-company/plumbward scan`, sees
+the value, pays and applies.
+
+---
+
+### [ ] F6-1 — Publishing on NPM
 **Branch:** `build/f6-npm-publishing` · **Depends on:** Phase 5 complete
 
-**Trabajo:**
-1. Scope y organización ya resueltos en F0-8: `@plumbward/*`, organización
-   registrada en npm el 2026-09-09.
-2. Empaquetado: un único ejecutable por `tsup`, arranque rápido, `bin` correcto.
-3. Verificar `npx` en macOS, Linux y Windows, con las versiones de Node que
-   la CI pruebe en ese momento (hoy 22.13, 24 y 26).
-4. Publicación automática desde `main` con changesets y provenance.
-5. Comprobar el tamaño del paquete: `npx` se ejecuta en cada demo y una descarga
-   lenta arruina la primera impresión.
+**Work:**
+1. Scope and organisation already resolved in F0-8: `@plumbward/*`,
+   organisation registered on npm on 2026-09-09.
+2. Packaging: a single executable through `tsup`, fast startup, correct `bin`.
+3. Check `npx` on macOS, Linux and Windows, with the Node versions CI tests at
+   that moment (today 22.13, 24 and 26).
+4. Automatic publishing from `main` with changesets and provenance.
+5. Check the package size: `npx` runs in every demo, and a slow download ruins
+   the first impression.
 
-**Criterios de aceptación:**
-- `npx @tu-empresa/plumbward scan` funciona en las tres plataformas.
-- Arranque por debajo de 2 segundos.
+**Acceptance criteria:**
+- `npx @your-company/plumbward scan` works on the three platforms.
+- Startup under 2 seconds.
 
 ---
 
-### [ ] F6-2 — Validación E2E sobre repositorios reales
+### [ ] F6-2 — E2E validation over real repositories
 **Branch:** `test/f6-real-repo-e2e` · **Depends on:** F6-1
 
-**Por qué:** es la Fase 4 del PDF original y el único filtro que detecta lo que
-los tests sintéticos no ven.
+**Why:** it is Phase 4 of the original PDF and the only filter that catches
+what synthetic tests do not see.
 
-**Trabajo:**
-1. Batería sobre repositorios públicos reales, uno por perfil:
-   - Greenfield (< 2.000 SLOC).
-   - Medio con deuda (2.000-50.000).
-   - Monorepo grande (> 50.000).
-   - Uno por cada stack soportado.
-   - Uno de un stack **no** soportado (verifica el pack base).
-2. Para cada uno: `scan` → `plan` → `apply` → CI en verde → `rollback` → repo
-   idéntico al original.
-3. Medir de verdad el tiempo total y contrastarlo con la promesa de "menos de 5
-   minutos" del PDF. Si no se cumple, se corrige el producto o se corrige la promesa.
+**Work:**
+1. A battery over real public repositories, one per profile:
+   - Greenfield (< 2,000 SLOC).
+   - Medium, with debt (2,000-50,000).
+   - Large monorepo (> 50,000).
+   - One per supported stack.
+   - One of an **unsupported** stack (it checks the base pack).
+2. For each one: `scan` → `plan` → `apply` → green CI → `rollback` → repo
+   identical to the original.
+3. Really measure the total time and compare it with the PDF's promise of
+   "under 5 minutes". If it does not hold, the product is fixed or the promise
+   is fixed.
 
-**Criterios de aceptación:**
-- Todos los perfiles pasan el ciclo completo.
-- El tiempo medido queda registrado en el README como dato verificable.
+**Acceptance criteria:**
+- Every profile passes the full cycle.
+- The measured time is recorded in the README as a verifiable figure.
 
 ---
 
-### [ ] F6-3 — Materiales de venta
+### [ ] F6-3 — Sales materials
 **Branch:** `docs/f6-landing-and-demo` · **Depends on:** F6-2
 
-**Trabajo:**
-1. Landing con la propuesta de valor, el precio y un `asciinema` de la demo real.
-2. Informe de ejemplo (F4-4) publicado como muestra.
-3. Documentación de usuario final, separada de la de contribuidores.
-4. Caso de uso escrito con los números reales medidos en F6-2 — no estimaciones.
+**Work:**
+1. A landing page with the value proposition, the price and an `asciinema` of
+   the real demo.
+2. A sample report (F4-4) published as an example.
+3. End-user documentation, separate from the contributor documentation.
+4. A use case written with the real numbers measured in F6-2 — not estimates.
 
-**Criterios de aceptación:**
-- La landing responde en 30 segundos qué es, para quién y cuánto cuesta.
+**Acceptance criteria:**
+- The landing page answers in 30 seconds what it is, for whom and how much it
+  costs.
 
 ---
 
-### [ ] F6-4 — Lanzamiento 1.0
+### [ ] F6-4 — 1.0 launch
 **Branch:** `chore/f6-launch` · **Depends on:** F6-3
 
-**Trabajo:**
-1. Congelar la API pública de `StackPack`: a partir de 1.0, romperla tiene coste.
-2. Política de soporte y de versiones publicada.
-3. Canal de soporte y proceso de incidencias.
-4. Primeros tres clientes piloto con descuento a cambio de retroalimentación
-   estructurada.
+**Work:**
+1. Freeze the public `StackPack` API: from 1.0 on, breaking it has a cost.
+2. Support and versioning policy published.
+3. Support channel and incident process.
+4. First three pilot clients with a discount in exchange for structured
+   feedback.
 
 ---
 
@@ -3208,6 +3294,7 @@ controls that watch the work of the phase go before that work.
 
 #### Phase 0 · 1. English as the main language
 
+- **F0-48** — exceptions by text fragment in the English control. Before F0-42 closes: without them the plan cannot leave the pending list, and its last step registers the kept literals with them.
 - **F0-42** — the plan, the most read file after `CLAUDE.md`.
 - **F0-47** — the assistant hands over the next-session prompt without being asked. Right after F0-42: it is ten lines of `CLAUDE.md` and saves a round trip in every multi-session task after it.
 - **F0-18** — the rest of the documentation and all the ADRs.
