@@ -73,9 +73,9 @@ the MariaDB repository, which is the **template form for adopters** —parameter
 block plus four numbered covenants— and therefore the artefact to compare
 against.
 
-Two things were corrected: the word `Section` for `License` in the trademark
-paragraph, and the restoration of the full `Notice` block, which was missing
-entirely. That block contains the statement that the BUSL **is not an open
+Two things were corrected: the word `Section`, replaced by `License` in the
+trademark paragraph, and the restoration of the full `Notice` block, which was
+missing entirely. That block contains the statement that the BUSL **is not an open
 source licence**, which is precisely the cost this ADR says it accepts;
 omitting it would have been inconsistent.
 

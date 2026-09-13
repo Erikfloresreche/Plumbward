@@ -47,8 +47,9 @@ is added to the plan; the one in progress is not widened.
 
 ### Commits
 
-Conventional Commits **in English**, referencing the task. The code and the
-documentation are in English too: it is the dominant convention, and it
+Conventional Commits **in English**, referencing the task. The documentation
+and new code are in English too, and the remaining Spanish comments and tests
+are being translated (F0-43, F0-44): it is the dominant convention, and it
 survives a change of team.
 
 ```
@@ -114,7 +115,7 @@ this, on top of its own criteria:
 - The task checkbox ticked in the plan, in the same PR.
 - No assistant has run git commands that change state, nor database writes.
 - The commit message and the PR description have been delivered in English, and
-  someone has been asked who reviews.
+  the developer has been asked who will review.
 - Every review finding has ended in a mechanical control, or is recorded as not
   mechanisable and why.
 
