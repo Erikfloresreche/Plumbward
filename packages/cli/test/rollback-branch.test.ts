@@ -105,28 +105,6 @@ describe('rollback fuera de la rama en la que apply escribió', () => {
     expect((journal as { writtenOnBranch: string | null }).writtenOnBranch).toBe(GOVERNANCE_BRANCH)
   })
 
-  /**
-   * Hallazgo 2 de la revisión de la PR #11. Con `--no-branch` y HEAD
-   * desacoplado, `prepareBranch` sale pronto, se escribe sobre el HEAD
-   * desacoplado y `writtenOnBranch` queda `null`, así que `rollback` se negará
-   * siempre. Antes de esta PR ese `rollback` funcionaba: es una regresión que
-   * introduce esta rama, y el paso 4 seguía prometiendo lo contrario.
-   *
-   * Aquí sólo se retira la promesa falsa. Qué hacer con esa combinación —avisar
-   * o rechazarla— es diseño, y es F0-29.
-   */
-  it('apply no promete un rollback que no va a poder hacer', async () => {
-    const root = await createRepo('Prod')
-    await git(root, 'checkout', '--detach')
-    const output = captureOutput()
-
-    expect(await runApply(root, { yes: true, install: false, branch: false })).toBe(0)
-    const printed = output()
-
-    expect(printed).not.toContain('`plumbward rollback` lo deja todo como estaba')
-    expect(printed).toContain('no se podrá revertir')
-  })
-
   it('sí promete el rollback cuando de verdad va a poder hacerlo', async () => {
     const root = await createRepo('Prod')
     const output = captureOutput()
@@ -247,5 +225,70 @@ describe('rollback en una rama del mismo nombre creada sobre otro commit', () =>
 
     expect(printed).toContain(`git checkout ${commitDePartida}`)
     expect(printed).not.toContain('git checkout <commit>')
+  })
+})
+
+/**
+ * F0-29, hallazgo 2 de la revisión de la PR #11. Con `--no-branch` y HEAD
+ * desacoplado, `prepareBranch` sale pronto, se escribe sobre el HEAD
+ * desacoplado y `writtenOnBranch` queda `null`. F0-24 se negaba siempre a
+ * revertir ese journal; antes de F0-24 funcionaba.
+ *
+ * Decisión: el sitio lo identifica el commit (F0-30), y la etiqueta vacía se
+ * compara como cualquier otra. Ver `assertSameBranch`.
+ */
+describe('apply --no-branch con HEAD desacoplado', () => {
+  async function applyDetached(root: string): Promise<number> {
+    await git(root, 'checkout', '--detach')
+    return runApply(root, { yes: true, install: false, branch: false })
+  }
+
+  it('se revierte con rollback y deja el árbol limpio', async () => {
+    const root = await createRepo('Prod')
+
+    expect(await applyDetached(root)).toBe(0)
+    expect(await readManifest(root)).not.toBe(manifest('1.0.0'))
+
+    expect(await runRollback(root)).toBe(0)
+    expect(await readManifest(root)).toBe(manifest('1.0.0'))
+    expect(await git(root, 'status', '--porcelain')).toBe('')
+  })
+
+  it('promete el rollback, con la misma salvedad del commit', async () => {
+    const root = await createRepo('Prod')
+    const output = captureOutput()
+
+    expect(await applyDetached(root)).toBe(0)
+    const printed = output()
+
+    expect(printed).toContain('`plumbward rollback` lo deja todo como estaba')
+    expect(printed).toContain('aún no has commiteado')
+    expect(printed).not.toContain('no se podrá revertir')
+  })
+
+  it('no revierte si se ha commiteado sobre el HEAD desacoplado después del apply', async () => {
+    const root = await createRepo('Prod')
+
+    expect(await applyDetached(root)).toBe(0)
+    await git(root, 'add', '.')
+    await git(root, 'commit', '-m', 'governance')
+    await writeFile(join(root, 'package.json'), manifest('3.0.0'))
+
+    expect(await runRollback(root)).toBe(1)
+    expect(await readManifest(root)).toBe(manifest('3.0.0'))
+  })
+
+  it('no revierte desde una rama, aunque apunte al mismo commit, y dice cómo volver', async () => {
+    const root = await createRepo('Prod')
+    const commitDePartida = await git(root, 'rev-parse', 'HEAD')
+
+    expect(await applyDetached(root)).toBe(0)
+    await git(root, 'switch', '-c', 'rescue')
+    await writeFile(join(root, 'package.json'), manifest('3.0.0'))
+    const output = captureOutput()
+
+    expect(await runRollback(root)).toBe(1)
+    expect(output()).toContain(`git checkout --detach ${commitDePartida}`)
+    expect(await readManifest(root)).toBe(manifest('3.0.0'))
   })
 })

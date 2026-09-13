@@ -169,8 +169,9 @@ export interface Journal {
    * journal que recuerde la rama de partida hace que `rollback` en `Prod`
    * restaure en `Prod` ficheros fotografiados en la rama aislada.
    *
-   * `null` con HEAD desacoplado: ahí no hay rama que nombrar, y `rollback` se
-   * niega porque no puede comprobar que sigue en el mismo sitio.
+   * `null` con HEAD desacoplado: ahí no hay rama que nombrar. `rollback` compara
+   * ese `null` como cualquier otro nombre y deja que el commit identifique el
+   * sitio (F0-29).
    */
   readonly writtenOnBranch: string | null
   /**

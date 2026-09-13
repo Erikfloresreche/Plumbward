@@ -133,12 +133,17 @@ el `.gitignore` que instala el pack, así que sobrevive a los checkouts. Un
 journal que recordase la rama de *partida* haría que `rollback` en `Prod`
 restaurase en `Prod` fotografías tomadas en la rama aislada: no revierte nada,
 borra lo que `Prod` tuviera desde entonces. Por eso `writtenOnBranch` se lee
-**después** de cambiar de rama, y en cualquier otra rama —o con HEAD
-desacoplado, donde no hay nombre que comprobar— `rollback` se niega sin escribir
-y conserva el journal para poder revertir desde el sitio correcto. Cuando no hay
-rama que anotar, `apply` lo dice al terminar en vez de prometer un `rollback`
-que no va a poder hacer. Qué hacer con esa combinación, además de no prometerla,
-es la tarea **F0-29**.
+**después** de cambiar de rama, y en cualquier otra rama `rollback` se niega sin
+escribir y conserva el journal para poder revertir desde el sitio correcto.
+
+Con `--no-branch` y HEAD desacoplado no hay rama que anotar, y `writtenOnBranch`
+queda `null`. **Ese `null` se compara como cualquier otro nombre** (F0-29): el
+journal se revierte con HEAD desacoplado sobre el mismo commit, y se niega desde
+una rama aunque apunte a ese commit, igual que un journal con rama se niega con
+HEAD desacoplado. Se descartaron dos alternativas. Rechazar la combinación antes
+de escribir castiga un uso legítimo —las CI hacen checkout desacoplado— para
+proteger algo que el commit ya protege. Aceptarla sin `rollback`, como dejó
+F0-24, convertía en irreversible lo que antes se revertía.
 
 **El nombre de la rama dice dónde estás, no si es el mismo sitio.** Una rama
 borrada y recreada con el mismo nombre sobre otro commit, o un commit hecho en

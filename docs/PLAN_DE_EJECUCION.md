@@ -6,7 +6,7 @@
 > misma Pull Request que la implementa.
 
 **Última actualización:** 2026-09-12
-**Estado global:** Fase 0 en curso — F0-1, F0-3, F0-5, F0-8, F0-13, F0-14, F0-15, F0-17, F0-24, F0-27 y F0-30 completadas. Quedan F0-2, F0-4, F0-6, F0-7, F0-9 a F0-12, F0-16, F0-18 a F0-23, F0-25, F0-26, F0-28, F0-29 y F0-31 a F0-37.
+**Estado global:** Fase 0 en curso — F0-1, F0-3, F0-5, F0-8, F0-13, F0-14, F0-15, F0-17, F0-24, F0-27, F0-29 y F0-30 completadas. Quedan F0-2, F0-4, F0-6, F0-7, F0-9 a F0-12, F0-16, F0-18 a F0-23, F0-25, F0-26, F0-28 y F0-31 a F0-37.
 **Producto:** Plumbward · https://github.com/Erikfloresreche/Plumbward
 **Modelo de negocio:** suscripción anual por repositorio — ver
 [MODELO_DE_NEGOCIO.md](MODELO_DE_NEGOCIO.md)
@@ -1370,7 +1370,7 @@ la estrategia escrita en F0-20.
 
 ---
 
-### [ ] F0-29 — `apply` no puede prometer un `rollback` que no va a poder hacer
+### [x] F0-29 — `apply` no puede prometer un `rollback` que no va a poder hacer
 **Rama:** `fix/f0-unrevertable-journal` · **Depende de:** F0-24
 
 **Origen:** hallazgo 2 de la revisión en contexto nuevo de la PR #11. **Es una
@@ -1395,6 +1395,16 @@ documentarse.
 
 **Qué se convierte en control mecánico:** un test de la decisión que se tome.
 La retirada de la promesa ya tiene el suyo en `rollback-branch.test.ts`.
+
+**Decisión (tercera vía):** `writtenOnBranch === null` se compara como cualquier
+otro nombre. El journal escrito con HEAD desacoplado se revierte con HEAD
+desacoplado sobre el mismo commit; desde una rama se niega aunque apunte a ese
+commit, y el mensaje manda volver con `git checkout --detach <commit>`. Sólo un
+journal sin rama **y** sin commit —que `apply` no escribe— se sigue negando.
+Descartadas: rechazar la combinación antes de escribir, porque castiga un uso
+legítimo (las CI hacen checkout desacoplado) para proteger lo que el commit ya
+protege; y aceptarla sin `rollback`, porque deja irreversible lo que antes de
+F0-24 se revertía. Escrita en `assertSameBranch` y en `docs/ARQUITECTURA.md`.
 
 **Criterios de aceptación:**
 - La decisión está escrita, con la alternativa descartada y el porqué.

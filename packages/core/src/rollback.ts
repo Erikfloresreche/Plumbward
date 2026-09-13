@@ -75,11 +75,35 @@ function assertSameSite(journal: Journal, current: RollbackOptions): void {
   assertSameCommit(journal, current.currentCommit)
 }
 
-/** La etiqueta del sitio: en qué rama se escribió. */
+/** Cómo nombran los mensajes el sitio del journal: su rama, o ninguna. */
+function writtenWhere(journal: Journal): string {
+  return journal.writtenOnBranch === null
+    ? 'con HEAD desacoplado'
+    : `en la rama "${journal.writtenOnBranch}"`
+}
+
+/**
+ * La etiqueta del sitio: en qué rama se escribió, o `null` con HEAD desacoplado.
+ *
+ * `null` se compara como cualquier otro nombre (F0-29): un journal escrito con
+ * HEAD desacoplado se revierte con HEAD desacoplado, y `assertSameCommit` exige
+ * además el mismo commit, que es lo que identifica el sitio desde F0-30.
+ * Negarse siempre, como hacía F0-24, dejaba ese journal irreversible sin
+ * proteger nada que el commit no proteja ya.
+ *
+ * Desde una rama que apunta al mismo commit también se niega. El árbol de
+ * partida es el mismo, pero la etiqueta no coincide, y en el caso simétrico
+ * —journal con rama, HEAD ahora desacoplado— ya se negaba: ante la duda, volver
+ * es un `git checkout --detach`, y equivocarse es trabajo perdido.
+ *
+ * Sin rama y sin commit no queda nada que comparar. `apply` no escribe ese
+ * journal —un HEAD desacoplado siempre apunta a un commit—, pero uno editado a
+ * mano sí puede traerlo, y ahí se niega.
+ */
 function assertSameBranch(journal: Journal, currentBranch: string | null): void {
-  if (journal.writtenOnBranch === null) {
+  if (journal.writtenOnBranch === null && journal.writtenOnCommit === null) {
     throw new RollbackError(
-      'El `apply` se hizo con HEAD desacoplado, así que el journal no puede nombrar dónde escribió.\n' +
+      'El journal no anota ni la rama ni el commit en los que se escribió.\n' +
         '  No se revierte nada: no hay forma de comprobar que sigues en el mismo sitio.\n' +
         '  Deshaz los cambios con git (`git diff`, `git checkout -- .`).',
     )
@@ -89,17 +113,22 @@ function assertSameBranch(journal: Journal, currentBranch: string | null): void 
 
   const where =
     currentBranch === null ? 'HEAD está desacoplado' : `estás en la rama "${currentBranch}"`
+  const back =
+    journal.writtenOnBranch === null
+      ? `git checkout --detach ${journal.writtenOnCommit}`
+      : `git checkout ${journal.writtenOnBranch}`
   throw new RollbackError(
-    `El último \`apply\` escribió en la rama "${journal.writtenOnBranch}", pero ${where}.\n` +
-      '  No se revierte nada: los ficheros guardados son los de esa rama, y restaurarlos aquí\n' +
-      '  sobrescribiría lo que tengas en esta.\n' +
-      `  Vuelve con \`git checkout ${journal.writtenOnBranch}\` y ejecuta \`plumbward rollback\` allí.`,
+    `El último \`apply\` escribió ${writtenWhere(journal)}, pero ${where}.\n` +
+      '  No se revierte nada: los ficheros guardados son los de aquel sitio, y restaurarlos aquí\n' +
+      '  sobrescribiría lo que tengas en este.\n' +
+      `  Vuelve con \`${back}\` y ejecuta \`plumbward rollback\` allí.`,
   )
 }
 
 /**
- * Mismo nombre de rama, otro commit: la rama se borró y se recreó, o se ha
- * commiteado después del `apply`. Los snapshots son del árbol de aquel commit.
+ * Misma etiqueta, otro commit: la rama se borró y se recreó, o se ha commiteado
+ * después del `apply` (también sobre un HEAD desacoplado). Los snapshots son
+ * del árbol de aquel commit.
  *
  * Dos `null` sí coinciden: un repositorio sin ningún commit sigue sin tenerlo,
  * y no hay historia que se haya podido rehacer por debajo.
@@ -108,11 +137,16 @@ function assertSameCommit(journal: Journal, currentCommit: string | null): void 
   if (currentCommit === journal.writtenOnCommit) return
 
   const where = currentCommit === null ? 'ahora no tiene ninguno' : `ahora apunta a ${currentCommit}`
+  const cause =
+    journal.writtenOnBranch === null
+      ? '  HEAD sigue desacoplado y no es el mismo sitio: se ha commiteado o cambiado de commit\n' +
+        '  después del `apply`.'
+      : '  La rama lleva el mismo nombre y no es el mismo sitio: se ha borrado y recreado, o se ha\n' +
+        '  commiteado después del `apply`.'
   throw new RollbackError(
-    `El último \`apply\` escribió en la rama "${journal.writtenOnBranch}" sobre el commit ` +
+    `El último \`apply\` escribió ${writtenWhere(journal)} sobre el commit ` +
       `${journal.writtenOnCommit ?? '(ninguno)'}, pero ${where}.\n` +
-      '  La rama lleva el mismo nombre y no es el mismo sitio: se ha borrado y recreado, o se ha\n' +
-      '  commiteado después del `apply`. No se revierte nada: los ficheros guardados son los de\n' +
+      `${cause} No se revierte nada: los ficheros guardados son los de\n` +
       '  aquel commit, y restaurarlos aquí sobrescribiría lo que haya llegado después.\n' +
       '  Deshaz los cambios con git (`git diff`, `git checkout -- .`).',
   )
@@ -135,7 +169,8 @@ export interface RollbackOptions {
  * Revierte la última ejecución dejando el árbol de trabajo exactamente como
  * estaba. Verificación esperada: `git status --porcelain` vacío después.
  *
- * **Sólo en el sitio en el que `apply` escribió:** misma rama y mismo commit.
+ * **Sólo en el sitio en el que `apply` escribió:** misma rama —o HEAD desacoplado
+ * en los dos casos— y mismo commit.
  * Los snapshots del journal son fotos de los ficheros de ese árbol; escribirlos
  * en otro no revierte nada, borra lo que ese otro tuviera. Si no coincide, no se
  * toca nada y el journal se conserva, para poder revertir después desde el sitio
