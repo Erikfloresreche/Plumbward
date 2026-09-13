@@ -6,7 +6,7 @@
 > misma Pull Request que la implementa.
 
 **Última actualización:** 2026-09-12
-**Estado global:** Fase 0 en curso — F0-1, F0-3, F0-5, F0-8, F0-13, F0-14, F0-15, F0-17, F0-24, F0-27, F0-29 y F0-30 completadas. Quedan F0-2, F0-4, F0-6, F0-7, F0-9 a F0-12, F0-16, F0-18 a F0-23, F0-25, F0-26, F0-28 y F0-31 a F0-39.
+**Estado global:** Fase 0 en curso — F0-1, F0-3, F0-5, F0-8, F0-13, F0-14, F0-15, F0-17, F0-24, F0-27, F0-29, F0-30 y F0-40 completadas. Quedan F0-2, F0-4, F0-6, F0-7, F0-9 a F0-12, F0-16, F0-18 a F0-23, F0-25, F0-26, F0-28, F0-31 a F0-39 y F0-41 a F0-45.
 **Producto:** Plumbward · https://github.com/Erikfloresreche/Plumbward
 **Modelo de negocio:** suscripción anual por repositorio — ver
 [MODELO_DE_NEGOCIO.md](MODELO_DE_NEGOCIO.md)
@@ -21,7 +21,11 @@
 3. Una tarea sólo se marca `[x]` cuando cumple **todos** sus criterios de
    aceptación y el **Definition of Done universal** (§4).
 4. Si durante una tarea aparece trabajo que no estaba previsto: **no se amplía la
-   tarea**. Se añade una tarea nueva al final de su fase y se sigue.
+   tarea**. Se añade una tarea nueva al final de su fase, se coloca en la
+   **cola de ejecución** (§5) y se sigue.
+5. **La siguiente tarea es la primera de la cola de ejecución** (§5). El orden
+   no se decide en cada sesión: se cambia moviendo la entrada en la cola, con su
+   motivo, cuando el desarrollador decide otra prioridad.
 
 ---
 
@@ -942,30 +946,33 @@ la revisión en contexto nuevo. Queda registrado para no repetirlo.
 ---
 
 ### [ ] F0-16 — Nombres de ficheros e identificadores en inglés
-**Rama:** `refactor/f0-english-names` · **Depende de:** F0-15
+**Rama:** `refactor/f0-english-names` · **Depende de:** F0-41
 
-**Origen:** decisión del 2026-09-11. Los nombres no son documentación: acaban en
-rutas, imports e historial, y los lee cualquier desarrollador. La documentación
-y los comentarios de este proyecto siguen en español.
+**Origen:** decisión del 2026-09-11, ampliada el 2026-09-13: el inglés pasa a
+ser el idioma principal de todo el repositorio (ver F0-41). Los nombres van
+antes que las traducciones de F0-42, F0-18, F0-43 y F0-44, para que caigan ya en
+su ruta definitiva: traducir y renombrar a la vez duplica el churn y rompe la
+detección de renombrados en el diff.
 
 **Trabajo:**
 1. Renombrar a inglés los ficheros con nombre en español —`scripts/verificar-coherencia.mjs`,
    `docs/PLAN_DE_EJECUCION.md`, `docs/ARQUITECTURA.md`, `docs/MODELO_DE_NEGOCIO.md`,
    las ADR 0001 a 0004 y el `GOBERNANZA.md` que genera el pack de Node— y
-   **actualizar en el mismo cambio todos los enlaces y referencias**.
+   **actualizar en el mismo cambio todos los enlaces y referencias**, incluidas
+   las rutas que leen los scripts de `check:coherencia` y la lista de pendientes
+   del control de F0-41.
 2. Pasar a inglés las variables y funciones con nombre en español.
 3. **El control, no sólo la regla.** En la misma sesión en que se acordó, se creó
    un fichero nuevo con nombre en español (`0005-lo-inferido-solo-amplia.md`,
    corregido antes de commitear). Una regla recién escrita se incumple con
    facilidad: `check:coherencia` debe fallar ante un fichero nuevo cuyo nombre
    parezca español, y ante enlaces rotos tras el renombrado.
-4. **En el producto:** el wizard (F4-1) pregunta a la empresa si trabaja en `es`
-   o en `en`, y **todo gira en torno a esa elección**: el contenido generado, los
-   comentarios y lo que las reglas de IA piden al asistente para nombres y
-   comentarios. Es configuración de la empresa, no imposición nuestra.
+
+El idioma de lo que el producto genera para el cliente, que antes estaba aquí,
+es F0-45.
 
 **Criterios de aceptación:**
-- Ningún fichero ni identificador en español fuera del contenido en prosa.
+- Ningún fichero ni identificador en español.
 - Ningún enlace roto en la documentación.
 - El control falla al añadir un fichero con nombre en español.
 
@@ -1019,47 +1026,32 @@ equipo desarrolla en Windows; el control lo detectaría.
 ### [ ] F0-18 — Documentación del repositorio en inglés
 **Rama:** `docs/f0-english-documentation` · **Depende de:** F0-16
 
-**Origen:** decisión del 2026-09-11. El código, los comentarios y la
-documentación de este repositorio están en español porque así se decidió al
-empezar (CLAUDE.md, §"Mensajes de commit..."). Se revierte: la industria y el
-propio asistente trabajan en inglés, y cada documento en español que el
-asistente lee o reescribe (el plan tiene más de 2.000 líneas) se paga en
-tokens en cada sesión. Es distinto de la Fase 1: aquella traduce lo que el
-producto **genera** para el cliente según su perfil; esto traduce **nuestra
-propia** documentación.
+**Origen:** decisión del 2026-09-11, ampliada el 2026-09-13 (ver F0-41). La
+industria y el propio asistente trabajan en inglés, y cada documento en español
+que el asistente lee se paga en tokens en cada sesión. Es distinto de la Fase 1:
+aquella traduce lo que el producto **genera** para el cliente según su perfil;
+esto traduce **nuestra propia** documentación.
 
-**No es retroactivo.** Un ADR ya cerrado, o una entrada de este plan ya
-marcada, es un hecho histórico —como las alternativas descartadas o las fechas
-de cierre— y no se reescribe, igual que un reemplazo de marca no toca hechos
-fechados. Esta tarea traduce el documento que ya existe hoy; lo que se escriba
-después, se escribe directamente en inglés.
+**Es retroactivo, sin reescribir hechos.** Se traducen también las ADR cerradas:
+la traducción cambia el idioma, no el contenido. Fechas, alternativas
+descartadas, nombres propios y citas literales se conservan tal cual.
 
 **Trabajo:**
-1. Traducir a inglés, conservando su estructura y enlaces: `README.md`,
-   `CONTRIBUTING.md`, `CLAUDE.md`, `.claude/napkin.md`,
-   `.github/PULL_REQUEST_TEMPLATE.md`, `docs/PLAN_DE_EJECUCION.md`,
-   `docs/ARQUITECTURA.md`, `docs/MODELO_DE_NEGOCIO.md` y las cinco ADR de
-   `docs/adr/`. **Depende de F0-16** porque esos ficheros ya tienen que llevar
-   nombre en inglés antes de traducir su contenido: traducir y renombrar a la
-   vez duplica el churn y complica revisar el diff.
-2. Revertir en `CLAUDE.md` la regla que fija el español para comentarios y
-   documentación (§"Mensajes de commit..." y §4). El propio fichero que impone
-   la regla es el primero que hay que cambiar.
-3. Actualizar la tabla de la §0 y cualquier referencia cruzada a los nombres de
-   fichero que cambien de contenido (no de ruta: eso ya lo cubrió F0-16).
-4. Dado el tamaño (el plan solo pasa de 2.000 líneas), esta tarea probablemente
-   se ejecuta en más de una sesión: una tanda por fichero o grupo de ficheros,
-   cada una cerrando su propio commit dentro de la misma rama, seguida de
-   `pnpm check:coherencia`. Sigue siendo una sola tarea del plan y una sola PR.
-5. Comprobación de coherencia: ningún fichero de los listados en el punto 1
-   puede contener texto en español fuera de citas literales (por ejemplo, un
-   nombre propio o un hecho histórico ya fechado).
+1. Traducir a inglés, conservando estructura y enlaces: `README.md`,
+   `CONTRIBUTING.md`, `SECURITY.md`, la arquitectura, el modelo de negocio y
+   todas las ADR de `docs/adr/`. `CLAUDE.md`, el runbook y la plantilla de PR
+   son de F0-41; el plan, de F0-42.
+2. Sacar cada fichero traducido de la lista de pendientes del control de F0-41.
+3. Si no cabe en una sesión: una tanda por fichero, cada una con su commit en la
+   misma rama y `pnpm check:coherencia` en verde. Sigue siendo una tarea y una PR.
+
+**Qué se convierte en control mecánico:** el de F0-41, con estos ficheros fuera
+de su lista de pendientes.
 
 **Criterios de aceptación:**
-- Los nueve documentos y las cinco ADR están en inglés; los hechos históricos
-  fechados (alternativas descartadas, fechas de cierre) no se reescriben.
-- `CLAUDE.md` ya no exige español para comentarios ni documentación.
-- `pnpm check:coherencia` sigue en verde.
+- Ningún documento de los listados contiene español fuera de las excepciones
+  declaradas en el control de F0-41.
+- Fechas, alternativas descartadas y nombres propios no cambian de contenido.
 - Ningún enlace interno queda roto tras la traducción.
 
 ---
@@ -1681,6 +1673,173 @@ desacoplado y otro que fije la forma elegida en los dos sitios.
 - Intercambiar los dos textos de `cause` en `assertSameCommit` hace fallar un
   test.
 - Los dos mensajes aconsejan volver a un commit con la misma orden.
+
+---
+
+### [x] F0-40 — Una cola de ejecución que decide la siguiente tarea
+**Rama:** `chore/f0-execution-queue` · **Depende de:** nada
+
+**Origen:** decisión del desarrollador del 2026-09-13. Elegir la siguiente tarea
+dependía de que cada sesión la propusiera y alguien la confirmase: cada vez un
+coste, y dos sesiones podían llegar a respuestas distintas.
+
+**Trabajo:** una cola ordenada de todas las tareas pendientes en el §5, con los
+criterios del orden escritos. Quien pregunte por el estado del plan o por la
+siguiente tarea obtiene la misma respuesta: la primera de la cola. Cambiar una
+prioridad es mover una entrada, con su motivo. `CLAUDE.md` §0 lo dice.
+
+**Qué se convierte en control mecánico:** `scripts/execution-queue.mjs`, conectado
+a `check:coherencia` y cubierto por `scripts/execution-queue.test.mjs`. Falla si
+una tarea pendiente no está en la cola, si una completada sigue, si hay
+duplicados o identificadores inexistentes, o si una tarea va antes que una
+dependencia pendiente, incluidas las de "Fase N completa".
+
+**No mecanizable:** que el orden sea el mejor. El control garantiza que es
+completo y posible, no que sea sensato; eso lo defienden los criterios escritos
+en el §5 y la revisión.
+
+**Criterios de aceptación:**
+- La primera entrada de la cola es la siguiente tarea, sin que haga falta
+  proponerla.
+- Crear una tarea sin colocarla, o cerrar una sin sacarla, pone la CI en rojo.
+
+---
+
+### [ ] F0-41 — El inglés, idioma principal: el control y las instrucciones del asistente
+**Rama:** `chore/f0-english-only-control` · **Depende de:** F0-40
+
+**Origen:** decisión del desarrollador del 2026-09-13. Todo el repositorio pasa a
+inglés: instrucciones del asistente, plan, documentación, comentarios, tests y lo
+que el producto genera por defecto. Es la convención de la industria, la que
+siguen los equipos de nuestros clientes, y ahorra tokens: cada sesión lee
+`CLAUDE.md`, el runbook y partes del plan, y el español gasta más tokens para la
+misma información. Amplía F0-16 y F0-18, que sólo cubrían nombres y
+documentación, y abre F0-42 a F0-45.
+
+**Trabajo:**
+1. **Primero el control, para que no entre español nuevo.** Una comprobación en
+   `check:coherencia` —lógica pura en `scripts/`, con su test— que detecta español
+   en los ficheros versionados (comentarios, cadenas, Markdown, YAML), reutilizando
+   las palabras inequívocas de `branch-names.mjs` más los caracteres propios del
+   español (`ñ`, `¿`, `¡`, vocales con tilde). Con dos listas explícitas:
+   - **Pendientes de traducir:** los ficheros que hoy tienen español. Cada tarea
+     del bloque saca los suyos. Un fichero fuera de la lista con español falla, y
+     uno de la lista que ya no lo tiene también, para que la lista no caduque.
+   - **Excepciones permanentes, cada una con su motivo:** lo que debe seguir en
+     español, como la variante `es` de lo que se genera para el cliente o el
+     corpus de palabras de `branch-names`.
+2. Traducir `CLAUDE.md`, `.claude/napkin.md` y `.github/PULL_REQUEST_TEMPLATE.md`,
+   y revertir en ellos las reglas que fijan el español para la prosa y los
+   comentarios. Son los que se leen en todas las sesiones.
+
+**Qué se convierte en control mecánico:** la comprobación del punto 1.
+
+**No mecanizable:** la fidelidad de la traducción. Un texto en inglés que dice otra
+cosa que el original pasa el control; la defensa es la revisión en contexto nuevo
+de cada PR de traducción, comparando con el original.
+
+**Criterios de aceptación:**
+- Añadir un comentario o un párrafo en español a un fichero que no está en ninguna
+  lista pone `check:coherencia` en rojo.
+- Un fichero de la lista de pendientes que ya está en inglés también lo pone en rojo.
+- `CLAUDE.md`, el runbook y la plantilla de PR están en inglés y fijan el inglés
+  como idioma de todo el repositorio.
+
+---
+
+### [ ] F0-42 — El plan de ejecución en inglés
+**Rama:** `docs/f0-english-plan` · **Depende de:** F0-16
+
+**Origen:** F0-41. El plan pasa de 3.000 líneas y es, después de `CLAUDE.md`, lo
+que más se lee: cada tarea empieza leyendo la suya.
+
+**Trabajo:**
+1. Traducir el plan entero, incluidas las tareas completadas: cambia el idioma, no
+   los hechos (fechas, hallazgos, alternativas descartadas).
+2. Dos controles leen su formato: `**Rama:**`, `**Depende de:**`, `Fase N completa`,
+   las cabeceras `### [ ]` y los marcadores de la cola. El plan,
+   `branch-names.mjs`, `execution-queue.mjs` y sus tests cambian en el mismo
+   commit; las aserciones de mínimo de los dos impiden un verde sin mirar nada.
+3. Sacar el plan de la lista de pendientes de F0-41.
+4. Por tamaño, en varias sesiones: una tanda por fase, cada una con su commit en la
+   misma rama y `pnpm check:coherencia` en verde. Sigue siendo una tarea y una PR.
+
+**Qué se convierte en control mecánico:** el de F0-41 sobre el plan, y los tests de
+los dos analizadores con el formato nuevo.
+
+**Criterios de aceptación:**
+- El plan no contiene español fuera de las excepciones declaradas.
+- Romper una dependencia en la cola traducida, o un nombre de rama, pone la CI en
+  rojo.
+
+---
+
+### [ ] F0-43 — Comentarios y tests del núcleo en inglés
+**Rama:** `refactor/f0-english-comments-core` · **Depende de:** F0-16
+
+**Origen:** F0-41. Separada de F0-44 para que cada PR se pueda revisar entera.
+
+**Trabajo:** traducir comentarios, JSDoc y descripciones de `describe` e `it` en
+`packages/core`, `packages/ast`, `packages/scanner` y `packages/packs-sdk`. Los
+textos que llegan al usuario, aunque se lancen desde el núcleo (`RollbackError`),
+son de F0-45. Sacar los ficheros de la lista de pendientes de F0-41.
+
+**Qué se convierte en control mecánico:** el de F0-41 sobre estos paquetes.
+
+**Criterios de aceptación:**
+- Ningún fichero de esos paquetes contiene español fuera de las excepciones
+  declaradas y de los textos que quedan para F0-45.
+- Sin cambios de comportamiento: `pnpm typecheck` y sus tests siguen en verde.
+
+---
+
+### [ ] F0-44 — Comentarios y tests de la CLI, los packs y los scripts en inglés
+**Rama:** `refactor/f0-english-comments-cli` · **Depende de:** F0-16
+
+**Origen:** F0-41. La otra mitad de F0-43.
+
+**Trabajo:** traducir comentarios, JSDoc y descripciones de tests en
+`packages/cli`, `packages/packs/`, `scripts/`, `.github/workflows/` y la
+configuración de la raíz. El contenido que se genera para el cliente es de F0-45.
+Sacar los ficheros de la lista de pendientes de F0-41.
+
+**Qué se convierte en control mecánico:** el de F0-41 sobre estos ficheros.
+
+**Criterios de aceptación:**
+- Ningún fichero de esas rutas contiene español fuera de las excepciones declaradas
+  y de los textos que quedan para F0-45.
+- Sin cambios de comportamiento: `pnpm typecheck`, sus tests y `check:mutations`
+  siguen en verde.
+
+---
+
+### [ ] F0-45 — El producto habla inglés por defecto
+**Rama:** `feat/f0-english-default-language` · **Depende de:** F0-41
+
+**Origen:** F0-41. Los clientes siguen por defecto la misma convención. El producto
+sigue siendo bilingüe —decisión de negocio del 2026-09-08—: el español se elige
+en el perfil, no se retira. El wizard (F4-1) pregunta el idioma a la empresa.
+
+**Trabajo:**
+1. Mensajes de la CLI y errores que llegan al usuario (`RollbackError`, avisos de
+   rama, `doctor`...) en inglés. La CLI queda sólo en inglés hasta que F1-3 la
+   haga bilingüe.
+2. `Profile.language` por defecto `en` —hoy `es` en
+   `packages/packs-sdk/src/contract.ts`—, y con él los ficheros que genera el pack
+   de Node.
+3. Lo que hoy sólo existe en español para el cliente se escribe en inglés, y la
+   variante española se conserva detrás de `language: es`. Llevarlo a catálogos
+   es F1-2.
+4. Actualizar los tests que comparan textos y registrar la variante `es` como
+   excepción del control de F0-41.
+
+**Qué se convierte en control mecánico:** un test que genera con el perfil por
+defecto y falla si aparece español, y otro que con `language: es` sigue generando
+español.
+
+**Criterios de aceptación:**
+- Sin configurar idioma, la CLI y los ficheros generados están en inglés.
+- Con `language: es`, lo generado para el cliente sigue en español.
 
 ---
 
@@ -2872,6 +3031,152 @@ Las fases son secuenciales, pero **dentro de cada fase hay paralelismo**:
 - **Fase 2:** F2-1 → F2-2 → F2-3, y luego **F2-4, F2-5 y F2-6 son paralelas**.
   Es el mejor punto del plan para repartir trabajo.
 - **Fase 3:** F3-5 sólo depende de F2-2, así que puede adelantarse.
+
+### Cola de ejecución
+
+**La siguiente tarea es siempre la primera de esta lista.** Es la respuesta a
+cualquier pregunta por el estado del plan o por lo siguiente, la haga quien la
+haga y en el idioma que sea. Si el desarrollador cambia una prioridad —como
+adelantar el paso a inglés, que se encarece cuanto más crece el proyecto—, se
+mueve la entrada y se escribe el motivo en el criterio correspondiente. Al cerrar
+una tarea, su PR la saca de la cola; al crear una tarea nueva, la misma PR la
+coloca. `pnpm check:coherencia` falla si una tarea pendiente no está,
+si una completada sigue, o si alguna va antes que aquello de lo que depende.
+
+El orden de la Fase 0 sigue cuatro criterios, en este orden de prioridad:
+
+1. **Primero, el inglés como idioma principal.** Decisión del 2026-09-13 (F0-41):
+   instrucciones, plan, documentación, comentarios, tests y lo que el producto
+   genera por defecto pasan a inglés. Va delante de todo porque cada tarea
+   posterior lee y escribe en ese idioma: hecho primero, las tareas siguientes se
+   escriben ya en inglés y cada sesión lee menos tokens; hecho al final, habría
+   que traducir también todo lo que produjeran. Dentro del bloque, primero el
+   control que impide español nuevo y las instrucciones que se leen en cada
+   sesión; después los nombres, para que las traducciones caigan en su ruta
+   definitiva; después el plan, que es lo más leído.
+2. **Después, que el verde signifique algo.** Antes de tocar lo que puede
+   perder datos, los tests y controles que dicen cubrirlo tienen que fallar
+   cuando se rompe. Un cambio arriesgado sobre una red con agujeros es el
+   escenario que las revisiones han encontrado una y otra vez.
+3. **Luego, las garantías que vendemos y hoy no se cumplen** (riesgos R5 y
+   R7): escritura fuera del repositorio, `rollback` que pierde trabajo,
+   instalación irreversible. El formato del journal se decide antes de volver a
+   cambiarlo, y su contrato se documenta después del último cambio, no antes.
+4. **Por último, detección, convenciones e infraestructura de publicación**,
+   que no ponen en riesgo el repositorio de un cliente.
+
+Las fases siguientes van en su orden de dependencias. Dentro de cada una, los
+controles que vigilan el trabajo de la fase van antes que ese trabajo.
+
+<!-- cola:inicio -->
+
+#### Fase 0 · 1. El inglés, idioma principal
+
+- **F0-41** — el control que impide español nuevo y las instrucciones que se leen en cada sesión.
+- **F0-16** — nombres de ficheros e identificadores, para que las traducciones caigan en su ruta definitiva.
+- **F0-42** — el plan, lo más leído después de `CLAUDE.md`.
+- **F0-18** — el resto de la documentación y todas las ADR.
+- **F0-43** — comentarios y tests del núcleo.
+- **F0-44** — comentarios y tests de la CLI, los packs y los scripts.
+- **F0-45** — el producto habla inglés por defecto; el español sigue en el perfil.
+
+#### Fase 0 · 2. Que el verde signifique algo
+
+- **F0-34** — el único e2e del ciclo completo no ejercita la comprobación del commit.
+- **F0-22** — los tests de `packages/*/test/` no pasan por el typecheck y el control del job `calidad` se vigila a sí mismo.
+- **F0-32** — el control de mutaciones da verdes vacíos por huecos de sus parsers.
+- **F0-36** — decidir si el guardián del journal entra en la batería de mutaciones antes de volver a tocarlo.
+- **F0-7** — umbral de cobertura del 90 % en `core`, la mitigación declarada de R5.
+
+#### Fase 0 · 3. Garantías que vendemos y hoy no se cumplen
+
+- **F0-10** — un enlace simbólico permite escribir fuera del repositorio: la frontera que presenta `SECURITY.md`.
+- **F0-9** — un tipo de operación nuevo lo ignoraría `plan` y lo ejecutaría `apply`.
+- **F0-37** — política para journals antiguos y un remedio que deje el árbol limpio, antes de cambiar otra vez el formato.
+- **F0-38** — `rollback` sobrescribe trabajo: hash del contenido en el journal.
+- **F0-39** — fijar con tests los mensajes que F0-38 deja definitivos.
+- **F0-11** — la instalación de dependencias queda fuera del journal.
+- **F0-33** — código vivo que sólo alcanza un test, en el aviso de vuelta.
+- **F0-31** — contrato de `readJournal`, con el formato ya estable.
+- **F0-35** — contrato completo del journal y su política de versiones.
+
+#### Fase 0 · 4. Detección, convenciones y publicación
+
+- **F0-26** — `doctor` y la validación de `branches` miran datos sin entenderlos.
+- **F0-25** — exenciones por nombre en el control de ramas.
+- **F0-20** — decidir la estrategia de merge.
+- **F0-28** — el consejo `git branch -d`, según esa decisión.
+- **F0-19** — la plantilla de ramas del cliente se contradice en español.
+- **F0-21** — restos del plan y del diagrama de ramas.
+- **F0-23** — el escaneo del historial a su propio workflow.
+- **F0-2** — una única fuente para la versión, que usan el journal y `upgrade`.
+- **F0-4** — dogfooding: nuestros propios hooks y linters.
+- **F0-6** — versionado y changelog automatizados.
+- **F0-12** — los controles que quedan de los hallazgos de revisión (términos prohibidos, hechos protegidos...).
+
+#### Fase 1 — Internacionalización
+
+- **F1-1** — paquete `@plumbward/i18n`.
+- **F1-2** — pack de Node/TS a los catálogos.
+- **F1-3** — mensajes de la CLI en los dos idiomas.
+- **F1-4** — paridad entre idiomas.
+- **F1-5** — procedencia de cada regla.
+
+#### Fase 2 — Cobertura de stacks
+
+- **F2-1** — detección multi-stack.
+- **F2-2** — pack base universal.
+- **F2-3** — kit de conformidad.
+- **F2-13** — snapshots dorados, antes de que lleguen los packs que vigilan.
+- **F2-9** — límites operativos del asistente al pack base.
+- **F2-12** — herramientas de agente por stack.
+- **F2-4** — pack de Python.
+- **F2-5** — pack de PHP / Laravel.
+- **F2-6** — pack de Go.
+- **F2-7** — monorepos.
+- **F2-8** — guía para autores de packs.
+- **F2-11** — frontera real para packs de terceros.
+
+#### Fase 3 — Modos de aplicación y flujo de trabajo
+
+- **F3-5** — gobierno del flujo de ramas.
+- **F3-6** — flujo de entrega y revisión asistida.
+- **F3-1** — baseline de la deuda existente.
+- **F3-2** — trinquete sobre lo que cambia.
+- **F3-3** — CI sólo sobre el diff.
+- **F3-4** — prohibido empeorar.
+- **F3-7** — testing acoplado al cambio.
+- **F3-8** — postura de seguridad.
+- **F3-9** — controles derivados de incidentes.
+- **F3-10** — cierre de sesión guiado.
+
+#### Fase 4 — Ciclo de vida
+
+- **F4-1** — wizard `init`.
+- **F4-2** — `upgrade` con detección de personalizaciones.
+- **F4-3** — `doctor --fix`.
+- **F4-4** — informe comercial.
+- **F4-5** — detectar versión nueva sin telemetría.
+- **F4-6** — changelog dirigido.
+- **F4-7** — catálogo de capacidades.
+- **F4-8** — flujos guiados.
+
+#### Fase 5 — Licenciamiento
+
+- **F5-1** — `@plumbward/licensing`.
+- **F5-2** — servicio de licencias.
+- **F5-3** — entitlements.
+- **F5-4** — tolerancia a fallos de red.
+- **F5-5** — suscripción anual y tramos.
+
+#### Fase 6 — Lanzamiento
+
+- **F6-1** — publicación en NPM.
+- **F6-2** — E2E sobre repositorios reales.
+- **F6-3** — materiales de venta.
+- **F6-4** — lanzamiento 1.0.
+
+<!-- cola:fin -->
 
 ### Camino más corto a una demo vendible
 
