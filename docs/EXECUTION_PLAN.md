@@ -6,7 +6,7 @@
 > checkbox in this file, inside the same Pull Request that implements it.
 
 **Last updated:** 2026-09-13
-**Global status:** Phase 0 in progress — F0-1, F0-3, F0-5, F0-8, F0-13, F0-14, F0-15, F0-16, F0-17, F0-24, F0-27, F0-29, F0-30, F0-40 and F0-41 completed. Remaining: F0-2, F0-4, F0-6, F0-7, F0-9 to F0-12, F0-18 to F0-23, F0-25, F0-26, F0-28, F0-31 to F0-39 and F0-42 to F0-46.
+**Global status:** Phase 0 in progress — F0-1, F0-3, F0-5, F0-8, F0-13, F0-14, F0-15, F0-16, F0-17, F0-24, F0-27, F0-29, F0-30, F0-40 and F0-41 completed. Remaining: F0-2, F0-4, F0-6, F0-7, F0-9 to F0-12, F0-18 to F0-23, F0-25, F0-26, F0-28, F0-31 to F0-39 and F0-42 to F0-47.
 **Product:** Plumbward · https://github.com/Erikfloresreche/Plumbward
 **Business model:** annual subscription per repository — see
 [BUSINESS_MODEL.md](BUSINESS_MODEL.md)
@@ -1937,6 +1937,38 @@ looking or flag a valid English name.
 
 ---
 
+### [ ] F0-47 — Hand over the next-session prompt without being asked
+**Branch:** `docs/f0-session-handoff-prompt` · **Depends on:** F0-42
+
+**Origin:** batch 2 of F0-42, 2026-09-13. §6 of `CLAUDE.md` asks for one
+session per task, and F0-42 runs one session per batch, but the assistant only
+wrote the prompt for the next session when the developer asked for it: one
+extra round trip each time. The two alternatives cost more:
+- The assistant opening the new context itself, with a subagent, boots just as
+  cold. On top of that, the open chat is resent on every later turn, and the
+  developer cannot talk to the subagent directly.
+- Running every batch in the same chat, one commit per batch: each step resends
+  the whole conversation, which grows with every batch read and written.
+
+**Work:**
+1. §6 of `CLAUDE.md`: when a task, a batch or a review round closes and the
+   next work belongs in a new session, the assistant ends its reply with the
+   prompt to open it, ready to paste, without being asked. The prompt carries
+   only what the repository does not: conventions fixed in the chat and
+   decisions still open.
+2. State in the same rule that the developer opens the new chat, not a
+   subagent, and why.
+
+**Not mechanisable:** no control sees an assistant's reply. The defence is the
+rule in §6 and the fresh-context review.
+
+**Acceptance criteria:**
+- §6 of `CLAUDE.md` states the rule and its reason in at most ten lines.
+- A batch closed in a new session ends with the next-session prompt, without
+  the developer asking for it.
+
+---
+
 ## FASE 1 — Internacionalización del motor de plantillas
 
 **Objetivo:** que `Profile.language` funcione de verdad.
@@ -3167,6 +3199,7 @@ controls that watch the work of the phase go before that work.
 #### Phase 0 · 1. English as the main language
 
 - **F0-42** — the plan, the most read file after `CLAUDE.md`.
+- **F0-47** — the assistant hands over the next-session prompt without being asked. Right after F0-42: it is ten lines of `CLAUDE.md` and saves a round trip in every multi-session task after it.
 - **F0-18** — the rest of the documentation and all the ADRs.
 - **F0-43** — comments and tests of the core.
 - **F0-44** — comments and tests of the CLI, the packs and the scripts.
