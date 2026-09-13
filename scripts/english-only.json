@@ -11,7 +11,6 @@
     "SECURITY.md",
     "docs/ARCHITECTURE.md",
     "docs/BUSINESS_MODEL.md",
-    "docs/EXECUTION_PLAN.md",
     "docs/adr/0001-plan-before-apply.md",
     "docs/adr/0002-local-first-licensing.md",
     "docs/adr/0003-busl-license.md",
@@ -84,6 +83,25 @@
     {
       "path": "scripts/branch-names-corpus.json",
       "reason": "Test data of the branch-name control (F0-15): real branch names, and the Spanish ones are what the control must reject."
+    },
+    {
+      "path": "docs/EXECUTION_PLAN.md",
+      "reason": "The plan quotes Spanish literals that are facts, and F0-42 changes the language, not the facts: branch names already closed, former check names, identifiers renamed by a PR, a real mutation entry, and the characters the detector looks for.",
+      "fragments": [
+        "fix/f0-\u0072amas-protegidas",
+        "ci/f0-pipeline-\u0070ropio",
+        "docs/f0-\u0064ocumentacion-base",
+        "docs/f2-\u0067uia-packs",
+        "Ciclo completo sobre repositorios \u0072eales",
+        "dependabot/../fix/f0-\u0072amas",
+        "version-\u0075nica",
+        "\u0063obertura-\u0075mbral",
+        "\u0074rinquete-\u006detricas",
+        "gobierno-de-\u0072amas",
+        "/S\u00ed puedes usar los de s\u00f3lo lectura:([\\s\\S]*?)\\./",
+        "Comparar s\u00f3lo la \u0072ama, no el commit",
+        "Spanish (`\u00f1`, `\u00bf`, `\u00a1`, accented"
+      ]
     }
   ]
 }
