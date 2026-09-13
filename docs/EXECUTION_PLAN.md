@@ -6,7 +6,7 @@
 > misma Pull Request que la implementa.
 
 **Última actualización:** 2026-09-13
-**Estado global:** Fase 0 en curso — F0-1, F0-3, F0-5, F0-8, F0-13, F0-14, F0-15, F0-16, F0-17, F0-24, F0-27, F0-29, F0-30, F0-40 y F0-41 completadas. Quedan F0-2, F0-4, F0-6, F0-7, F0-9 a F0-12, F0-18 a F0-23, F0-25, F0-26, F0-28, F0-31 a F0-39 y F0-42 a F0-45.
+**Estado global:** Fase 0 en curso — F0-1, F0-3, F0-5, F0-8, F0-13, F0-14, F0-15, F0-16, F0-17, F0-24, F0-27, F0-29, F0-30, F0-40 y F0-41 completadas. Quedan F0-2, F0-4, F0-6, F0-7, F0-9 a F0-12, F0-18 a F0-23, F0-25, F0-26, F0-28, F0-31 a F0-39 y F0-42 a F0-46.
 **Producto:** Plumbward · https://github.com/Erikfloresreche/Plumbward
 **Modelo de negocio:** suscripción anual por repositorio — ver
 [BUSINESS_MODEL.md](BUSINESS_MODEL.md)
@@ -980,8 +980,9 @@ es F0-45.
   the CI job ids (`verify`, `quality`, `secrets`, `history`, `full-cycle`,
   `mutations`), the control ids of `check-coherence.mjs` and the mutation
   verdicts (`detected`, `survived`, `not-run`). Identifiers were renamed on the
-  syntax tree, so comments and strings were not touched: their translation is
-  F0-43 and F0-44.
+  syntax tree. Comments and strings changed only where they named a renamed
+  path or id (`Lee GOVERNANCE.md` in `commands.ts`, for example); their
+  translation is F0-43 and F0-44.
 - Controls: `scripts/english-only.mjs` fails for a path that looks Spanish
   (accents, the branch-name heuristic on each segment, and the two words of the
   old names that heuristic missed), with no list to escape to.
@@ -990,8 +991,9 @@ es F0-45.
 - Not mechanisable: a Spanish name made only of words English also has passes,
   since the heuristic is not a dictionary; link anchors are not checked; an
   identifier is only caught by the content scan once its file leaves `pending`.
-- Left to F0-45: the job ids and texts of the CI the Node pack generates for the
-  client (`calidad`, `secretos`, `gobernanza`), which are client output.
+- Left to F0-45, item 5: the Spanish job ids of the CI the Node pack generates
+  for the client (`calidad`, `secretos`, `gobernanza`).
+- Limits of the new controls found in the fresh-context review: F0-46.
 
 **Criterios de aceptación:**
 - Ningún fichero ni identificador en español.
@@ -1854,14 +1856,65 @@ en el perfil, no se retira. El wizard (F4-1) pregunta el idioma a la empresa.
    es F1-2.
 4. Actualizar los tests que comparan textos y registrar la variante `es` como
    excepción del control de F0-41.
+5. The job ids of the workflows the Node pack generates (`calidad`, `secretos`,
+   `gobernanza` in `packages/packs/node-ts/src/templates/ci.ts`) go to English,
+   in both languages: they are identifiers, not text. Keep the check names that
+   `workflow-checks.ts` derives from those workflows in step. Found in the
+   review of F0-16: with no accent and no listed word, the Spanish-text test
+   below does not see them.
 
 **Qué se convierte en control mecánico:** un test que genera con el perfil por
 defecto y falla si aparece español, y otro que con `language: es` sigue generando
-español.
+español. Plus a test that fails if a job id of a generated workflow looks
+Spanish, with the same heuristic as the file-name control of F0-16.
 
 **Criterios de aceptación:**
 - Sin configurar idioma, la CLI y los ficheros generados están en inglés.
 - Con `language: es`, lo generado para el cliente sigue en español.
+- The job ids of the generated workflows are in English with either language.
+
+---
+
+### [ ] F0-46 — Harden the name and link controls
+**Rama:** `fix/f0-harden-name-link-controls` · **Depende de:** F0-16
+
+**Origin:** fresh-context review of F0-16, 2026-09-13. No finding was a
+blocker, but both controls F0-16 added have cases where they pass without
+looking or flag a valid English name.
+
+**Work:**
+1. `scripts/doc-links.mjs`:
+   - A code fence still open at the end of a file fails, instead of hiding
+     every link after it.
+   - Read reference-style definitions (`[r]: path`), nested brackets in the
+     link text and `<targets with spaces>`.
+   - Do not read `//host/path` as a repository path, and accept balanced
+     parentheses in a target (`docs/foo_(bar).md`).
+   - Skip indented code blocks and HTML comments, like fenced code.
+2. `scripts/english-only.mjs`, name check:
+   - A file extension or locale segment is not a slug word:
+     `messages.de.json` must pass before the catalogues of F1-1 arrive.
+   - A one- or two-letter function word between English words
+     (`x-y-offset.ts`, `data-y-axis.ts`) does not flag a file name. The
+     branch-name corpus keeps its own rule.
+   - Suffix collisions (`suspicion.md`, `libido`) become corpus negatives and
+     are decided there.
+3. `scripts/check-coherence.mjs`: the name check covers every tracked path,
+   symlinks included, not only regular files.
+4. Decide what happens in a repository already applied with the old
+   `GOBERNANZA.md`, and record it here. If it needs a migration, that is a
+   Phase 4 task.
+
+**Mechanical control:** each case above is a test in `doc-links.test.mjs` or
+`english-only.test.mjs` that fails against the F0-16 code.
+
+**Acceptance criteria:**
+- An unclosed code fence and a broken reference-style link make
+  `check:coherence` fail.
+- `messages.de.json`, `src/x-y-offset.ts` and `src/data-y-axis.ts` pass the
+  name check; the ten names F0-16 renamed still fail.
+- A Spanish-named symlink fails.
+- `//example.com/a.md` and an existing `docs/foo_(bar).md` are not reported.
 
 ---
 
@@ -3105,6 +3158,7 @@ controles que vigilan el trabajo de la fase van antes que ese trabajo.
 - **F0-34** — el único e2e del ciclo completo no ejercita la comprobación del commit.
 - **F0-22** — los tests de `packages/*/test/` no pasan por el typecheck y el control del job `quality` se vigila a sí mismo.
 - **F0-32** — el control de mutaciones da verdes vacíos por huecos de sus parsers.
+- **F0-46** — the name and link controls of F0-16 pass without looking in some cases and flag valid English names.
 - **F0-36** — decidir si el guardián del journal entra en la batería de mutaciones antes de volver a tocarlo.
 - **F0-7** — umbral de cobertura del 90 % en `core`, la mitigación declarada de R5.
 

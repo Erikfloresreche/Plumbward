@@ -1,5 +1,5 @@
 /**
- * Outcome de una ejecución de la batería de tests contra una mutación.
+ * Veredicto de una ejecución de la batería de tests contra una mutación.
  *
  * Existe porque `result.status !== 0` daba "la mutación está cazada" también
  * cuando los tests no llegaban a ejecutarse: `spawnSync` devuelve
