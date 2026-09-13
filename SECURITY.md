@@ -1,51 +1,51 @@
-# Política de seguridad
+# Security policy
 
-## Reportar una vulnerabilidad
+## Reporting a vulnerability
 
-Si encuentras una vulnerabilidad en Plumbward, **no abras una issue pública**.
-Escribe a **erikfloresreche@gmail.com** con el asunto `[SECURITY] Plumbward`.
+If you find a vulnerability in Plumbward, **do not open a public issue**.
+Write to **erikfloresreche@gmail.com** with the subject `[SECURITY] Plumbward`.
 
-Incluye, en la medida de lo posible:
+Include, as far as possible:
 
-- Una descripción del problema y de su impacto.
-- Los pasos para reproducirlo.
-- La versión afectada y el sistema operativo.
+- A description of the problem and its impact.
+- The steps to reproduce it.
+- The affected version and the operating system.
 
-Recibirás acuse de recibo en **5 días laborables** y una evaluación inicial en
-**15 días naturales**. Son plazos que un proyecto con un solo mantenedor puede
-cumplir de verdad; se acortarán cuando el equipo crezca. Si la vulnerabilidad se confirma, acordaremos contigo una fecha de
-publicación y te acreditaremos en el aviso salvo que prefieras lo contrario.
+You will receive an acknowledgement within **5 business days** and an initial
+assessment within **15 calendar days**. These are deadlines a project with a
+single maintainer can really meet; they will be shortened when the team grows.
+If the vulnerability is confirmed, we will agree a disclosure date with you and
+credit you in the advisory unless you prefer otherwise.
 
-## Por qué esta herramienta merece atención especial
+## Why this tool deserves special attention
 
-Plumbward **escribe en el repositorio de sus usuarios** y **ejecuta comandos** en
-su máquina. Eso la convierte en un objetivo interesante. Las áreas donde un
-fallo sería más grave:
+Plumbward **writes to its users' repositories** and **runs commands** on their
+machines. That makes it an interesting target. The areas where a flaw would be
+most serious:
 
-- **Escritura fuera del repositorio.** `resolveInRepo()` en
-  [core/src/fs.ts](packages/core/src/fs.ts) rechaza rutas absolutas y las que
-  escapan con `../`. Cualquier forma de sortearlo es crítica.
-  **Ya conocido, no hace falta reportarlo:** la comprobación es léxica y no
-  resuelve enlaces simbólicos, así que un symlink dentro del repositorio que
-  apunte fuera permite escapar. Está registrado como tarea F0-10.
-- **Ejecución de comandos.** Se usa `execa` sin shell precisamente para evitar
-  inyección. Un camino que permita inyectar un comando es crítico.
-- **Packs de terceros.** Que un pack sólo declare operaciones y no escriba es
-  hoy una **convención**, no una frontera técnica: un pack se carga en el mismo
-  proceso de Node y puede importar `node:fs`. Por eso el CLI **sólo carga packs
-  que vengan en el propio paquete**; todavía no se aceptan packs de terceros, y
-  hacerlo requiere antes un aislamiento real (tarea F2-11). Si encuentras una
-  vía por la que un pack no confiable pueda cargarse hoy, es crítica.
-- **Fuga de información.** El CLI no envía telemetría. Cuando exista validación
-  de licencia, enviará únicamente el token, la huella del repositorio y la
-  versión. Nunca código, rutas ni nombres de fichero.
+- **Writing outside the repository.** `resolveInRepo()` in
+  [core/src/fs.ts](packages/core/src/fs.ts) rejects absolute paths and paths
+  that escape with `../`. Any way around it is critical.
+  **Already known, no need to report it:** the check is lexical and does not
+  resolve symbolic links, so a symlink inside the repository that points
+  outside allows escaping. It is recorded as task F0-10.
+- **Command execution.** `execa` is used without a shell precisely to avoid
+  injection. Any path that allows injecting a command is critical.
+- **Third-party packs.** That a pack only declares operations and does not write
+  is today a **convention**, not a technical boundary: a pack is loaded in the
+  same Node process and can import `node:fs`. That is why the CLI **only loads
+  packs shipped in its own package**; third-party packs are not accepted yet,
+  and accepting them first requires real isolation (task F2-11). If you find a
+  way for an untrusted pack to be loaded today, it is critical.
+- **Information leaks.** The CLI sends no telemetry. When licence validation
+  exists, it will send only the token, the repository fingerprint and the
+  version. Never code, paths or file names.
 
-## Alcance
+## Scope
 
-Entra en el alcance el código de este repositorio y los paquetes publicados
-desde él.
+In scope: the code in this repository and the packages published from it.
 
-Queda fuera: las herramientas de terceros que Plumbward configura (ESLint,
-Gitleaks, Husky y demás) —repórtalas a sus mantenedores—, y las
-vulnerabilidades que requieran que el atacante ya tenga acceso de escritura al
-repositorio o a la máquina de la víctima.
+Out of scope: the third-party tools Plumbward configures (ESLint, Gitleaks,
+Husky and the rest) —report those to their maintainers—, and vulnerabilities
+that require the attacker to already have write access to the repository or to
+the victim's machine.

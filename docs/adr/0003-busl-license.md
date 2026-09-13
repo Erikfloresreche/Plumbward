@@ -1,93 +1,94 @@
-# ADR 0003 — Business Source License 1.1 para el código
+# ADR 0003 — Business Source License 1.1 for the code
 
-- **Estado:** aceptada
-- **Fecha:** 2026-09-09
-- **Afecta a:** `LICENSE`, la estrategia comercial y la Fase 5
+- **Status:** accepted
+- **Date:** 2026-09-09
+- **Affects:** `LICENSE`, the commercial strategy and Phase 5
 
-## Contexto
+## Context
 
-Hay que elegir bajo qué licencia se publica el código. La decisión está
-condicionada por una tensión real del producto:
+We have to choose the licence the code is published under. The decision is
+shaped by a real tension in the product:
 
-- Nuestro argumento de venta más fuerte es **"puedes auditar exactamente lo que
-  hace"**. Eso empuja hacia código legible por el cliente.
-- El modelo de negocio es vender licencias por repositorio. Eso empuja hacia
-  proteger el código.
+- Our strongest sales argument is **"you can audit exactly what it does"**.
+  That pushes towards code the client can read.
+- The business model is selling licences per repository. That pushes towards
+  protecting the code.
 
-## Decisión
+## Decision
 
-**Business Source License 1.1**, con estos parámetros:
+**Business Source License 1.1**, with these parameters:
 
-- **Change Date:** 2030-09-09 (o el cuarto aniversario de cada versión, lo que
-  ocurra antes).
+- **Change Date:** 2030-09-09 (or the fourth anniversary of each version,
+  whichever comes first).
 - **Change License:** Apache-2.0.
-- **Additional Use Grant:** todo comando que **no modifique** el repositorio
-  destino es de uso libre en producción y sin límite de repositorios. A día de
-  hoy son `scan`, `plan` y `doctor`. El resto queda bajo los términos por
-  defecto de la licencia, que exigen adquirir una licencia comercial.
+- **Additional Use Grant:** every command that **does not modify** the target
+  repository is free to use in production, with no limit on repositories. As
+  of today they are `scan`, `plan` and `doctor`. The rest falls under the
+  licence's default terms, which require buying a commercial licence.
 
-  El grant se redacta por **propiedad** ("no modifica el repositorio") y no por
-  lista cerrada, para que no caduque cada vez que añadamos un comando. La
-  enumeración es ilustrativa y va fechada.
+  The grant is worded by **property** ("does not modify the repository") and
+  not as a closed list, so that it does not go stale every time we add a
+  command. The enumeration is illustrative and dated.
 
-## Alternativas descartadas
+## Discarded alternatives
 
-**Núcleo abierto (Apache-2.0) con packs de pago.** Maximiza la adopción, que es
-el canal de venta. Se descarta porque el motor transaccional —plan, journal,
-rollback, bloques gestionados— es la parte difícil y diferencial. Regalarlo
-permite a un competidor construir encima sin haber pagado el coste de diseñarlo,
-y los packs, que serían lo de pago, son la parte fácil de replicar.
+**Open core (Apache-2.0) with paid packs.** It maximises adoption, which is the
+sales channel. It is discarded because the transactional engine —plan, journal,
+rollback, managed blocks— is the hard and differentiating part. Giving it away
+lets a competitor build on top without having paid the cost of designing it,
+and the packs, which would be the paid part, are the easy part to replicate.
 
-**Todo propietario en un repositorio privado.** Máxima protección, pero pierde
-el canal de adopción orgánica y, sobre todo, obliga a pedirle a un equipo de
-seguridad que confíe en una caja negra que va a escribir en su repositorio. Es
-pedir demasiado.
+**Everything proprietary in a private repository.** Maximum protection, but it
+loses the organic adoption channel and, above all, forces us to ask a security
+team to trust a black box that is going to write to their repository. That is
+asking too much.
 
-## Consecuencias
+## Consequences
 
-**A favor:**
+**In favour:**
 
-- El repositorio puede ser público. Un cliente potencial audita el código antes
-  de comprar, que es exactamente lo que queremos que haga.
-- Nadie puede revenderlo ni ofrecerlo como servicio competidor.
-- El `scan` gratuito queda amparado por la licencia, no sólo por una decisión de
-  producto que podríamos revertir. Es un compromiso creíble.
-- Cada versión acaba siendo Apache-2.0. Eso desactiva la objeción de
-  "¿y si desapareces?", que en una compra enterprise se pregunta siempre.
+- The repository can be public. A prospective client audits the code before
+  buying, which is exactly what we want them to do.
+- Nobody can resell it or offer it as a competing service.
+- The free `scan` is protected by the licence, not only by a product decision
+  we could reverse. It is a credible commitment.
+- Every version ends up as Apache-2.0. That defuses the "what if you
+  disappear?" objection, which always comes up in an enterprise purchase.
 
-**El coste que asumimos:**
+**The cost we accept:**
 
-- BUSL **no es una licencia de código abierto** según la definición de la OSI.
-  Habrá quien lo critique, y no aparecerá en listados de software libre.
-- Algunas empresas tienen políticas que prohíben dependencias no-OSI. Perderemos
-  a esos clientes o tendremos que negociar una licencia comercial aparte.
-- Es una licencia menos conocida que MIT o Apache, y eso genera preguntas en el
-  proceso de compra. Conviene tener preparada la explicación en una frase.
+- BUSL **is not an open source licence** under the OSI definition. Some people
+  will criticise it, and it will not appear in free software listings.
+- Some companies have policies that forbid non-OSI dependencies. We will lose
+  those clients or have to negotiate a separate commercial licence.
+- It is a less known licence than MIT or Apache, and that raises questions in
+  the purchasing process. It is worth having the one-sentence explanation
+  ready.
 
-## Verificación del texto
+## Text verification
 
-Contrastado el 2026-09-09 contra dos fuentes canónicas: la prosa publicada en
-https://mariadb.com/bsl11/ y, sobre todo, el fichero `LICENSE25.TXT` de MaxScale
-en el repositorio de MariaDB, que es la **forma de plantilla para adoptantes** —
-bloque de parámetros más cuatro covenants numerados— y por tanto el artefacto
-con el que hay que comparar.
+Checked on 2026-09-09 against two canonical sources: the prose published at
+https://mariadb.com/bsl11/ and, above all, MaxScale's `LICENSE25.TXT` file in
+the MariaDB repository, which is the **template form for adopters** —parameter
+block plus four numbered covenants— and therefore the artefact to compare
+against.
 
-Se corrigieron dos cosas: la palabra `Section` por `License` en el párrafo de
-marcas, y la restauración del bloque `Notice` completo, que faltaba entero. Ese
-bloque contiene la declaración de que la BUSL **no es una licencia de código
-abierto**, que es precisamente el coste que esta ADR dice asumir; omitirla habría
-sido incoherente.
+Two things were corrected: the word `Section`, replaced by `License` in the
+trademark paragraph, and the restoration of the full `Notice` block, which was
+missing entirely. That block contains the statement that the BUSL **is not an open
+source licence**, which is precisely the cost this ADR says it accepts;
+omitting it would have been inconsistent.
 
-**Dos trampas documentadas, para que nadie las "corrija" de vuelta:**
+**Two documented traps, so that nobody "corrects" them back:**
 
-1. La atribución de copyright de un fichero de adoptante es
-   `(c) 2020 MariaDB Corporation Ab`, **no** el `(c) 2024 MariaDB plc` que hoy
-   muestra la web. Son artefactos distintos. Nuestro fichero es correcto.
-2. La web de MariaDB renderiza los covenants como **dos** en lugar de cuatro,
-   soldando el `(b) insert the text "None"` del segundo con el tercero y el
-   cuarto. Es un fallo de maquetación de la web. Nuestros cuatro covenants son
-   correctos.
+1. The copyright attribution of an adopter file is
+   `(c) 2020 MariaDB Corporation Ab`, **not** the `(c) 2024 MariaDB plc` the
+   website shows today. They are different artefacts. Our file is correct.
+2. The MariaDB website renders the covenants as **two** instead of four,
+   welding the `(b) insert the text "None"` of the second one to the third and
+   the fourth. It is a layout bug on the website. Our four covenants are
+   correct.
 
-**Sigue pendiente:** una revisión legal antes de facturar la primera licencia.
-Queda por decidir si los dos enlaces a las FAQ de MariaDB, incluidos aquí
-verbatim por fidelidad, se mantienen o se retiran: muchos adoptantes los quitan.
+**Still pending:** a legal review before invoicing the first licence. It
+remains to be decided whether the two links to the MariaDB FAQ, included here
+verbatim for fidelity, are kept or removed: many adopters remove them.

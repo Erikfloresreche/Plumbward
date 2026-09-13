@@ -6,16 +6,6 @@
     ".github/workflows/e2e.yml",
     ".github/workflows/mutations.yml",
     ".gitignore",
-    "CONTRIBUTING.md",
-    "README.md",
-    "SECURITY.md",
-    "docs/ARCHITECTURE.md",
-    "docs/BUSINESS_MODEL.md",
-    "docs/adr/0001-plan-before-apply.md",
-    "docs/adr/0002-local-first-licensing.md",
-    "docs/adr/0003-busl-license.md",
-    "docs/adr/0004-annual-subscription.md",
-    "docs/adr/0005-inference-fails-safe.md",
     "packages/ast/src/blocks.test.ts",
     "packages/ast/src/blocks.ts",
     "packages/ast/src/json.test.ts",
@@ -80,6 +70,13 @@
     "vitest.setup.ts"
   ],
   "exceptions": [
+    {
+      "path": "CONTRIBUTING.md",
+      "reason": "The branch-naming section shows a Spanish slug as the example of what is not allowed, next to its English equivalent.",
+      "fragments": [
+        "fix/f0-\u0072amas-protegidas"
+      ]
+    },
     {
       "path": "scripts/branch-names-corpus.json",
       "reason": "Test data of the branch-name control (F0-15): real branch names, and the Spanish ones are what the control must reject."

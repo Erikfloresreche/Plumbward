@@ -1,264 +1,268 @@
-# Modelo de negocio de Plumbward
+# Plumbward business model
 
-Documento de estrategia. Define qué vendemos, a quién, por cuánto y —tan
-importante como lo anterior— **qué no podemos prometer**.
+Strategy document. It defines what we sell, to whom, for how much and —just as
+important as all of that— **what we cannot promise**.
 
-Es un documento vivo: cada decisión que cambie el modelo se refleja aquí y, si
-es estructural, en una ADR.
+It is a living document: every decision that changes the model is reflected
+here and, if it is structural, in an ADR.
 
-**Última actualización:** 2026-09-09
+**Last updated:** 2026-09-09
 
 ---
 
-## 1. El problema que compra el cliente
+## 1. The problem the client buys
 
-No es *"a mi repositorio le falta integración continua"*. Eso no duele lo
-suficiente como para pagar.
+It is not *"my repository is missing continuous integration"*. That does not
+hurt enough to pay for.
 
-Lo que duele es:
+What hurts is:
 
-> Mi equipo genera código con asistentes de IA más rápido de lo que yo puedo
-> revisarlo, y no sé qué se está colando.
+> My team generates code with AI assistants faster than I can review it, and I
+> do not know what is slipping through.
 
-Las consecuencias son concretas y todas cuestan dinero: desarrolladores senior
-convertidos en cuello de botella, deuda técnica que se acelera, secretos en el
-historial de git, y una arquitectura distinta por cada desarrollador que le pide
-lo mismo a un asistente distinto.
+The consequences are concrete and all of them cost money: senior developers
+turned into bottlenecks, technical debt that accelerates, secrets in the git
+history, and a different architecture for every developer who asks a different
+assistant for the same thing.
 
-## 2. El posicionamiento
+## 2. The positioning
 
-> **La capa de control de calidad para equipos que programan con IA.**
+> **The quality control layer for teams that code with AI.**
 
-Cubrimos las tres fases del ciclo. Ningún competidor cubre las tres:
+We cover the three phases of the cycle. No competitor covers all three:
 
-| Fase | Qué hacemos |
+| Phase | What we do |
 |---|---|
-| **Antes** de que la IA escriba | Reglas de contexto, *skills* de agente instaladas según el stack, cada regla anclada a documentación oficial |
-| **Mientras** escribe | Límites operativos: el asistente no ejecuta git ni escribe en base de datos; esas acciones las lanza una persona |
-| **Después** | Controles mecánicos en hooks y CI: lo que no cumple, no entra |
+| **Before** the AI writes | Context rules, agent *skills* installed according to the stack, every rule anchored to official documentation |
+| **While** it writes | Operating limits: the assistant does not run git or write to the database; a person launches those actions |
+| **After** | Mechanical controls in hooks and CI: what does not comply does not get in |
 
-**La frase que diferencia:** las reglas de un fichero `.cursorrules` son
-sugerencias que el asistente puede ignorar. Nosotros las convertimos en
-**controles que no puede saltarse**. Un competidor que sólo genera ficheros de
-reglas se queda en la mitad de arriba de esa tabla.
+**The line that sets us apart:** the rules in a `.cursorrules` file are
+suggestions the assistant can ignore. We turn them into **controls it cannot
+skip**. A competitor that only generates rule files stays in the top half of
+that table.
 
-## 3. Qué prometemos y qué no
+## 3. What we promise and what we do not
 
-Esta sección existe para que nadie escriba en una landing algo que un CTO
-técnico pueda desmontar en treinta segundos.
+This section exists so that nobody writes on a landing page something a
+technical CTO can take apart in thirty seconds.
 
-### No prometemos
+### We do not promise
 
-- **Código sin errores.** No existe forma mecánica de demostrar que un programa
-  es correcto. Cualquiera que lo prometa está mintiendo o no lo sabe.
-- **Sustituir la revisión humana.** Reducimos su coste; no la eliminamos.
-- **Detectar fallos de lógica de negocio.** Un control mecánico no sabe qué
-  querías construir.
+- **Bug-free code.** There is no mechanical way to prove that a program is
+  correct. Anyone who promises it is lying or does not know.
+- **Replacing human review.** We reduce its cost; we do not remove it.
+- **Detecting business logic errors.** A mechanical control does not know what
+  you wanted to build.
 
-### Sí prometemos
+### We do promise
 
-- **Cada categoría de fallo conocida tiene un control que la detiene**, la lista
-  es pública y auditable, y cada control cita la documentación oficial en la que
-  se apoya.
-- **Nada se escribe en tu repositorio sin enseñarlo antes**, y todo es
-  reversible.
-- **La calidad no retrocede**: el trinquete impide que una Pull Request empeore
-  las métricas, aunque los valores absolutos sigan siendo altos.
-- **Valor medible**: cuánta deuda bajó, cuántas PRs se auditaron, cuántos
-  secretos se detuvieron antes de llegar al historial.
+- **Every known category of failure has a control that stops it**, the list is
+  public and auditable, and every control cites the official documentation it
+  relies on.
+- **Nothing is written to your repository without showing it first**, and
+  everything is reversible.
+- **Quality does not go backwards**: the ratchet prevents a Pull Request from
+  making the metrics worse, even if the absolute values are still high.
+- **Measurable value**: how much debt went down, how many PRs were audited, how
+  many secrets were stopped before reaching the history.
 
-Esta honestidad es un **argumento de venta**, no una limitación. Un comprador
-técnico confía antes en quien delimita su alcance que en quien promete magia.
+This honesty is a **selling point**, not a limitation. A technical buyer trusts
+whoever delimits their scope sooner than whoever promises magic.
 
 ---
 
-## 4. Modelo de precios
+## 4. Pricing model
 
-**Suscripción anual por repositorio, con tramos por volumen.**
-Decisión tomada el 2026-09-09; sustituye al pago único con 12 meses de
-actualizaciones. El razonamiento está en [ADR 0004](adr/0004-annual-subscription.md).
+**Annual subscription per repository, with volume tiers.**
+Decision taken on 2026-09-09; it replaces the one-off payment with 12 months of
+updates. The reasoning is in [ADR 0004](adr/0004-annual-subscription.md).
 
-| Plan | Precio orientativo | Para quién |
+| Plan | Indicative price | For whom |
 |---|---|---|
-| **Diagnóstico** | Gratis para siempre | `scan` y `report`. Sin límite de repositorios |
-| **Equipo** | 400-600 €/repositorio/año | Producto único, equipo pequeño |
-| **Agencia** | Tramos de 10 y de 50 repositorios | Agencias y consultoras. Es la vía natural de expansión |
-| **Enterprise** | A medida | Packs privados con los estándares internos del cliente, SSO, SLA de soporte |
+| **Diagnosis** | Free forever | `scan` and `report`. No limit on repositories |
+| **Team** | €400-600/repository/year | Single product, small team |
+| **Agency** | Tiers of 10 and of 50 repositories | Agencies and consultancies. It is the natural expansion path |
+| **Enterprise** | Custom | Private packs with the client's internal standards, SSO, support SLA |
 
-### Por qué el diagnóstico es gratis, y para siempre
+### Why the diagnosis is free, and forever
 
-`scan` y `report` son el gancho comercial: generan la necesidad que el resto del
-producto resuelve, y se comparten por correo con quien firma la compra.
+`scan` and `report` are the commercial hook: they create the need the rest of
+the product solves, and they are shared by email with whoever signs the
+purchase.
 
-No es una promesa de marketing revocable: está escrito en el *Additional Use
-Grant* del `LICENSE`, así que es un compromiso legal. Eso lo hace creíble.
+It is not a revocable marketing promise: it is written in the *Additional Use
+Grant* of the `LICENSE`, so it is a legal commitment. That makes it credible.
 
-### Por qué por repositorio y no por desarrollador
+### Why per repository and not per developer
 
-El valor se entrega por repositorio: cada uno tiene su configuración, su
-baseline y su historial de métricas. Además encaja con lo ya construido —la
-huella del repositorio en `scanner/git.ts` vincula licencias a repositorios uno
-a uno— y da una vía de expansión limpia: se entra por un proyecto y se crece
-dentro de la cuenta.
+Value is delivered per repository: each one has its configuration, its baseline
+and its metrics history. It also fits what is already built —the repository
+fingerprint in `scanner/git.ts` ties licences to repositories one to one— and it
+gives a clean expansion path: you come in through one project and grow inside
+the account.
 
 ---
 
-## 5. Por qué suscripción y no pago único
+## 5. Why a subscription and not a one-off payment
 
-### La trampa del modelo perpetuo
+### The trap of the perpetual model
 
-Con licencia perpetua más doce meses de actualizaciones, el mes 13 llega y **la
-herramienta sigue funcionando perfectamente**. Los hooks siguen ahí, la CI sigue
-pasando. El cliente no percibe pérdida, así que no renueva.
+With a perpetual licence plus twelve months of updates, month 13 arrives and
+**the tool keeps working perfectly**. The hooks are still there, CI still
+passes. The client perceives no loss, so they do not renew.
 
-Sólo hay dos salidas, y una es inaceptable:
+There are only two ways out, and one is unacceptable:
 
-1. **Degradar lo instalado** para forzar la renovación. Hostil, y contradice
-   frontalmente la [ADR 0002](adr/0002-local-first-licensing.md).
-2. **Hacer que lo nuevo valga lo suficiente** como para pagar otra vez.
+1. **Degrade what is installed** to force the renewal. Hostile, and it flatly
+   contradicts [ADR 0002](adr/0002-local-first-licensing.md).
+2. **Make what is new worth enough** to pay again.
 
-Elegimos la segunda, y de ahí sale todo el motor de recurrencia del §6.
+We choose the second, and the whole recurrence engine of §6 comes from it.
 
-### Los números
+### The numbers
 
-Para llegar a **1 M€ al año**:
+To reach **€1M a year**:
 
-| Modelo | Qué hace falta |
+| Model | What it takes |
 |---|---|
-| Pago único de 2.000 € | **500 ventas nuevas cada año, indefinidamente.** Cada enero se empieza desde cero |
-| Suscripción de 600 €/repo/año | ~1.700 repositorios activos, pero **se acumulan** |
+| One-off payment of €2,000 | **500 new sales every year, indefinitely.** Every January starts from zero |
+| Subscription of €600/repo/year | ~1,700 active repositories, but **they accumulate** |
 
-Con 500 repositorios nuevos al año y 90% de retención:
+With 500 new repositories a year and 90% retention:
 
-| Año | Repositorios activos | Ingreso |
+| Year | Active repositories | Revenue |
 |---|---|---|
-| 1 | 500 | 300 k€ |
-| 2 | 950 | 570 k€ |
-| 3 | 1.355 | 813 k€ |
-| 4 | 1.720 | **1,03 M€** |
+| 1 | 500 | €300k |
+| 2 | 950 | €570k |
+| 3 | 1,355 | €813k |
+| 4 | 1,720 | **€1.03M** |
 
-Mismo esfuerzo comercial. La diferencia es que la base no se evapora.
+Same sales effort. The difference is that the base does not evaporate.
 
-### El efecto que pesa más que el ingreso
+### The effect that weighs more than revenue
 
-**1 M€ de ARR se valora en 5-15 M€. 1 M€ de ingresos de pago único se valora en
-1-3 M€.** Un inversor suscribe recurrencia, no facturación. Con los mismos euros
-ingresados, es la diferencia entre poder levantar una ronda y no poder.
+**€1M of ARR is valued at €5-15M. €1M of one-off payment revenue is valued at
+€1-3M.** An investor underwrites recurrence, not billing. With the same euros
+brought in, it is the difference between being able to raise a round and not.
 
-### Cómo se gestiona la fricción comercial
+### How commercial friction is handled
 
-Una agencia española acostumbrada a comprar herramientas una sola vez puede
-resistirse a la suscripción. Se admite el pago único como **oferta de entrada**,
-pero el producto se diseña para suscripción desde el primer día: convertirlo
-después es mucho más caro.
-
----
-
-## 6. El motor de recurrencia
-
-Una suscripción se renueva por una de dos razones: porque perderla duele, o
-porque lo nuevo compensa. La primera está descartada por la ADR 0002. Toda
-nuestra recurrencia depende de la segunda.
-
-Cuatro piezas, todas en el plan de ejecución:
-
-**Detección de versión sin telemetría** (F4-5). El CLI sabe que hay una versión
-nueva consultando el registro de npm. Nunca llama a casa.
-
-**Changelog dirigido** (F4-6). No *"qué hay de nuevo"*, sino **"qué hay de nuevo
-para tu repositorio"**: de catorce cambios, tres te aplican porque usas Next.js y
-no tienes contenedores. El resto no se muestra. Nadie hace esto.
-
-**Catálogo de capacidades** (F4-7). Al actualizar se vuelve a escanear y se
-compara contra lo que sabemos hacer: *"ahora sabemos dockerizar proyectos como el
-tuyo, ¿lo hacemos?"*. Valor nuevo, visible, sin que el cliente tenga que
-enterarse de nada por su cuenta.
-
-**Flujos guiados** (F4-8). Para lo que necesita decisiones humanas —dockerizar
-requiere saber servicios, puertos, base de datos, cómo se construye—. El
-resultado sigue siendo un `ChangePlan` revisable y reversible.
-
-### El eslabón que cierra la renovación
-
-Nada de lo anterior sirve si el valor no es **medible**. El trinquete (F3-4)
-produce el informe que justifica renovar:
-
-> Tu deuda técnica bajó un 38%. Se auditaron 240 Pull Requests. Se detuvieron 12
-> secretos antes de llegar al historial.
-
-**Ese informe es la renovación.** Sin números, renovar es una conversación de fe.
+A Spanish agency used to buying tools only once may resist the subscription.
+The one-off payment is accepted as an **entry offer**, but the product is
+designed for subscription from day one: converting it later is much more
+expensive.
 
 ---
 
-## 7. Competencia
+## 6. The recurrence engine
 
-El mercado se está formando ahora mismo, lo cual es bueno y urgente a la vez.
+A subscription is renewed for one of two reasons: because losing it hurts, or
+because what is new is worth it. The first is ruled out by ADR 0002. All of our
+recurrence depends on the second.
 
-**`@save3asy/aegiscode`** — publicado el 23 de agosto de 2026, descrito como *"AI
-Code Governance & Architecture Guardrails"*. Prácticamente nuestra propuesta de
-valor. Tres semanas de ventaja sobre nosotros.
+Four pieces, all of them in the execution plan:
 
-**GitHub / Microsoft** — es el riesgo grande, no el pequeño. Ya tienen rulesets,
-code scanning y Copilot Autofix. Si deciden empaquetar esto, lo regalan.
+**Version detection without telemetry** (F4-5). The CLI knows there is a new
+version by querying the npm registry. It never phones home.
 
-### Dónde está nuestra defensa
+**Targeted changelog** (F4-6). Not *"what's new"*, but **"what's new for your
+repository"**: out of fourteen changes, three apply to you because you use
+Next.js and have no containers. The rest is not shown. Nobody does this.
 
-No en generar configuración: eso se commoditiza y GitHub lo puede regalar. Está
-en tres sitios:
+**Capability catalogue** (F4-7). On update the repository is scanned again and
+compared against what we know how to do: *"we now know how to dockerize projects
+like yours, shall we do it?"*. New, visible value, without the client having to
+find out about anything on their own.
 
-1. **Multiplataforma.** GitLab y Bitbucket existen, y GitHub no les va a dar
-   soporte.
-2. **Agnóstico de stack.** El catálogo de packs cubre lo que una plataforma
-   concreta no prioriza.
-3. **La capa de medición.** Nadie va a medir la deuda de un cliente mejor que
-   quien lleva dos años midiéndola. El histórico acumulado es coste de cambio
-   real, y es lo único que no se puede copiar publicando un repositorio.
+**Guided flows** (F4-8). For what needs human decisions —dockerizing requires
+knowing the services, ports, database, how it is built—. The result is still a
+reviewable and reversible `ChangePlan`.
+
+### The link that closes the renewal
+
+None of the above is any use if the value is not **measurable**. The ratchet
+(F3-4) produces the report that justifies renewing:
+
+> Your technical debt went down 38%. 240 Pull Requests were audited. 12 secrets
+> were stopped before reaching the history.
+
+**That report is the renewal.** Without numbers, renewing is a conversation
+based on faith.
 
 ---
 
-## 8. Riesgos
+## 7. Competition
 
-| # | Riesgo | Mitigación |
+The market is forming right now, which is good and urgent at the same time.
+
+**`@save3asy/aegiscode`** — published on 23 August 2026, described as *"AI Code
+Governance & Architecture Guardrails"*. Practically our value proposition.
+Three weeks ahead of us.
+
+**GitHub / Microsoft** — this is the big risk, not the small one. They already
+have rulesets, code scanning and Copilot Autofix. If they decide to package
+this, they give it away.
+
+### Where our defence lies
+
+Not in generating configuration: that becomes a commodity and GitHub can give
+it away. It lies in three places:
+
+1. **Multi-platform.** GitLab and Bitbucket exist, and GitHub is not going to
+   support them.
+2. **Stack-agnostic.** The pack catalogue covers what a specific platform does
+   not prioritise.
+3. **The measurement layer.** Nobody is going to measure a client's debt better
+   than whoever has been measuring it for two years. The accumulated history is
+   a real switching cost, and it is the only thing that cannot be copied by
+   publishing a repository.
+
+---
+
+## 8. Risks
+
+| # | Risk | Mitigation |
 |---|---|---|
-| N1 | GitHub lo hace nativo | Multiplataforma, multi-stack y ser dueños de la medición |
-| N2 | Los flujos guiados son caros de mantener: si dices "yo te dockerizo", eres dueño de todos los modos de fallo en todos los stacks | Empezar por **un** stack (Node/TS) y no ampliar hasta que funcione sin soporte manual |
-| N3 | Una persona no vende enterprise | Autoservicio con `scan` gratuito como gancho; agencias como primer segmento de pago; enterprise después o con socio |
-| N4 | Sobreprometer ("código sin errores") destruye credibilidad en la primera reunión técnica | El §3 de este documento es de obligada lectura antes de escribir cualquier material comercial |
-| N5 | La suscripción tiene más fricción que el pago único en el mercado español | Pago único como oferta de entrada, producto diseñado para suscripción |
-| N6 | El competidor nos saca semanas | Su alcance es generar reglas; el nuestro incluye aplicarlas y medirlas. Ejecutar la Fase 3 es la respuesta |
+| N1 | GitHub makes it native | Multi-platform, multi-stack and owning the measurement |
+| N2 | Guided flows are expensive to maintain: if you say "I'll dockerize you", you own every failure mode in every stack | Start with **one** stack (Node/TS) and do not widen until it works without manual support |
+| N3 | One person does not sell enterprise | Self-service with free `scan` as the hook; agencies as the first paying segment; enterprise later or with a partner |
+| N4 | Overpromising ("bug-free code") destroys credibility in the first technical meeting | §3 of this document is required reading before writing any sales material |
+| N5 | A subscription has more friction than a one-off payment in the Spanish market | One-off payment as an entry offer, product designed for subscription |
+| N6 | The competitor gets weeks ahead of us | Their scope is generating rules; ours includes applying and measuring them. Executing Phase 3 is the answer |
 
 ---
 
-## 9. Las métricas que de verdad importan
+## 9. The metrics that really matter
 
-| Métrica | Por qué |
+| Metric | Why |
 |---|---|
-| **ARR** | Es lo que se valora, y lo que dice si el negocio existe |
-| **Retención neta por cuenta** | Por encima del 100% significa que las cuentas crecen solas. Es la métrica que separa un buen negocio de uno mediocre |
-| **Repositorios por cuenta** | Mide si la expansión dentro de agencias funciona |
-| **Conversión de `scan` a plan de pago** | Mide si el gancho gratuito engancha |
-| **Deuda reducida por cuenta** | El argumento de renovación. Si no baja, no renuevan |
-| Coste de soporte por cuenta | El indicador temprano de que los flujos guiados se están comiendo el margen |
+| **ARR** | It is what gets valued, and what says whether the business exists |
+| **Net retention per account** | Above 100% means accounts grow on their own. It is the metric that separates a good business from a mediocre one |
+| **Repositories per account** | Measures whether expansion inside agencies works |
+| **Conversion from `scan` to a paid plan** | Measures whether the free hook hooks |
+| **Debt reduced per account** | The renewal argument. If it does not go down, they do not renew |
+| Support cost per account | The early indicator that guided flows are eating the margin |
 
 ---
 
-## 10. Decisiones tomadas y abiertas
+## 10. Decisions taken and open
 
-**Tomadas:**
+**Taken:**
 
-- Suscripción anual por repositorio ([ADR 0004](adr/0004-annual-subscription.md)).
-- Licencia BUSL-1.1 ([ADR 0003](adr/0003-busl-license.md)).
-- Validación de licencia local-first ([ADR 0002](adr/0002-local-first-licensing.md)).
-- `scan` y `report` gratuitos para siempre, garantizado por licencia.
+- Annual subscription per repository ([ADR 0004](adr/0004-annual-subscription.md)).
+- BUSL-1.1 licence ([ADR 0003](adr/0003-busl-license.md)).
+- Local-first licence validation ([ADR 0002](adr/0002-local-first-licensing.md)).
+- `scan` and `report` free forever, guaranteed by the licence.
 
-**Abiertas:**
+**Open:**
 
-- **Pasarela de cobro.** Lemon Squeezy o Paddle actúan como *merchant of record*
-  y gestionan el IVA de cada país de la UE por ~5% de comisión; Stripe cobra ~2%
-  pero el IVA intracomunitario y el OSS los llevas tú. Vendiendo B2B a varios
-  países desde España, la primera opción probablemente compensa. A decidir antes
-  de F5-2.
-- **Precio exacto por tramo.** Los rangos del §4 son orientativos. Se cierran con
-  los primeros tres clientes piloto (F6-4).
-- **Registro de marca.** OEPM ~150 € por clase, EUIPO ~850 €. No es necesario
-  para lanzar; tiene sentido cuando haya ventas que proteger.
+- **Payment gateway.** Lemon Squeezy or Paddle act as *merchant of record* and
+  handle the VAT of each EU country for a ~5% fee; Stripe charges ~2% but you
+  handle intra-community VAT and the OSS yourself. Selling B2B to several
+  countries from Spain, the first option probably pays off. To be decided
+  before F5-2.
+- **Exact price per tier.** The ranges in §4 are indicative. They are closed
+  with the first three pilot clients (F6-4).
+- **Trademark registration.** OEPM ~€150 per class, EUIPO ~€850. It is not
+  needed to launch; it makes sense once there are sales to protect.

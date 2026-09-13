@@ -1,123 +1,127 @@
-# ADR 0005 — Cuando una deducción falla, falla hacia más protección
+# ADR 0005 — When an inference fails, it fails towards more protection
 
-- **Estado:** aceptada
-- **Fecha:** 2026-09-11
-- **Afecta a:** la decisión de aislar el trabajo en una rama propia, el perfil
-  (`branches`), la CI que se genera, y cualquier funcionalidad futura que deduzca
-  algo del repositorio para actuar
+- **Status:** accepted
+- **Date:** 2026-09-11
+- **Affects:** the decision to isolate the work on its own branch, the profile
+  (`branches`), the generated CI, and any future feature that infers something
+  from the repository in order to act
 
-## Contexto
+## Context
 
-La tarea F0-14 debía impedir que `apply` escribiera directamente sobre una rama
-de larga duración. Fracasó tres veces seguidas, y las tres por la misma razón:
-**intentaba deducir cuál es la rama de releases**.
+Task F0-14 was meant to stop `apply` from writing directly on a long-lived
+branch. It failed three times in a row, and all three for the same reason:
+**it tried to infer which one is the release branch**.
 
-| Versión | Cómo lo deducía | Qué rompía |
+| Version | How it inferred it | What it broke |
 |---|---|---|
-| Original | Lista cableada de cuatro nombres, distinguiendo mayúsculas | Una rama `Prod` recibía los cambios directamente |
-| 1 | La rama por defecto de GitHub (`origin/HEAD`) | En git-flow esa rama es `develop`: la CI generada desplegaba a producción desde `develop` |
-| 2 | El primer nombre de una lista de prioridad entre las ramas existentes | Con `main` (donde van las PRs) y `Prod` (despliegue), la CI sólo revisaba `Prod` y las PRs a `main` quedaban sin revisar. Y cualquier nombre fuera de la lista —`pro`, `pre`, `live`, `release/prod`— seguía desprotegido |
+| Original | Hardcoded list of four names, case-sensitive | A `Prod` branch received the changes directly |
+| 1 | The GitHub default branch (`origin/HEAD`) | In git-flow that branch is `develop`: the generated CI deployed to production from `develop` |
+| 2 | The first name of a priority list among the existing branches | With `main` (where PRs go) and `Prod` (deployment), the CI only checked `Prod` and PRs to `main` went unchecked. And any name outside the list —`pro`, `pre`, `live`, `release/prod`— was still unprotected |
 
-Cada heurística arreglaba unos repositorios y rompía otros. No es un defecto de
-una heurística concreta: **"cuál es la rama de releases" no se puede deducir de
-forma fiable a partir de nombres ni de la rama por defecto**. Y el perfil tenía un
-solo campo, `branches.main`, que mezclaba dos papeles distintos: a qué rama van
-las Pull Requests y desde cuál se despliega.
+Each heuristic fixed some repositories and broke others. It is not a defect of
+one particular heuristic: **"which one is the release branch" cannot be
+reliably inferred from names or from the default branch**. And the profile had
+a single field, `branches.main`, that mixed two different roles: which branch
+Pull Requests go to and which one is deployed from.
 
-## Decisión
+## Decision
 
-> **Cuando una deducción de Plumbward falla, debe fallar hacia más protección,
-> nunca hacia una acción.**
+> **When an inference by Plumbward fails, it must fail towards more protection,
+> never towards an action.**
 
-Una primera redacción decía "lo deducido sólo puede ampliar protecciones". No era
-literalmente cierta, y la revisión lo señaló: decidir que una rama es de trabajo
-por su prefijo **también es una deducción, y es la que quita protección**. Lo que
-la hace aceptable no es que no deduzca, sino hacia dónde falla: un nombre que no
-se reconoce se aísla. Esa es la propiedad que importa, y es la que se exige.
+A first wording said "what is inferred can only widen protections". It was not
+literally true, and the review pointed it out: deciding that a branch is a work
+branch from its prefix **is also an inference, and it is the one that removes
+protection**. What makes it acceptable is not that it does not infer, but which
+way it fails: a name that is not recognised gets isolated. That is the property
+that matters, and it is the one required.
 
-Aplicado a las ramas:
+Applied to branches:
 
-1. **La protección se invierte.** En lugar de "protejo las ramas que conozco", se
-   aísla el trabajo **siempre**, salvo en una rama de trabajo reconocible por su
-   prefijo (`feat/`, `fix/`, `chore/`…). Los prefijos de trabajo son una
-   convención cerrada y estable; los nombres de ramas de larga duración no se
-   pueden enumerar. Un nombre desconocido cae del lado seguro. Incluye los
-   prefijos de los asistentes de IA (`claude/`, `copilot/`, `codex/`,
-   `cursor/`): son usuarios directos del producto.
+1. **Protection is inverted.** Instead of "I protect the branches I know", the
+   work is isolated **always**, except on a work branch recognisable by its
+   prefix (`feat/`, `fix/`, `chore/`…). Work prefixes are a closed and stable
+   convention; the names of long-lived branches cannot be enumerated. An unknown
+   name falls on the safe side. This includes the prefixes of AI assistants
+   (`claude/`, `copilot/`, `codex/`, `cursor/`): they are direct users of the
+   product.
 
-2. **El perfil separa los dos papeles.**
-   - `integration`: a qué rama van las Pull Requests. Cuando no hay
-     `config.yml`, se propone a partir de `origin/HEAD`, porque en GitHub eso es
-     lo que significa la rama por defecto; sin remoto, la rama actual si no es de
-     trabajo, o `main`/`master` si existen. La propuesta queda escrita en el
-     `config.yml` generado, que pide revisarla porque `origin/HEAD` puede estar
-     desfasado. Con un `config.yml`, las ramas salen sólo de él, aunque no las
-     defina: rellenarlas con el estado local haría que el mismo fichero diera
-     planes distintos en dos copias del repositorio. Si falla, el daño es menor: las
-     Pull Requests se revisan todas igualmente, sea cual sea su destino.
-   - `release`: desde qué rama se despliega. **Nunca** se deduce. Queda en `null`
-     hasta que el equipo la configure, y sin ella no se genera el workflow de
-     despliegue; `doctor` lo avisa.
+2. **The profile separates the two roles.**
+   - `integration`: which branch Pull Requests go to. When there is no
+     `config.yml`, it is proposed from `origin/HEAD`, because on GitHub that is
+     what the default branch means; with no remote, the current branch if it is
+     not a work branch, or `main`/`master` if they exist. The proposal is
+     written in the generated `config.yml`, which asks for it to be reviewed
+     because `origin/HEAD` may be out of date. With a `config.yml`, branches come
+     only from it, even if it does not define them: filling them in from the
+     local state would make the same file give different plans in two copies of
+     the repository. If it fails, the damage is minor: all Pull Requests are
+     checked anyway, whatever their target.
+   - `release`: which branch is deployed from. It is **never** inferred. It
+     stays `null` until the team configures it, and without it the deployment
+     workflow is not generated; `doctor` warns about it.
 
-3. **La CI generada revisa todas las Pull Requests**, sin filtrar por rama de
-   destino. Las ramas en las que se ejecuta al hacer push salen **sólo del
-   perfil**. Una versión intermedia añadía las ramas remotas existentes, y dos
-   copias del mismo repositorio con el mismo `config.yml` generaban workflows
-   distintos: rompía el invariante de que la CLI es una función determinista de
-   su configuración. Ampliar protecciones no justifica romper un invariante.
+3. **The generated CI checks every Pull Request**, without filtering by target
+   branch. The branches it runs on when pushing come **only from the profile**.
+   An intermediate version added the existing remote branches, and two copies
+   of the same repository with the same `config.yml` generated different
+   workflows: it broke the invariant that the CLI is a deterministic function of
+   its configuration. Widening protections does not justify breaking an
+   invariant.
 
-4. **Si la rama aislada ya existe, `apply` se detiene sin escribir.** Podría
-   estar desactualizada, y el plan que se enseñó se calculó sobre la rama de
-   partida: escribir en ella sería aplicar algo distinto de lo aprobado.
+4. **If the isolated branch already exists, `apply` stops without writing.** It
+   could be out of date, and the plan that was shown was computed on the
+   starting branch: writing on it would be applying something different from
+   what was approved.
 
-## Alternativas descartadas
+## Discarded alternatives
 
-**Una heurística mejor.** Tres intentos demuestran que siempre habrá una
-disposición de ramas que la rompa. Seguir afinándola es seguir desplazando el
-fallo de un repositorio a otro.
+**A better heuristic.** Three attempts show that there will always be a branch
+layout that breaks it. Refining it further is moving the failure from one
+repository to another.
 
-**Preguntar siempre.** Correcto para lo que desencadena acciones —la rama de
-despliegue la preguntará el wizard (F4-1)—, pero excesivo para lo que sólo
-protege: obligar a contestar preguntas para obtener una protección que se puede
-dar por defecto empeora la experiencia sin ganar seguridad.
+**Always asking.** Right for what triggers actions —the wizard will ask for the
+deployment branch (F4-1)—, but excessive for what only protects: forcing people
+to answer questions to get a protection that can be given by default makes the
+experience worse without gaining security.
 
-## Consecuencias
+## Consequences
 
-**A favor:**
+**In favour:**
 
-- Una rama con un nombre que nadie previó queda protegida, no expuesta.
-- Con los workflows que genera esta versión, ninguna Pull Request queda sin
-  revisar porque el perfil se equivoque. Un `ci-dev.yml` anterior que filtre
-  `pull_request` por rama sigue en el repositorio; `doctor` lo detecta y avisa,
-  y quitar el filtro es F4-2.
-- Plumbward no genera un despliegue desde una rama que nadie eligió. Un
-  `ci-prod.yml` generado por una versión anterior puede seguir existiendo —`apply`
-  no pisa ficheros existentes, y actualizarlos es F4-2—, pero `doctor` lo
-  detecta y avisa.
-- Es un argumento de venta concreto y verificable: **Plumbward nunca adivina
-  dónde desplegar**. Es la misma idea que el `plan` antes del `apply`, aplicada a
-  las decisiones que no se pueden deshacer.
+- A branch with a name nobody foresaw stays protected, not exposed.
+- With the workflows this version generates, no Pull Request goes unchecked
+  because the profile is wrong. An earlier `ci-dev.yml` that filters
+  `pull_request` by branch stays in the repository; `doctor` detects it and
+  warns, and removing the filter is F4-2.
+- Plumbward does not generate a deployment from a branch nobody chose. A
+  `ci-prod.yml` generated by an earlier version may still exist —`apply` does
+  not overwrite existing files, and updating them is F4-2—, but `doctor`
+  detects it and warns.
+- It is a concrete and verifiable sales argument: **Plumbward never guesses
+  where to deploy**. It is the same idea as the `plan` before the `apply`,
+  applied to the decisions that cannot be undone.
 
-**El coste que asumimos:**
+**The cost we accept:**
 
-- **Más ramas aisladas de las estrictamente necesarias.** Una rama de trabajo sin
-  prefijo convencional (`arreglo-rapido`, `user-patch-1`) recibe una rama aislada.
-  Es barato y hay `--no-branch` para quien sepa lo que hace.
-- **La CI generada se ejecuta en todas las Pull Requests**, no sólo en las
-  dirigidas a la rama de integración. Cuesta minutos de CI. Las ramas en las que
-  se ejecuta al hacer push no aumentan: salen sólo del perfil.
-- **Un equipo que quiera desplegar tiene que configurar una línea más.** Es
-  deliberado.
-- **Cambia el formato de `config.yml`:** `main` y `dev` se sustituyen por
-  `integration`, `release` y `staging`. Un fichero antiguo sigue funcionando:
-  `dev` pasa a `integration` y, si no hay `dev`, también `main`, que es donde
-  iban las Pull Requests. Pero `main` **no** se traduce a `release`, porque era un valor
-  adivinado y convertirlo en rama de despliegue sería justo el error que esta
-  decisión evita.
+- **More isolated branches than strictly necessary.** A work branch without a
+  conventional prefix (`quick-fix`, `user-patch-1`) gets an isolated branch. It
+  is cheap, and there is `--no-branch` for whoever knows what they are doing.
+- **The generated CI runs on every Pull Request**, not only on the ones aimed at
+  the integration branch. It costs CI minutes. The branches it runs on when
+  pushing do not increase: they come only from the profile.
+- **A team that wants to deploy has to configure one more line.** It is
+  deliberate.
+- **The format of `config.yml` changes:** `main` and `dev` are replaced by
+  `integration`, `release` and `staging`. An old file still works: `dev` becomes
+  `integration` and, if there is no `dev`, so does `main`, which is where Pull
+  Requests went. But `main` is **not** translated to `release`, because it was a
+  guessed value and turning it into a deployment branch would be exactly the
+  mistake this decision avoids.
 
-## Cómo aplicarla en adelante
+## How to apply it from now on
 
-Ante cualquier funcionalidad que deduzca algo del repositorio, preguntarse:
-*si la deducción es errónea, ¿el resultado es una protección de más o una acción
-equivocada?* Si es lo segundo, la deducción sólo puede **proponerse**, nunca
-aplicarse sin confirmación explícita.
+For any feature that infers something from the repository, ask: *if the
+inference is wrong, is the result one protection too many or a wrong action?*
+If it is the latter, the inference can only be **proposed**, never applied
+without explicit confirmation.
