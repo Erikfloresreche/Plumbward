@@ -6,7 +6,7 @@
 > checkbox in this file, inside the same Pull Request that implements it.
 
 **Last updated:** 2026-09-13
-**Global status:** Phase 0 in progress — F0-1, F0-3, F0-5, F0-8, F0-13, F0-14, F0-15, F0-16, F0-17, F0-18, F0-24, F0-27, F0-29, F0-30, F0-40, F0-41, F0-42, F0-47 and F0-48 completed. Remaining: F0-2, F0-4, F0-6, F0-7, F0-9 to F0-12, F0-19 to F0-23, F0-25, F0-26, F0-28, F0-31 to F0-39 and F0-43 to F0-46.
+**Global status:** Phase 0 in progress — F0-1, F0-3, F0-5, F0-8, F0-13, F0-14, F0-15, F0-16, F0-17, F0-18, F0-24, F0-27, F0-29, F0-30, F0-40, F0-41, F0-42, F0-47 and F0-48 completed. Remaining: F0-2, F0-4, F0-6, F0-7, F0-9 to F0-12, F0-19 to F0-23, F0-25, F0-26, F0-28, F0-31 to F0-39, F0-43 to F0-46 and F0-49.
 **Product:** Plumbward · https://github.com/Erikfloresreche/Plumbward
 **Business model:** annual subscription per repository — see
 [BUSINESS_MODEL.md](BUSINESS_MODEL.md)
@@ -2024,6 +2024,60 @@ turns `check:coherence` red. The two alternatives were discarded:
 
 ---
 
+### [ ] F0-49 — Heading anchors in the link control, and fragment escapes documented
+**Branch:** `fix/f0-anchor-links-fragment-escapes` · **Depends on:** F0-16, F0-48
+
+**Origin:** fresh-context review of PR #22 (F0-18), 2026-09-13, and the batches
+of F0-18. Two gaps in the controls the English block relies on:
+- `scripts/doc-links.mjs` skips the anchor of a link. The F0-18 criterion "no
+  internal link is broken" was checked by hand for anchors: a translation
+  renames headings, and every `#anchor` pointing at them breaks without failing
+  anything.
+- The fragments in `scripts/english-only.json` are written with `\u` escapes,
+  and nothing says why or how to edit them without losing them. The message the
+  control prints for a file with Spanish only offers translating it or listing
+  the whole file, not declaring a fragment. And `check:coherence` prints its
+  verdict in Spanish.
+
+**Work:**
+1. `scripts/doc-links.mjs`: check the anchor of a link to a Markdown file
+   against the headings of that file, same-file `#anchor` links included, with
+   the slug rules GitHub renders: lowercase, punctuation removed except `-` and
+   `_`, each space a hyphen (`# ADR 0001 — Separate the plan` is
+   `#adr-0001--separate-the-plan`), and `-1`, `-2` for repeated headings.
+   Headings inside code are not anchors; an explicit `<a id="…">` is. An anchor
+   on a non-Markdown target (`#L42`) is still skipped.
+2. Update the scope described in the header of `scripts/doc-links.mjs`.
+3. Header of `scripts/english-only.mjs`: why fragments are written with `\u`
+   escapes (`english-only.json` goes through the control itself), that the
+   control compares the decoded text, and how to edit the list without undoing
+   them (edit the line; never rewrite the file with `JSON.stringify`).
+4. The message for a file with Spanish (`scripts/english-only.mjs`, "translate
+   it, or list the file") also offers a fragment in an exception, for a literal
+   kept on purpose.
+5. `scripts/check-coherence.mjs`: the two verdict lines ("Coherencia: …") in
+   English. Only those output strings; the comments of the file stay in F0-44.
+
+Goes after F0-46 in the queue: both change `doc-links.mjs` and
+`english-only.mjs`.
+
+**What becomes a mechanical control:** items 1 and 4 are tests in
+`scripts/doc-links.test.mjs` and `scripts/english-only.test.mjs` that fail
+against the current code. Item 3 is prose and not mechanisable, but a lost
+escape already fails: the decoded Spanish lands in `english-only.json`, which is
+neither pending nor an exception. Item 5 is covered by the English control once
+F0-44 takes `check-coherence.mjs` out of the pending list.
+
+**Acceptance criteria:**
+- A link to a heading that does not exist, in another file or in the same one,
+  turns `check:coherence` red; `README.md` `#development` still passes.
+- A repeated heading is reachable with its `-1` suffix; a heading inside a code
+  fence is not an anchor; `file.ts#L42` is not reported.
+- The failure message for a file with Spanish names the fragment option.
+- `pnpm check:coherence` prints its verdict in English.
+
+---
+
 ## PHASE 1 — Internationalisation of the template engine
 
 **Objective:** make `Profile.language` really work.
@@ -3306,6 +3360,7 @@ controls that watch the work of the phase go before that work.
 - **F0-22** — the tests in `packages/*/test/` do not go through the typecheck, and the control of the `quality` job watches itself.
 - **F0-32** — the mutation control gives empty greens through gaps in its parsers.
 - **F0-46** — the name and link controls of F0-16 pass without looking in some cases and flag valid English names.
+- **F0-49** — the link control ignores heading anchors, and the fragment escapes of the English control are undocumented.
 - **F0-36** — decide whether the journal guard joins the mutation battery before touching it again.
 - **F0-7** — 90 % coverage threshold in `core`, the declared mitigation of R5.
 
