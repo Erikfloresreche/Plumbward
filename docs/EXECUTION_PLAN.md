@@ -1,110 +1,110 @@
-# Plan de ejecución — Enterprise DevSecOps & AI Governance CLI
+# Execution plan — Enterprise DevSecOps & AI Governance CLI
 
-> Documento vivo. Es la fuente de verdad del desarrollo del producto: qué se
-> construye, en qué orden, en qué rama y con qué criterio se da por terminado.
-> Cada tarea se cierra actualizando su casilla en este fichero, dentro de la
-> misma Pull Request que la implementa.
+> Living document. It is the source of truth for the development of the
+> product: what is built, in what order, on which branch and with which
+> criterion it is considered finished. Each task is closed by updating its
+> checkbox in this file, inside the same Pull Request that implements it.
 
-**Última actualización:** 2026-09-13
-**Estado global:** Fase 0 en curso — F0-1, F0-3, F0-5, F0-8, F0-13, F0-14, F0-15, F0-16, F0-17, F0-24, F0-27, F0-29, F0-30, F0-40 y F0-41 completadas. Quedan F0-2, F0-4, F0-6, F0-7, F0-9 a F0-12, F0-18 a F0-23, F0-25, F0-26, F0-28, F0-31 a F0-39 y F0-42 a F0-46.
-**Producto:** Plumbward · https://github.com/Erikfloresreche/Plumbward
-**Modelo de negocio:** suscripción anual por repositorio — ver
+**Last updated:** 2026-09-13
+**Global status:** Phase 0 in progress — F0-1, F0-3, F0-5, F0-8, F0-13, F0-14, F0-15, F0-16, F0-17, F0-24, F0-27, F0-29, F0-30, F0-40 and F0-41 completed. Remaining: F0-2, F0-4, F0-6, F0-7, F0-9 to F0-12, F0-18 to F0-23, F0-25, F0-26, F0-28, F0-31 to F0-39 and F0-42 to F0-46.
+**Product:** Plumbward · https://github.com/Erikfloresreche/Plumbward
+**Business model:** annual subscription per repository — see
 [BUSINESS_MODEL.md](BUSINESS_MODEL.md)
 
 ---
 
-## 1. Cómo se usa este documento
+## 1. How to use this document
 
-1. Se trabaja **una tarea a la vez**, en **su propia rama**, con el identificador
-   de la tarea (`F2-4`) en el nombre de la rama y en el cuerpo de la PR.
-2. Ninguna tarea empieza sin que sus **dependencias** estén integradas en `develop`.
-3. Una tarea sólo se marca `[x]` cuando cumple **todos** sus criterios de
-   aceptación y el **Definition of Done universal** (§4).
-4. Si durante una tarea aparece trabajo que no estaba previsto: **no se amplía la
-   tarea**. Se añade una tarea nueva al final de su fase, se coloca en la
-   **cola de ejecución** (§5) y se sigue.
-5. **La siguiente tarea es la primera de la cola de ejecución** (§5). El orden
-   no se decide en cada sesión: se cambia moviendo la entrada en la cola, con su
-   motivo, cuando el desarrollador decide otra prioridad.
-
----
-
-## 2. Estado actual verificado (baseline)
-
-Comprobado el 2026-09-08 ejecutando `pnpm build` y `pnpm test`: **6 builds
-correctos, 24 tests en verde**.
-
-### 2.1 Lo que ya existe y funciona
-
-| Paquete | Responsabilidad | Cobertura |
-|---|---|---|
-| `@plumbward/core` | Motor transaccional: `Operation[]` → `ChangePlan` → `apply` con journal, simulación y rollback | Completo |
-| `@plumbward/ast` | Edición no destructiva de JSON y YAML + bloques delimitados por marcadores | Completo, con tests |
-| `@plumbward/scanner` | Estado git, fingerprint, SLOC, detección de stack, informe de madurez 0-100 | Completo para Node y Go |
-| `@plumbward/packs-sdk` | Contrato `StackPack`, DSL de operaciones, registro y suite de conformidad | Completo |
-| `@plumbward/pack-node-ts` | Único pack real: CI, ESLint, Prettier, Husky, Gitleaks, devcontainer, reglas de IA | Completo |
-| `@plumbward/cli` | Comandos `scan`, `plan`, `apply`, `rollback`, `doctor` | Funciona de punta a punta |
-
-### 2.2 Los tres invariantes de arquitectura
-
-Están implementados y **no se revierten sin una ADR que lo justifique**:
-
-- **Nadie escribe en disco por su cuenta.** Todo módulo declara intención
-  emitiendo `Operation[]`. Sólo `applyPlan` materializa, y deja journal.
-- **`.governance/config.yml` es la fuente de verdad.** La CLI es una función
-  determinista de ese fichero: mismo config + mismo repo = mismo plan, siempre.
-- **El catálogo de packs es el eje de escalado.** Soportar un stack nuevo es
-  publicar un paquete que implemente `StackPack` y pase la conformidad. El
-  núcleo no se toca nunca.
-
-### 2.3 Desviaciones deliberadas respecto al PDF original
-
-| PDF | Este proyecto | Motivo |
-|---|---|---|
-| Reglas descargadas en runtime desde una API | Todo local en el paquete NPM | Un equipo de seguridad corporativo veta la ejecución de lógica remota descargada. Bloquea la venta enterprise. |
-| Inyectar `@tu-empresa/ci-guard` que rompe los pipelines del cliente | No se inyecta nada que pueda hacer fallar CI ajena | Es un sabotaje contractual desde el punto de vista del cliente; destruye la confianza que el producto vende. |
-| `init` monolítico | `scan` → `plan` → `apply` → `rollback` | Permite regalar `scan` como gancho comercial y hace la herramienta auditable en la PR. |
-| Pago único de 1.500-2.500 € con 12 meses de actualizaciones | Suscripción anual por repositorio | Con licencia perpetua, el mes 13 la herramienta sigue funcionando y nadie renueva. Obligaría a degradar lo instalado, que contradice la ADR 0002. Ver [ADR 0004](adr/0004-annual-subscription.md). |
-
-### 2.4 Huecos conocidos que este plan cierra
-
-1. El repositorio **no está bajo control de versiones** (no hay `.git`). → F0-1
-2. Sólo hay pack de Node: cualquier otro stack recibe un conflicto bloqueante. → Fase 2
-3. Todos los textos están hardcodeados en español pese a existir `Profile.language`. → Fase 1
-4. Los modos `ratchet` y `non-disruptive` se calculan pero no cambian nada. → Fase 3
-5. No existe el wizard `init` ni el comando `upgrade`. → Fase 4
-6. No hay licenciamiento. → Fase 5
-7. No hay README, LICENSE, CI propio ni publicación. → Fases 0 y 6
+1. Work on **one task at a time**, on **its own branch**, with the task
+   identifier (`F2-4`) in the branch name and in the body of the PR.
+2. No task starts until its **dependencies** are integrated into `develop`.
+3. A task is only marked `[x]` when it meets **all** its acceptance criteria
+   and the **universal Definition of Done** (§4).
+4. If unplanned work appears during a task: **the task is not widened**. A new
+   task is added at the end of its phase, placed in the **execution queue**
+   (§5), and work goes on.
+5. **The next task is the first one in the execution queue** (§5). The order
+   is not decided in each session: it is changed by moving the entry in the
+   queue, with its reason, when the developer decides on another priority.
 
 ---
 
-## 3. Estrategia de ramas, commits y Pull Requests
+## 2. Verified current state (baseline)
 
-Este flujo es **dogfooding deliberado**: la generación y protección de esta misma
-estrategia es una funcionalidad vendible del producto (tarea F3-5). Toda
-fricción que encontremos aquí es un requisito para esa feature.
+Checked on 2026-09-08 by running `pnpm build` and `pnpm test`: **6 successful
+builds, 24 tests green**.
 
-### 3.1 Ramas permanentes
+### 2.1 What already exists and works
 
-| Rama | Papel | Protección |
+| Package | Responsibility | Coverage |
 |---|---|---|
-| `Prod` | Sólo releases publicadas. Cada commit es una versión etiquetada. | Sin push directo. Sólo merge desde `develop` vía PR con CI verde. |
-| `develop` | Integración continua del trabajo en curso. Siempre debe estar en verde. | Sin push directo. Sólo merge de ramas de tarea vía PR. |
+| `@plumbward/core` | Transactional engine: `Operation[]` → `ChangePlan` → `apply` with journal, simulation and rollback | Complete |
+| `@plumbward/ast` | Non-destructive editing of JSON and YAML + blocks delimited by markers | Complete, with tests |
+| `@plumbward/scanner` | Git state, fingerprint, SLOC, stack detection, 0-100 maturity report | Complete for Node and Go |
+| `@plumbward/packs-sdk` | `StackPack` contract, operations DSL, registry and conformance suite | Complete |
+| `@plumbward/pack-node-ts` | The only real pack: CI, ESLint, Prettier, Husky, Gitleaks, devcontainer, AI rules | Complete |
+| `@plumbward/cli` | Commands `scan`, `plan`, `apply`, `rollback`, `doctor` | Works end to end |
 
-### 3.2 Ramas de tarea
+### 2.2 The three architecture invariants
 
-Formato: **`<tipo>/f<fase>-<slug-en-kebab-case>`**, con el *slug* **en
-inglés**, igual que los mensajes de commit y las descripciones de PR: el nombre
-de rama queda en el historial de git y lo leerá gente que no habla español.
+They are implemented and **are not reverted without an ADR that justifies it**:
 
-Ejemplo: `fix/f0-protected-branches`, no `fix/f0-ramas-protegidas`.
+- **Nobody writes to disk on their own.** Every module declares its intent by
+  emitting `Operation[]`. Only `applyPlan` materialises, and it leaves a journal.
+- **`.governance/config.yml` is the source of truth.** The CLI is a
+  deterministic function of that file: same config + same repo = same plan, always.
+- **The pack catalogue is the scaling axis.** Supporting a new stack is
+  publishing a package that implements `StackPack` and passes conformance. The
+  core is never touched.
 
-Las ramas de tareas **ya cerradas** conservan el nombre con el que existieron
-(`ci/f0-pipeline-propio`, `docs/f0-documentacion-base`). Son un hecho del
-historial, y reescribirlas en este documento sería el mismo error que en F0-8
-convirtió el nombre real de un competidor en uno inventado.
+### 2.3 Deliberate deviations from the original PDF
 
-Tipos permitidos: `feat`, `fix`, `refactor`, `test`, `docs`, `build`, `ci`, `chore`.
+| PDF | This project | Reason |
+|---|---|---|
+| Rules downloaded at runtime from an API | Everything local in the NPM package | A corporate security team vetoes running downloaded remote logic. It blocks the enterprise sale. |
+| Injecting `@your-company/ci-guard`, which breaks the client's pipelines | Nothing is injected that could make someone else's CI fail | From the client's point of view it is contractual sabotage; it destroys the trust the product sells. |
+| Monolithic `init` | `scan` → `plan` → `apply` → `rollback` | It lets us give `scan` away as a commercial hook and makes the tool auditable in the PR. |
+| One-off payment of 1,500-2,500 € with 12 months of updates | Annual subscription per repository | With a perpetual licence, in month 13 the tool keeps working and nobody renews. It would force degrading what is installed, which contradicts ADR 0002. See [ADR 0004](adr/0004-annual-subscription.md). |
+
+### 2.4 Known gaps this plan closes
+
+1. The repository **is not under version control** (there is no `.git`). → F0-1
+2. There is only a Node pack: any other stack gets a blocking conflict. → Phase 2
+3. All texts are hardcoded in Spanish even though `Profile.language` exists. → Phase 1
+4. The `ratchet` and `non-disruptive` modes are computed but change nothing. → Phase 3
+5. Neither the `init` wizard nor the `upgrade` command exists. → Phase 4
+6. There is no licensing. → Phase 5
+7. There is no README, LICENSE, own CI or publication. → Phases 0 and 6
+
+---
+
+## 3. Branch, commit and Pull Request strategy
+
+This flow is **deliberate dogfooding**: generating and protecting this very
+strategy is a sellable feature of the product (task F3-5). Every friction we
+find here is a requirement for that feature.
+
+### 3.1 Permanent branches
+
+| Branch | Role | Protection |
+|---|---|---|
+| `Prod` | Only published releases. Every commit is a tagged version. | No direct push. Only merges from `develop` through a PR with green CI. |
+| `develop` | Continuous integration of the work in progress. It must always be green. | No direct push. Only merges of task branches through a PR. |
+
+### 3.2 Task branches
+
+Format: **`<type>/f<phase>-<slug-in-kebab-case>`**, with the *slug* **in
+English**, just like commit messages and PR descriptions: the branch name
+stays in the git history and will be read by people who do not speak Spanish.
+
+Example: `fix/f0-protected-branches`, not `fix/f0-ramas-protegidas`.
+
+Branches of tasks **already closed** keep the name they existed with
+(`ci/f0-pipeline-propio`, `docs/f0-documentacion-base`). They are a fact of the
+history, and rewriting them in this document would be the same mistake that in
+F0-8 turned the real name of a competitor into an invented one.
+
+Allowed types: `feat`, `fix`, `refactor`, `test`, `docs`, `build`, `ci`, `chore`.
 
 ```
 develop ──┬── feat/f2-pack-python ──── PR ──┐
@@ -112,28 +112,28 @@ develop ──┬── feat/f2-pack-python ──── PR ──┐
           └── docs/f2-guia-packs ──── PR ───┘
 ```
 
-La rama de releases se llama **`Prod`**, no `main`. Es la convención del equipo,
-y el producto debe adaptarse a la convención del repositorio y no al revés — es
-literalmente lo que vende. Nada en el código ni en los workflows puede dar por
-hecho un nombre de rama.
+The release branch is called **`Prod`**, not `main`. It is the team's
+convention, and the product must adapt to the repository's convention and not
+the other way round — it is literally what it sells. Nothing in the code or in
+the workflows may take a branch name for granted.
 
-Reglas:
-- Una rama **nace de `develop` actualizado** y muere al integrarse. No se reutiliza.
-- Una rama implementa **exactamente una tarea** del plan.
-- Merge por **squash**, para que cada tarea sea un commit en `develop`.
-- Se borra la rama tras el merge.
+Rules:
+- A branch **is born from an updated `develop`** and dies when integrated. It is not reused.
+- A branch implements **exactly one task** of the plan.
+- Merge by **squash**, so that every task is one commit in `develop`.
+- The branch is deleted after the merge.
 
 ### 3.3 Commits
 
-**Los ejecuta siempre una persona, nunca un asistente de IA.** Un asistente deja
-los cambios en el árbol de trabajo y entrega el mensaje redactado; quien firma el
-commit es quien responde de lo que entra en el historial. Lo mismo aplica a
-`push`, `merge`, `rebase` y `reset`, y a cualquier comando que escriba en una
-base de datos. Está recogido en `CLAUDE.md`.
+**They are always run by a person, never by an AI assistant.** An assistant
+leaves the changes in the working tree and delivers the written message;
+whoever signs the commit answers for what enters the history. The same applies
+to `push`, `merge`, `rebase` and `reset`, and to any command that writes to a
+database. It is set out in `CLAUDE.md`.
 
-Conventional Commits **en inglés**, referenciando la tarea. El código y la
-documentación del proyecto están en español; el historial de git no, porque es
-la convención dominante y porque sobrevive a un cambio de equipo:
+Conventional Commits **in English**, referencing the task. Like the rest of the
+repository since F0-41: it is the dominant convention, and the history outlives
+a change of team:
 
 ```
 feat(pack-python): detect Poetry and uv and generate their pipeline
@@ -142,29 +142,28 @@ Implements F2-4. Adds the Python pack with ruff, mypy and pytest support,
 selecting the dependency manager from the files present in the repository.
 ```
 
-`commitlint` lo verifica en el hook `commit-msg` (tarea F0-4).
+`commitlint` verifies it in the `commit-msg` hook (task F0-4).
 
-**Al cerrar cada tarea**, el asistente entrega ya redactados el mensaje de
-commit, el **título** de la PR y su descripción —los tres en inglés—, y pregunta
-quién revisará la PR. Si no hay
-nadie disponible y la PR se bloquearía, puede revisarla él **en contexto nuevo**
-—nunca con el historial que produjo el código, porque reproduciría los mismos
-puntos ciegos—, entregando hallazgos sin aprobar ni integrar. Detalle en
-`CLAUDE.md`.
+**When each task is closed**, the assistant delivers, already written, the
+commit message, the PR **title** and its description —all three in English—,
+and asks who will review the PR. If nobody is available and the PR would be
+blocked, it can review it itself **in a fresh context** —never with the history
+that produced the code, because it would reproduce the same blind spots—,
+delivering findings without approving or merging. Details in `CLAUDE.md`.
 
-### 3.4 Cuerpo de la PR
+### 3.4 PR body
 
-Plantilla obligatoria (se genera en F0-5):
+Mandatory template (generated in F0-5):
 
-El **título** y la **descripción** de la Pull Request se redactan en inglés,
-igual que los commits. El título va en una línea, con el mismo formato de
-Conventional Commits y por debajo de 70 caracteres:
+The **title** and the **description** of the Pull Request are written in
+English, just like commits. The title goes on one line, with the same
+Conventional Commits format and under 70 characters:
 
 ```
 docs: switch to annual subscription and define the business model
 ```
 
-La descripción sigue la plantilla:
+The description follows the template:
 
 ```markdown
 ## Task
@@ -180,27 +179,27 @@ F2-4 — Python pack
 
 ---
 
-## 4. Definition of Done universal
+## 4. Universal Definition of Done
 
-Aplica a **todas** las tareas, además de sus criterios propios:
+It applies to **all** tasks, on top of their own criteria:
 
-- [ ] `pnpm build`, `pnpm typecheck` y `pnpm test` en verde en local y en CI.
-- [ ] Cero `any` implícitos, cero `@ts-expect-error` sin comentario que lo justifique.
-- [ ] Todo retorno público tiene interfaz declarada (regla del PDF, §6.1).
-- [ ] Todo fichero **generado para el cliente** lleva comentarios explicativos en
-      su idioma configurado (regla del PDF, §6.3).
-- [ ] Toda ruta de error nueva puede revertirse: o participa del journal, o no
-      escribe (regla del PDF, §6.2).
-- [ ] Tests nuevos para el comportamiento nuevo. Los bugs se corrigen con un
-      test que falle antes del arreglo.
-- [ ] La casilla de la tarea en este documento queda marcada en la misma PR.
-- [ ] Ningún asistente ha ejecutado comandos git que modifiquen el estado ni
-      escrituras en base de datos: los lanza una persona (ver `CLAUDE.md`).
-- [ ] Se han entregado en inglés el mensaje de commit, el título de la PR y su
-      descripción, y se ha preguntado quién revisa.
-- [ ] Cada hallazgo de la revisión ha terminado en un **control mecánico**, o
-      está registrado explícitamente como no mecanizable y por qué. Una regla
-      escrita en prosa no cuenta: decae.
+- [ ] `pnpm build`, `pnpm typecheck` and `pnpm test` green locally and in CI.
+- [ ] Zero implicit `any`, zero `@ts-expect-error` without a comment that justifies it.
+- [ ] Every public return has a declared interface (PDF rule, §6.1).
+- [ ] Every file **generated for the client** carries explanatory comments in
+      its configured language (PDF rule, §6.3).
+- [ ] Every new error path can be reverted: it either takes part in the
+      journal or does not write (PDF rule, §6.2).
+- [ ] New tests for the new behaviour. Bugs are fixed with a test that fails
+      before the fix.
+- [ ] The task checkbox in this document is ticked in the same PR.
+- [ ] No assistant has run git commands that change state, nor database
+      writes: a person runs them (see `CLAUDE.md`).
+- [ ] The commit message, the PR title and its description have been delivered
+      in English, and the question of who reviews has been asked.
+- [ ] Every review finding has ended in a **mechanical control**, or is
+      explicitly recorded as not mechanisable and why. A rule written in prose
+      does not count: it decays.
 
 ---
 
@@ -215,7 +214,7 @@ documentado y publicable. Bloquea todo lo demás.
 ---
 
 ### [x] F0-1 — Poner el proyecto bajo control de versiones
-**Rama:** `chore/f0-git-bootstrap` · **Depende de:** nada · **Bloquea:** absolutamente todo
+**Branch:** `chore/f0-git-bootstrap` · **Depends on:** nothing · **Blocks:** everything
 
 **Por qué primero:** hoy todo el trabajo existe sólo en el disco de una máquina.
 Cualquier error irreversible lo pierde entero.
@@ -247,7 +246,7 @@ vincula a otra cuenta.
 ---
 
 ### [ ] F0-2 — Una única fuente para el número de versión
-**Rama:** `build/f0-single-version-source` · **Depende de:** F0-1
+**Branch:** `build/f0-single-version-source` · **Depends on:** F0-1
 
 **Por qué:** `CLI_VERSION` está hardcodeado como `'0.1.0'` en
 [context.ts](../packages/cli/src/context.ts). En cuanto publiquemos, el journal
@@ -269,7 +268,7 @@ y las cabeceras de fichero gestionado mentirán sobre qué versión generó qué
 ---
 
 ### [x] F0-3 — Pipeline de integración continua propio
-**Rama:** `ci/f0-pipeline-propio` · **Depende de:** F0-1
+**Branch:** `ci/f0-pipeline-propio` · **Depends on:** F0-1
 
 **Por qué:** vendemos CI. No tener CI es un problema de credibilidad además de
 uno técnico.
@@ -339,7 +338,7 @@ para las acciones de GitHub.
 ---
 
 ### [ ] F0-4 — Dogfooding: aplicar nuestras propias reglas a este repo
-**Rama:** `chore/f0-dogfooding-hooks` · **Depende de:** F0-3
+**Branch:** `chore/f0-dogfooding-hooks` · **Depends on:** F0-3
 
 **Por qué:** es la prueba más barata de que el producto sirve, y el mejor sitio
 donde detectar que una regla molesta más de lo que aporta.
@@ -361,7 +360,7 @@ donde detectar que una regla molesta más de lo que aporta.
 ---
 
 ### [x] F0-5 — Documentación base del proyecto
-**Rama:** `docs/f0-documentacion-base` · **Depende de:** F0-1
+**Branch:** `docs/f0-documentacion-base` · **Depends on:** F0-1
 
 **Por qué:** sin README no hay demo, ni onboarding, ni conversación de venta.
 
@@ -409,7 +408,7 @@ legalmente antes de facturar.
 ---
 
 ### [ ] F0-6 — Versionado y changelog automatizados
-**Rama:** `build/f0-changesets` · **Depende de:** F0-3
+**Branch:** `build/f0-changesets` · **Depends on:** F0-3
 
 **Por qué:** son seis paquetes con dependencias `workspace:*`. Versionarlos a
 mano acaba en incoherencias, y el cliente paga una suscripción anual por recibir
@@ -429,7 +428,7 @@ actualizaciones: tiene que poder leer qué cambió en cada una.
 ---
 
 ### [ ] F0-7 — Umbral de cobertura de tests
-**Rama:** `test/f0-coverage-threshold` · **Depende de:** F0-3
+**Branch:** `test/f0-coverage-threshold` · **Depends on:** F0-3
 
 **Trabajo:**
 1. Activar `coverage` en [vitest.config.ts](../vitest.config.ts) con proveedor `v8`.
@@ -444,7 +443,7 @@ actualizaciones: tiene que poder leer qué cambió en cada una.
 ---
 
 ### [x] F0-8 — Renombrar el scope de los paquetes a Plumbward
-**Rama:** `refactor/f0-scope-plumbward` · **Depende de:** F0-1 · **Bloquea:** Fase 2
+**Branch:** `refactor/f0-scope-plumbward` · **Depends on:** F0-1 · **Blocks:** Phase 2
 
 **Por qué antes de la Fase 2:** los seis paquetes nacieron bajo `@governance/*`,
 un scope provisional. Cada pack nuevo multiplica los imports que habría que
@@ -477,7 +476,7 @@ existan cinco packs.
 ---
 
 ### [ ] F0-9 — Guarda de exhaustividad en el simulador y el renderizador
-**Rama:** `fix/f0-simulate-exhaustiveness` · **Depende de:** F0-1
+**Branch:** `fix/f0-simulate-exhaustiveness` · **Depends on:** F0-1
 
 **Origen:** revisión de F0-5. El documento de arquitectura afirmaba que añadir un
 tipo de operación nuevo obliga al compilador a tratarlo en todas partes. Sólo es
@@ -502,7 +501,7 @@ divergencia que toda la arquitectura existe para impedir, y hoy nada la detecta.
 ---
 
 ### [ ] F0-10 — Contención de rutas resistente a enlaces simbólicos
-**Rama:** `fix/f0-symlink-containment` · **Depende de:** F0-1
+**Branch:** `fix/f0-symlink-containment` · **Depends on:** F0-1
 
 **Origen:** revisión de F0-5.
 
@@ -527,7 +526,7 @@ través de él. `SECURITY.md` presenta esta función como la barrera principal.
 ---
 
 ### [ ] F0-11 — Reversibilidad de los efectos de la instalación
-**Rama:** `feat/f0-install-rollback` · **Depende de:** F0-1
+**Branch:** `feat/f0-install-rollback` · **Depends on:** F0-1
 
 **Origen:** revisión de F0-5.
 
@@ -554,7 +553,7 @@ desapercibido.
 ---
 
 ### [ ] F0-12 — Convertir en controles los hallazgos de nuestras revisiones
-**Rama:** `test/f0-review-controls` · **Depende de:** F0-3
+**Branch:** `test/f0-review-controls` · **Depends on:** F0-3
 
 **Origen:** las dos revisiones en contexto nuevo de septiembre de 2026
 produjeron 30 hallazgos. Repasándolos, **cinco controles habrían evitado unos
@@ -610,7 +609,7 @@ revisión de F0-3 y encontró el tercero solo, en su primera ejecución.
 ---
 
 ### [x] F0-13 — Proteger las ramas para que el rojo bloquee de verdad
-**Rama:** configuración de GitHub, sin rama de código · **Depende de:** F0-3
+**Branch:** GitHub configuration, no code branch · **Depends on:** F0-3
 
 **Origen:** la revisión de F0-3. La CI pinta el rojo pero no impide nada: con
 una PR en rojo, `gh pr view --json mergeable` devuelve `MERGEABLE`. Un control
@@ -653,8 +652,8 @@ F3-5.
 ---
 
 ### [x] F0-14 — La detección de ramas protegidas no puede estar cableada
-**Rama:** `fix/f0-protected-branches` (la versión que se cierra, en
-`fix/f0-protected-branches-rework`, PR #7) · **Depende de:** nada · **Prioridad: alta**
+**Branch:** `fix/f0-protected-branches` (the version being closed, in
+`fix/f0-protected-branches-rework`, PR #7) · **Depends on:** nothing · **Priority: high**
 
 **Origen:** al renombrar la rama de releases de este repositorio a `Prod`,
 quedó a la vista que el CLI no la reconoce.
@@ -844,7 +843,7 @@ debe ejecutarlo sola: modifica el estado de git y necesita red.
 ---
 
 ### [x] F0-15 — Corregir el control de nombres de rama tras la revisión de la PR #6
-**Rama:** `fix/f0-branch-control-review` · **Depende de:** F0-14
+**Branch:** `fix/f0-branch-control-review` · **Depends on:** F0-14
 
 **Origen:** la PR #6 se mergeó sin revisión y se revisó después, en contexto
 nuevo. El hallazgo más grave —la CI nunca ejecutaba el control— se corrigió en
@@ -946,7 +945,7 @@ la revisión en contexto nuevo. Queda registrado para no repetirlo.
 ---
 
 ### [x] F0-16 — Nombres de ficheros e identificadores en inglés
-**Rama:** `refactor/f0-english-names` · **Depende de:** F0-41
+**Branch:** `refactor/f0-english-names` · **Depends on:** F0-41
 
 **Origen:** decisión del 2026-09-11, ampliada el 2026-09-13: el inglés pasa a
 ser el idioma principal de todo el repositorio (ver F0-41). Los nombres van
@@ -1003,7 +1002,7 @@ es F0-45.
 ---
 
 ### [x] F0-17 — Protocolo de conservación de tokens y herramientas de agente
-**Rama:** `chore/f0-agent-tooling` · **Depende de:** F0-14
+**Branch:** `chore/f0-agent-tooling` · **Depends on:** F0-14
 
 **Origen:** la sesión de la PR #7 (F0-14) gastó más del 80 % de la ventana de
 uso de cinco horas. Cada paso reenviaba la conversación entera (~130k tokens),
@@ -1048,7 +1047,7 @@ equipo desarrolla en Windows; el control lo detectaría.
 ---
 
 ### [ ] F0-18 — Documentación del repositorio en inglés
-**Rama:** `docs/f0-english-documentation` · **Depende de:** F0-16
+**Branch:** `docs/f0-english-documentation` · **Depends on:** F0-16
 
 **Origen:** decisión del 2026-09-11, ampliada el 2026-09-13 (ver F0-41). La
 industria y el propio asistente trabajan en inglés, y cada documento en español
@@ -1081,7 +1080,7 @@ de su lista de pendientes.
 ---
 
 ### [ ] F0-19 — La plantilla de ramas para clientes se contradice en español
-**Rama:** `docs/f0-branch-naming-templates` · **Depende de:** F0-15
+**Branch:** `docs/f0-branch-naming-templates` · **Depends on:** F0-15
 
 **Origen:** revisión de la PR #6, puntos 5 y 6. Salieron de F0-15 para no
 mezclar el control del repositorio con lo que se le genera al cliente.
@@ -1109,7 +1108,7 @@ literales.
 ---
 
 ### [ ] F0-20 — Decidir la estrategia de merge y reformular el argumento
-**Rama:** `docs/f0-merge-strategy` · **Depende de:** F0-15
+**Branch:** `docs/f0-merge-strategy` · **Depends on:** F0-15
 
 **Origen:** revisión de la PR #6, punto 7. El argumento de la regla de nombres
 de rama es "el nombre de rama queda en el historial de git". Con *squash merge*
@@ -1132,7 +1131,7 @@ y eso sí es un control (queda en F0-28, que depende de esta decisión).
 ---
 
 ### [ ] F0-21 — Restos del plan y del diagrama de flujo
-**Rama:** `docs/f0-plan-leftovers` · **Depende de:** F0-15
+**Branch:** `docs/f0-plan-leftovers` · **Depends on:** F0-15
 
 **Origen:** revisión de la PR #6, punto 9.
 
@@ -1156,7 +1155,7 @@ lo deja caducado cada vez que se añade uno. El resto es corrección puntual.
 ---
 
 ### [ ] F0-22 — Seguimientos de la revisión de F0-14
-**Rama:** `fix/f0-f014-review-followups` · **Depende de:** F0-15
+**Branch:** `fix/f0-f014-review-followups` · **Depends on:** F0-15
 
 **Origen:** revisión de la PR #7, punto 11 de F0-15.
 
@@ -1190,7 +1189,7 @@ y lo resuelve la confirmación del wizard (F4-1).
 ---
 
 ### [ ] F0-23 — Sacar el escaneo del historial completo a su propio workflow
-**Rama:** `ci/f0-history-scan-workflow` · **Depende de:** F0-15
+**Branch:** `ci/f0-history-scan-workflow` · **Depends on:** F0-15
 
 **Origen:** revisión de la PR #6, punto 12. Vive en `ci.yml` con una condición,
 así que aparece como *Skipped* en todas las PRs y genera la duda de si algo
@@ -1209,7 +1208,7 @@ regla nueva que vigilar.
 ---
 
 ### [x] F0-24 — `rollback` y mensajes fuera de la rama en la que se escribió
-**Rama:** `fix/f0-pr7-review-followups` · **Depende de:** F0-15
+**Branch:** `fix/f0-pr7-review-followups` · **Depends on:** F0-15
 
 **Origen:** puntos 13 y 14 de F0-15, de la tercera y la cuarta revisión previas
 al merge de la PR #7.
@@ -1249,7 +1248,7 @@ reproduciendo el caso de la revisión.
 ---
 
 ### [ ] F0-25 — Seguimientos de la revisión de la PR #10
-**Rama:** `fix/f0-branch-control-followups` · **Depende de:** F0-15
+**Branch:** `fix/f0-branch-control-followups` · **Depends on:** F0-15
 
 **Origen:** revisión en contexto nuevo de la PR #10 (F0-15). Los dos
 bloqueantes se corrigieron dentro de la PR; estos son los no bloqueantes, que
@@ -1303,7 +1302,7 @@ porque una persona ha empujado a ella.
 ---
 
 ### [ ] F0-26 — Validación y detección: `doctor`, nombres de rama y `branches`
-**Rama:** `fix/f0-branch-config-validation` · **Depende de:** F0-15
+**Branch:** `fix/f0-branch-config-validation` · **Depends on:** F0-15
 
 **Origen:** puntos 3, 4, 5 y 7 de las revisiones de la PR #7, separados de F0-24
 (ver allí el porqué de la división). Los cuatro son el mismo fallo con cuatro
@@ -1330,7 +1329,7 @@ caras: **la herramienta mira un dato, no lo entiende, y sigue como si nada.**
 ---
 
 ### [x] F0-27 — Ejecutar `check:mutations` en CI
-**Rama:** `ci/f0-mutation-job` · **Depende de:** F0-15
+**Branch:** `ci/f0-mutation-job` · **Depends on:** F0-15
 
 **Origen:** punto 8 de las revisiones de la PR #7, separado de F0-24 (ver allí
 el porqué de la división). Va solo porque no toca código de producto: es
@@ -1365,7 +1364,7 @@ con su test) y la batería se ejecuta antes en seco, sin mutar nada.
 ---
 
 ### [ ] F0-28 — El consejo `git branch -d` tras la estrategia de merge elegida
-**Rama:** `fix/f0-delete-branch-advice` · **Depende de:** F0-20
+**Branch:** `fix/f0-delete-branch-advice` · **Depends on:** F0-20
 
 **Origen:** punto 6 de las revisiones de la PR #7, separado de F0-24 (ver allí
 el porqué de la división). **Es el que bloqueaba la tarea entera:** no se puede
@@ -1387,7 +1386,7 @@ la estrategia escrita en F0-20.
 ---
 
 ### [x] F0-29 — `apply` no puede prometer un `rollback` que no va a poder hacer
-**Rama:** `fix/f0-unrevertable-journal` · **Depende de:** F0-24
+**Branch:** `fix/f0-unrevertable-journal` · **Depends on:** F0-24
 
 **Origen:** hallazgo 2 de la revisión en contexto nuevo de la PR #11. **Es una
 regresión que introdujo F0-24**, no un hueco antiguo.
@@ -1431,7 +1430,7 @@ F0-24 se revertía. Escrita en `assertSameBranch` y en `docs/ARCHITECTURE.md`.
 ---
 
 ### [x] F0-30 — El journal identifica el sitio por commit, no sólo por nombre
-**Rama:** `feat/f0-journal-commit-identity` · **Depende de:** F0-24
+**Branch:** `feat/f0-journal-commit-identity` · **Depends on:** F0-24
 
 **Origen:** hallazgos 3 y 4 de la revisión en contexto nuevo de la PR #11.
 
@@ -1461,7 +1460,7 @@ y recreando la rama sobre otro commit.
 ---
 
 ### [ ] F0-31 — Anotar el contrato de `readJournal`
-**Rama:** `docs/f0-read-journal-contract` · **Depende de:** F0-24
+**Branch:** `docs/f0-read-journal-contract` · **Depends on:** F0-24
 
 **Origen:** hallazgo 5 de la revisión en contexto nuevo de la PR #11.
 
@@ -1477,7 +1476,7 @@ que esté escrito donde se lee.
 ---
 
 ### [ ] F0-32 — Seguimientos de la revisión de la PR de F0-27
-**Rama:** `fix/f0-mutation-control-followups` · **Depende de:** F0-27
+**Branch:** `fix/f0-mutation-control-followups` · **Depends on:** F0-27
 
 **Origen:** revisión en contexto nuevo de la PR de F0-27. Los tres bloqueantes
 —constantes con dígito invisibles para el control, veredicto verde sin ejecutar
@@ -1539,7 +1538,7 @@ test. El párrafo anterior, no: queda escrito donde se lee.
 ---
 
 ### [ ] F0-33 — El aviso sin ningún commit describe un estado imposible
-**Rama:** `fix/f0-unreachable-notice-branch` · **Depende de:** F0-30
+**Branch:** `fix/f0-unreachable-notice-branch` · **Depends on:** F0-30
 
 **Origen:** hallazgo 3 de la revisión en contexto nuevo de la PR de F0-30.
 
@@ -1560,7 +1559,7 @@ ella; si se queda, un test que la provoque por el camino real.
 ---
 
 ### [ ] F0-34 — El e2e revierte con un commit que el repositorio no tiene
-**Rama:** `test/f0-e2e-journal-commit` · **Depende de:** F0-30
+**Branch:** `test/f0-e2e-journal-commit` · **Depends on:** F0-30
 
 **Origen:** hallazgo 4 de la revisión en contexto nuevo de la PR de F0-30.
 
@@ -1580,7 +1579,7 @@ de pruebas y comprobar que mutar la comprobación del commit mata el test.
 ---
 
 ### [ ] F0-35 — Anotar los cambios de contrato del journal v3
-**Rama:** `docs/f0-journal-v3-contract` · **Depende de:** F0-30, F0-31
+**Branch:** `docs/f0-journal-v3-contract` · **Depends on:** F0-30, F0-31
 
 **Origen:** hallazgo 5 de la revisión en contexto nuevo de la PR de F0-30.
 
@@ -1601,7 +1600,7 @@ escrito donde se lee.
 ---
 
 ### [ ] F0-36 — La mutación del commit nombra otra cosa de la que muta
-**Rama:** `fix/f0-mutation-name-collision` · **Depende de:** F0-30
+**Branch:** `fix/f0-mutation-name-collision` · **Depends on:** F0-30
 
 **Origen:** hallazgo 6 de la revisión en contexto nuevo de la PR de F0-30.
 
@@ -1621,7 +1620,7 @@ diciéndolo.
 ---
 
 ### [ ] F0-37 — Un journal v2 pendiente se queda sin `rollback`
-**Rama:** `fix/f0-v2-journal-remedy` · **Depende de:** F0-30
+**Branch:** `fix/f0-v2-journal-remedy` · **Depends on:** F0-30
 
 **Origen:** hallazgo 7 de la revisión en contexto nuevo de la PR de F0-30.
 
@@ -1646,7 +1645,7 @@ limpio de verdad, comprobado con `git status --porcelain`.
 ---
 
 ### [ ] F0-38 — `rollback` no comprueba que los ficheros sigan siendo los que dejó `apply`
-**Rama:** `fix/f0-rollback-content-check` · **Depende de:** F0-29
+**Branch:** `fix/f0-rollback-content-check` · **Depends on:** F0-29
 
 **Origen:** hallazgos 1 y 2 de la revisión en contexto nuevo de la PR #14
 (F0-29). Son anteriores a F0-29: pasan igual con journals escritos en una rama.
@@ -1678,7 +1677,7 @@ tests con git real, comprobando el contenido de los ficheros después.
 ---
 
 ### [ ] F0-39 — Mensajes de `rollback` sin test y dos consejos de vuelta distintos
-**Rama:** `fix/f0-rollback-message-coverage` · **Depende de:** F0-29
+**Branch:** `fix/f0-rollback-message-coverage` · **Depends on:** F0-29
 
 **Origen:** hallazgos 4 y 5 de la revisión en contexto nuevo de la PR #14
 (F0-29).
@@ -1701,7 +1700,7 @@ desacoplado y otro que fije la forma elegida en los dos sitios.
 ---
 
 ### [x] F0-40 — Una cola de ejecución que decide la siguiente tarea
-**Rama:** `chore/f0-execution-queue` · **Depende de:** nada
+**Branch:** `chore/f0-execution-queue` · **Depends on:** nothing
 
 **Origen:** decisión del desarrollador del 2026-09-13. Elegir la siguiente tarea
 dependía de que cada sesión la propusiera y alguien la confirmase: cada vez un
@@ -1730,7 +1729,7 @@ en el §5 y la revisión.
 ---
 
 ### [x] F0-41 — El inglés, idioma principal: el control y las instrucciones del asistente
-**Rama:** `chore/f0-english-only-control` · **Depende de:** F0-40
+**Branch:** `chore/f0-english-only-control` · **Depends on:** F0-40
 
 **Origen:** decisión del desarrollador del 2026-09-13. Todo el repositorio pasa a
 inglés: instrucciones del asistente, plan, documentación, comentarios, tests y lo
@@ -1771,35 +1770,46 @@ de cada PR de traducción, comparando con el original.
 
 ---
 
-### [ ] F0-42 — El plan de ejecución en inglés
-**Rama:** `docs/f0-english-plan` · **Depende de:** F0-16
+### [ ] F0-42 — The execution plan in English
+**Branch:** `docs/f0-english-plan` · **Depends on:** F0-16
 
-**Origen:** F0-41. El plan pasa de 3.000 líneas y es, después de `CLAUDE.md`, lo
-que más se lee: cada tarea empieza leyendo la suya.
+**Origin:** F0-41. The plan is over 3,000 lines and is, after `CLAUDE.md`, what
+is read the most: every task starts by reading its own.
 
-**Trabajo:**
-1. Traducir el plan entero, incluidas las tareas completadas: cambia el idioma, no
-   los hechos (fechas, hallazgos, alternativas descartadas).
-2. Dos controles leen su formato: `**Rama:**`, `**Depende de:**`, `Fase N completa`,
-   las cabeceras `### [ ]` y los marcadores de la cola. El plan,
-   `branch-names.mjs`, `execution-queue.mjs` y sus tests cambian en el mismo
-   commit; las aserciones de mínimo de los dos impiden un verde sin mirar nada.
-3. Sacar el plan de la lista de pendientes de F0-41.
-4. Por tamaño, en varias sesiones: una tanda por fase, cada una con su commit en la
-   misma rama y `pnpm check:coherence` en verde. Sigue siendo una tarea y una PR.
+**Work:**
+1. Translate the whole plan, including the completed tasks: the language
+   changes, not the facts (dates, findings, discarded alternatives).
+2. Two controls read its format: the branch and dependency lines of every task,
+   the whole-phase dependency, the `### [ ]` headers and the queue markers. The
+   plan, `branch-names.mjs`, `execution-queue.mjs` and their tests change in the
+   same commit; the minimum assertions of both prevent a green without looking
+   at anything.
+3. Remove the plan from the F0-41 pending list.
+4. Because of its size, over several sessions: one batch per part of the plan,
+   each with its own commit on the same branch and `pnpm check:coherence` green.
+   It is still one task and one PR.
 
-**Qué se convierte en control mecánico:** el de F0-41 sobre el plan, y los tests de
-los dos analizadores con el formato nuevo.
+**Progress:**
+- [x] Batch 1: the format read by the two controls, across the whole plan
+  (`**Branch:**`, `**Depends on:**`, `**Blocks:**`, `Phase N complete`,
+  `<!-- queue:start -->`); header, §1 to §4, this task, and §5 to §7.
+- [ ] Batch 2: Phase 0, first half (F0-1 to F0-20).
+- [ ] Batch 3: Phase 0, second half (F0-21 to F0-46).
+- [ ] Batch 4: Phases 1 to 6, and the plan out of the pending list.
 
-**Criterios de aceptación:**
-- El plan no contiene español fuera de las excepciones declaradas.
-- Romper una dependencia en la cola traducida, o un nombre de rama, pone la CI en
-  rojo.
+**What becomes a mechanical control:** the F0-41 one over the plan, and the
+tests of the two parsers with the new format. The queue control also fails
+when a task has no dependency line it recognises: before, a marker the parser
+did not know read as "no dependencies", and a broken order passed.
+
+**Acceptance criteria:**
+- The plan contains no Spanish outside the declared exceptions.
+- Breaking a dependency in the translated queue, or a branch name, turns CI red.
 
 ---
 
 ### [ ] F0-43 — Comentarios y tests del núcleo en inglés
-**Rama:** `refactor/f0-english-comments-core` · **Depende de:** F0-16
+**Branch:** `refactor/f0-english-comments-core` · **Depends on:** F0-16
 
 **Origen:** F0-41. Separada de F0-44 para que cada PR se pueda revisar entera.
 
@@ -1818,7 +1828,7 @@ son de F0-45. Sacar los ficheros de la lista de pendientes de F0-41.
 ---
 
 ### [ ] F0-44 — Comentarios y tests de la CLI, los packs y los scripts en inglés
-**Rama:** `refactor/f0-english-comments-cli` · **Depende de:** F0-16
+**Branch:** `refactor/f0-english-comments-cli` · **Depends on:** F0-16
 
 **Origen:** F0-41. La otra mitad de F0-43.
 
@@ -1838,7 +1848,7 @@ Sacar los ficheros de la lista de pendientes de F0-41.
 ---
 
 ### [ ] F0-45 — El producto habla inglés por defecto
-**Rama:** `feat/f0-english-default-language` · **Depende de:** F0-41
+**Branch:** `feat/f0-english-default-language` · **Depends on:** F0-41
 
 **Origen:** F0-41. Los clientes siguen por defecto la misma convención. El producto
 sigue siendo bilingüe —decisión de negocio del 2026-09-08—: el español se elige
@@ -1876,7 +1886,7 @@ Spanish, with the same heuristic as the file-name control of F0-16.
 ---
 
 ### [ ] F0-46 — Harden the name and link controls
-**Rama:** `fix/f0-harden-name-link-controls` · **Depende de:** F0-16
+**Branch:** `fix/f0-harden-name-link-controls` · **Depends on:** F0-16
 
 **Origin:** fresh-context review of F0-16, 2026-09-13. No finding was a
 blocker, but both controls F0-16 added have cases where they pass without
@@ -1931,7 +1941,7 @@ pospone, y es exactamente el tipo de deuda que el producto dice combatir.
 ---
 
 ### [ ] F1-1 — Paquete `@plumbward/i18n`
-**Rama:** `feat/f1-i18n-package` · **Depende de:** Fase 0 completa
+**Branch:** `feat/f1-i18n-package` · **Depends on:** Phase 0 complete
 
 **Trabajo:**
 1. Paquete nuevo con un catálogo tipado: las claves de `en` derivan del tipo del
@@ -1949,7 +1959,7 @@ pospone, y es exactamente el tipo de deuda que el producto dice combatir.
 ---
 
 ### [ ] F1-2 — Migrar el pack de Node/TS a los catálogos
-**Rama:** `refactor/f1-node-ts-i18n` · **Depende de:** F1-1
+**Branch:** `refactor/f1-node-ts-i18n` · **Depends on:** F1-1
 
 **Trabajo:**
 1. Extraer todo el texto en español de `packages/packs/node-ts/src/templates/*`
@@ -1966,7 +1976,7 @@ pospone, y es exactamente el tipo de deuda que el producto dice combatir.
 ---
 
 ### [ ] F1-3 — Mensajes de la CLI en ambos idiomas
-**Rama:** `refactor/f1-cli-i18n` · **Depende de:** F1-1
+**Branch:** `refactor/f1-cli-i18n` · **Depends on:** F1-1
 
 **Trabajo:**
 1. Migrar [render.ts](../packages/cli/src/render.ts) y
@@ -1981,7 +1991,7 @@ pospone, y es exactamente el tipo de deuda que el producto dice combatir.
 ---
 
 ### [ ] F1-4 — Test de paridad entre idiomas
-**Rama:** `test/f1-language-parity` · **Depende de:** F1-2, F1-3
+**Branch:** `test/f1-language-parity` · **Depends on:** F1-2, F1-3
 
 **Por qué:** el riesgo real de la i18n no es traducir mal, es que el plan
 **haga cosas distintas** según el idioma. Eso rompería el determinismo.
@@ -1997,7 +2007,7 @@ pospone, y es exactamente el tipo de deuda que el producto dice combatir.
 
 ---
 ### [ ] F1-5 — Procedencia: cada regla cita su fuente
-**Rama:** `feat/f1-rule-provenance` · **Depende de:** F1-1
+**Branch:** `feat/f1-rule-provenance` · **Depends on:** F1-1
 
 **Por qué en esta fase:** es la misma lección que la i18n. Hoy hay un pack;
 después de la Fase 2 habrá cinco, y añadir un campo obligatorio al contrato con
@@ -2038,7 +2048,7 @@ Python, PHP/Laravel, Go y en uno de un stack no soportado.
 ---
 
 ### [ ] F2-1 — Detección multi-stack en el escáner
-**Rama:** `feat/f2-scanner-multistack` · **Depende de:** Fase 1 completa
+**Branch:** `feat/f2-scanner-multistack` · **Depends on:** Phase 1 complete
 
 **Estado actual:** [stack.ts](../packages/scanner/src/stack.ts) sólo reconoce
 `node-ts` y `go`.
@@ -2067,7 +2077,7 @@ Python, PHP/Laravel, Go y en uno de un stack no soportado.
 ---
 
 ### [ ] F2-2 — Pack universal de respaldo
-**Rama:** `feat/f2-pack-base` · **Depende de:** F2-1
+**Branch:** `feat/f2-pack-base` · **Depends on:** F2-1
 
 **Por qué es la tarea más rentable de la fase:** cubre de golpe *todos* los
 stacks que no tengan pack propio, y da valor inmediato en cualquier repositorio
@@ -2097,7 +2107,7 @@ del mundo. Es lo que convierte un "no soportado" en una venta.
 ---
 
 ### [ ] F2-3 — Kit de pruebas de conformidad reutilizable
-**Rama:** `test/f2-conformance-kit` · **Depende de:** F2-2
+**Branch:** `test/f2-conformance-kit` · **Depends on:** F2-2
 
 **Por qué antes de escribir cuatro packs:** sin esto, cada pack se testea de una
 forma distinta y la calidad diverge. Y cuando abramos el catálogo a terceros
@@ -2125,7 +2135,7 @@ mal escrito destroce el repositorio de un cliente.
 ---
 
 ### [ ] F2-4 — Pack de Python
-**Rama:** `feat/f2-pack-python` · **Depende de:** F2-3
+**Branch:** `feat/f2-pack-python` · **Depends on:** F2-3
 
 **Trabajo:**
 1. Detección del gestor: uv → Poetry → PDM → pip, y respeto del que ya use el repo.
@@ -2145,7 +2155,7 @@ mal escrito destroce el repositorio de un cliente.
 ---
 
 ### [ ] F2-5 — Pack de PHP / Laravel
-**Rama:** `feat/f2-pack-php-laravel` · **Depende de:** F2-3
+**Branch:** `feat/f2-pack-php-laravel` · **Depends on:** F2-3
 
 **Por qué tiene prioridad alta pese a no ser el stack de moda:** es el stack
 dominante en el segmento de **agencias de desarrollo españolas**, que es
@@ -2167,7 +2177,7 @@ justamente el comprador del paquete de 4.000 €.
 ---
 
 ### [ ] F2-6 — Pack de Go
-**Rama:** `feat/f2-pack-go` · **Depende de:** F2-3
+**Branch:** `feat/f2-pack-go` · **Depends on:** F2-3
 
 **Trabajo:**
 1. El escáner ya detecta Go; falta el pack.
@@ -2185,7 +2195,7 @@ justamente el comprador del paquete de 4.000 €.
 ---
 
 ### [ ] F2-7 — Composición de packs en monorepos
-**Rama:** `feat/f2-monorepo` · **Depende de:** F2-4, F2-5, F2-6
+**Branch:** `feat/f2-monorepo` · **Depends on:** F2-4, F2-5, F2-6
 
 **Por qué:** el escáner ya detecta monorepos y los fuerza a `non-disruptive`,
 pero los packs siguen razonando sobre la raíz. En un monorepo con `apps/api`
@@ -2208,7 +2218,7 @@ Y los monorepos son, por tamaño, los clientes de ticket más alto.
 ---
 
 ### [ ] F2-8 — Guía para autores de packs
-**Rama:** `docs/f2-pack-authoring-guide` · **Depende de:** F2-7
+**Branch:** `docs/f2-pack-authoring-guide` · **Depends on:** F2-7
 
 **Por qué:** es la palanca de escalado del negocio. Si un cliente enterprise
 puede escribir su propio pack con sus estándares internos, deja de comprar una
@@ -2225,7 +2235,7 @@ la permanencia.
 
 ---
 ### [ ] F2-12 — Instalar las herramientas de agente que cada stack necesita
-**Rama:** `feat/f2-agent-skills` · **Depende de:** F2-2
+**Branch:** `feat/f2-agent-skills` · **Depends on:** F2-2
 
 **Por qué:** hoy generamos ficheros de reglas. Pero un equipo que trabaja con
 Claude Code, Cursor o Copilot necesita más que un `.cursorrules`: necesita las
@@ -2267,7 +2277,7 @@ empaquetando esto**, y es de lo más diferenciador que podemos ofrecer.
 ---
 
 ### [ ] F2-13 — Snapshots dorados de lo que genera cada pack
-**Rama:** `test/f2-pack-snapshots` · **Depende de:** F2-3, F0-12
+**Branch:** `test/f2-pack-snapshots` · **Depends on:** F2-3, F0-12
 
 **Por qué:** un pack produce ficheros que acaban dentro del repositorio del
 cliente. Hoy nada impide que un refactor cambie un marcador, un identificador de
@@ -2292,7 +2302,7 @@ exactamente lo que pasó en F0-8 con el identificador del bloque de `.gitignore`
 ---
 
 ### [ ] F2-11 — Frontera real para packs de terceros
-**Rama:** `feat/f2-pack-isolation` · **Depende de:** F2-8
+**Branch:** `feat/f2-pack-isolation` · **Depends on:** F2-8
 
 **Origen:** revisión de F0-5.
 
@@ -2324,7 +2334,7 @@ máquina del cliente. Esta tarea es **bloqueante para aceptar packs externos**.
 ---
 
 ### [ ] F2-9 — Llevar los límites operativos del asistente al pack base
-**Rama:** `refactor/f2-boundaries-to-base-pack` · **Depende de:** F2-2
+**Branch:** `refactor/f2-boundaries-to-base-pack` · **Depends on:** F2-2
 
 **Estado:** implementado **sólo** en el pack de Node/TypeScript (sección 7 de las
 reglas generadas, más las instrucciones de Copilot), con el contrato
@@ -2380,7 +2390,7 @@ deja la CI en verde desde el primer día, y aun así impide que empeore.
 ---
 
 ### [ ] F3-1 — Baseline: fotografía de la deuda existente
-**Rama:** `feat/f3-baseline` · **Depende de:** Fase 2 completa
+**Branch:** `feat/f3-baseline` · **Depends on:** Phase 2 complete
 
 **Trabajo:**
 1. Generar `.governance/baseline.json` (la constante `BASELINE_FILE` ya existe
@@ -2400,7 +2410,7 @@ deja la CI en verde desde el primer día, y aun así impide que empeore.
 ---
 
 ### [ ] F3-2 — Modo trinquete: reglas estrictas sólo sobre lo que cambia
-**Rama:** `feat/f3-ratchet-staged` · **Depende de:** F3-1
+**Branch:** `feat/f3-ratchet-staged` · **Depends on:** F3-1
 
 **Trabajo:**
 1. En modo `ratchet`, los hooks aplican las reglas estrictas **sólo a los
@@ -2416,7 +2426,7 @@ deja la CI en verde desde el primer día, y aun así impide que empeore.
 ---
 
 ### [ ] F3-3 — CI que audita únicamente el diff de la Pull Request
-**Rama:** `feat/f3-diff-only-ci` · **Depende de:** F3-2
+**Branch:** `feat/f3-diff-only-ci` · **Depends on:** F3-2
 
 **Por qué:** es la promesa comercial literal del producto — "reducción del 40%
 en tiempos de revisión de PRs" — y hoy no está implementada.
@@ -2435,7 +2445,7 @@ en tiempos de revisión de PRs" — y hoy no está implementada.
 ---
 
 ### [ ] F3-4 — El trinquete: prohibido empeorar
-**Rama:** `feat/f3-ratchet-metrics` · **Depende de:** F3-3
+**Branch:** `feat/f3-ratchet-metrics` · **Depends on:** F3-3
 
 **Por qué:** es la diferencia entre "instalamos linters" y "gobernanza". Y es lo
 que hace que la licencia se renueve: el valor se acumula mes a mes de forma medible.
@@ -2455,7 +2465,7 @@ que hace que la licencia se renueve: el valor se acumula mes a mes de forma medi
 ---
 
 ### [ ] F3-5 — Gobierno del flujo de ramas (feature de producto)
-**Rama:** `feat/f3-branch-governance` · **Depende de:** F2-2
+**Branch:** `feat/f3-branch-governance` · **Depends on:** F2-2
 
 **Por qué:** es la pregunta 1 del wizard en el PDF y hoy no existe nada.
 Nosotros estamos usando este flujo internamente (§3): esta tarea convierte esa
@@ -2517,7 +2527,7 @@ práctica en producto.
 ---
 
 ### [ ] F3-6 — Flujo de entrega y revisión asistida en las reglas generadas
-**Rama:** `feat/f3-delivery-workflow` · **Depende de:** F3-5
+**Branch:** `feat/f3-delivery-workflow` · **Depends on:** F3-5
 
 **Por qué:** el cuello de botella que el producto promete resolver no es escribir
 el código, es **revisarlo**. Un equipo pequeño, o uno en el que sólo queda una
@@ -2562,7 +2572,7 @@ mirar. Esta tarea convierte en producto el flujo que ya usamos internamente
 ---
 
 ### [ ] F3-7 — Leyes de testing acopladas al cambio
-**Rama:** `feat/f3-test-coupling` · **Depende de:** F3-3
+**Branch:** `feat/f3-test-coupling` · **Depends on:** F3-3
 
 **Por qué:** es la queja número uno sobre el código generado con IA — llega sin
 pruebas— y es **mecánicamente comprobable**, que es lo que la convierte en
@@ -2586,7 +2596,7 @@ control y no en consejo.
 ---
 
 ### [ ] F3-8 — Postura de seguridad, más allá de los secretos
-**Rama:** `feat/f3-security-posture` · **Depende de:** F3-3
+**Branch:** `feat/f3-security-posture` · **Depends on:** F3-3
 
 **Por qué:** Gitleaks detecta tokens filtrados. No detecta **puertas abiertas**,
 que es la otra mitad del problema y la que un asistente de IA introduce con más
@@ -2613,7 +2623,7 @@ facilidad porque copia ejemplos de documentación pensados para desarrollo local
 ---
 
 ### [ ] F3-9 — Controles derivados de incidentes
-**Rama:** `feat/f3-incident-derived-controls` · **Depende de:** F3-7, F0-12
+**Branch:** `feat/f3-incident-derived-controls` · **Depends on:** F3-7, F0-12
 
 **Por qué es la funcionalidad con más foso de todo el plan:** el trinquete
 impide empeorar en métricas. Esto impide **repetir un fallo concreto**. Al año,
@@ -2643,7 +2653,7 @@ lo regala una plataforma. Es coste de cambio real.
 ---
 
 ### [ ] F3-10 — Cierre de sesión guiado: `plumbward session close`
-**Rama:** `feat/f3-session-close` · **Depende de:** F3-6, F1-3
+**Branch:** `feat/f3-session-close` · **Depends on:** F3-6, F1-3
 
 **Origen:** F0-17. El protocolo de conservación de tokens pide abrir una sesión
 nueva al cerrar cada tarea, pero hacerlo a mano es fricción: hay que recordar
@@ -2703,7 +2713,7 @@ reglas nuevas sin perder ni una sola personalización del cliente.
 ---
 
 ### [ ] F4-1 — Wizard interactivo `plumbward init`
-**Rama:** `feat/f4-wizard-init` · **Depende de:** Fase 3 completa
+**Branch:** `feat/f4-wizard-init` · **Depends on:** Phase 3 complete
 
 **Trabajo:**
 1. Comando `init` con `@clack/prompts` (ya es dependencia del CLI).
@@ -2735,7 +2745,7 @@ reglas nuevas sin perder ni una sola personalización del cliente.
 ---
 
 ### [ ] F4-2 — `plumbward upgrade` con detección de personalizaciones
-**Rama:** `feat/f4-upgrade-drift` · **Depende de:** F4-1
+**Branch:** `feat/f4-upgrade-drift` · **Depends on:** F4-1
 
 **Por qué:** es el corazón del modelo de suscripción, y el mecanismo ya está
 medio construido: las cabeceras de fichero gestionado (`withManagedHeader`) y
@@ -2765,7 +2775,7 @@ se revisan. `doctor` lo avisa desde F0-14; `upgrade` debe quitar el filtro.
 ---
 
 ### [ ] F4-3 — `doctor --fix`
-**Rama:** `feat/f4-doctor-fix` · **Depende de:** F4-2
+**Branch:** `feat/f4-doctor-fix` · **Depends on:** F4-2
 
 **Trabajo:**
 1. Los `HealthCheck` ya declaran `fixHint`. Añadir un campo opcional que aporte
@@ -2781,7 +2791,7 @@ se revisan. `doctor` lo avisa desde F0-14; `upgrade` debe quitar el filtro.
 ---
 
 ### [ ] F4-4 — Informe comercial `plumbward report`
-**Rama:** `feat/f4-sales-report` · **Depende de:** F4-3
+**Branch:** `feat/f4-sales-report` · **Depends on:** F4-3
 
 **Por qué:** el que decide la compra no es quien ejecuta el CLI, y no va a leer
 una salida de terminal. Este informe es la herramienta de venta: se genera
@@ -2802,7 +2812,7 @@ gratis, se comparte por correo y crea la necesidad que el producto resuelve.
 ---
 
 ### [ ] F4-5 — Detectar que hay una versión nueva, sin telemetría
-**Rama:** `feat/f4-version-detection` · **Depende de:** F4-2
+**Branch:** `feat/f4-version-detection` · **Depends on:** F4-2
 
 **Por qué:** es la primera pieza del motor de recurrencia
 ([BUSINESS_MODEL.md §6](BUSINESS_MODEL.md)). Si el cliente no se
@@ -2823,7 +2833,7 @@ entera de que hay algo nuevo, la suscripción no se renueva.
 ---
 
 ### [ ] F4-6 — Changelog dirigido: sólo lo que aplica a este repositorio
-**Rama:** `feat/f4-targeted-changelog` · **Depende de:** F4-5
+**Branch:** `feat/f4-targeted-changelog` · **Depends on:** F4-5
 
 **Por qué:** esta es la pieza que no hace nadie. Un changelog genérico se ignora.
 Uno que dice *"de los 14 cambios de esta versión, estos 3 te afectan porque usas
@@ -2845,7 +2855,7 @@ Next.js y no tienes contenedores"* se lee entero.
 ---
 
 ### [ ] F4-7 — Catálogo de capacidades y oferta continua
-**Rama:** `feat/f4-capability-catalog` · **Depende de:** F4-6
+**Branch:** `feat/f4-capability-catalog` · **Depends on:** F4-6
 
 **Por qué:** es lo que convierte la herramienta de "configurador que se ejecuta
 una vez" en "servicio que mejora tu repositorio cada trimestre". Sin esto, la
@@ -2869,7 +2879,7 @@ suscripción no tiene defensa.
 ---
 
 ### [ ] F4-8 — Flujos guiados, empezando por dockerizar Node/TS
-**Rama:** `feat/f4-guided-flows` · **Depende de:** F4-7
+**Branch:** `feat/f4-guided-flows` · **Depends on:** F4-7
 
 **Por qué:** hay capacidades que no se pueden generar a ciegas. Dockerizar exige
 saber qué servicios hay, qué puertos, si existe base de datos y cómo se
@@ -2915,7 +2925,7 @@ revisión de proveedor de un departamento de seguridad corporativo.
 ---
 
 ### [ ] F5-1 — Paquete `@plumbward/licensing`
-**Rama:** `feat/f5-licensing-sdk` · **Depende de:** Fase 4 completa
+**Branch:** `feat/f5-licensing-sdk` · **Depends on:** Phase 4 complete
 
 **Trabajo:**
 1. Cliente HTTPS de la API de licencias, con tiempos de espera cortos y
@@ -2938,7 +2948,7 @@ revisión de proveedor de un departamento de seguridad corporativo.
 ---
 
 ### [ ] F5-2 — Servicio de licencias
-**Rama:** repositorio aparte · **Depende de:** F5-1
+**Branch:** separate repository · **Depends on:** F5-1
 
 **Trabajo:**
 1. API mínima: emitir, validar, vincular a huella, listar y revocar.
@@ -2957,7 +2967,7 @@ revisión de proveedor de un departamento de seguridad corporativo.
 ---
 
 ### [ ] F5-3 — Permisos por plan (entitlements)
-**Rama:** `feat/f5-entitlements` · **Depende de:** F5-2
+**Branch:** `feat/f5-entitlements` · **Depends on:** F5-2
 
 **Trabajo:**
 1. La licencia declara a qué packs y funcionalidades da derecho.
@@ -2973,7 +2983,7 @@ revisión de proveedor de un departamento de seguridad corporativo.
 ---
 
 ### [ ] F5-4 — Tolerancia a fallos de red
-**Rama:** `feat/f5-offline-grace` · **Depende de:** F5-3
+**Branch:** `feat/f5-offline-grace` · **Depends on:** F5-3
 
 **Trabajo:**
 1. Si la API no responde durante un `upgrade`, se usa la licencia firmada en
@@ -2987,7 +2997,7 @@ revisión de proveedor de un departamento de seguridad corporativo.
 ---
 
 ### [ ] F5-5 — Suscripción anual y tramos por volumen
-**Rama:** `feat/f5-annual-subscription` · **Depende de:** F5-3
+**Branch:** `feat/f5-annual-subscription` · **Depends on:** F5-3
 
 **Origen:** decisión de negocio del 2026-09-09,
 [ADR 0004](adr/0004-annual-subscription.md). Sustituye al modelo de pago
@@ -3024,7 +3034,7 @@ el valor, paga y aplica.
 ---
 
 ### [ ] F6-1 — Publicación en NPM
-**Rama:** `build/f6-npm-publishing` · **Depende de:** Fase 5 completa
+**Branch:** `build/f6-npm-publishing` · **Depends on:** Phase 5 complete
 
 **Trabajo:**
 1. Scope y organización ya resueltos en F0-8: `@plumbward/*`, organización
@@ -3043,7 +3053,7 @@ el valor, paga y aplica.
 ---
 
 ### [ ] F6-2 — Validación E2E sobre repositorios reales
-**Rama:** `test/f6-real-repo-e2e` · **Depende de:** F6-1
+**Branch:** `test/f6-real-repo-e2e` · **Depends on:** F6-1
 
 **Por qué:** es la Fase 4 del PDF original y el único filtro que detecta lo que
 los tests sintéticos no ven.
@@ -3067,7 +3077,7 @@ los tests sintéticos no ven.
 ---
 
 ### [ ] F6-3 — Materiales de venta
-**Rama:** `docs/f6-landing-and-demo` · **Depende de:** F6-2
+**Branch:** `docs/f6-landing-and-demo` · **Depends on:** F6-2
 
 **Trabajo:**
 1. Landing con la propuesta de valor, el precio y un `asciinema` de la demo real.
@@ -3081,7 +3091,7 @@ los tests sintéticos no ven.
 ---
 
 ### [ ] F6-4 — Lanzamiento 1.0
-**Rama:** `chore/f6-launch` · **Depende de:** F6-3
+**Branch:** `chore/f6-launch` · **Depends on:** F6-3
 
 **Trabajo:**
 1. Congelar la API pública de `StackPack`: a partir de 1.0, romperla tiene coste.
@@ -3092,206 +3102,207 @@ los tests sintéticos no ven.
 
 ---
 
-## 5. Orden de ejecución y dependencias
+## 5. Execution order and dependencies
 
 ```
-FASE 0 ─────────────────> FASE 1 ─────> FASE 2 ─────> FASE 3 ─────> FASE 4 ─────> FASE 5 ─────> FASE 6
-(fundación)              (i18n)        (stacks)      (modos)       (ciclo vida)  (licencias)   (lanzamiento)
+PHASE 0 ─────────────────> PHASE 1 ────> PHASE 2 ────> PHASE 3 ────> PHASE 4 ────> PHASE 5 ────> PHASE 6
+(foundation)              (i18n)        (stacks)      (modes)       (lifecycle)   (licensing)   (launch)
 ```
 
-Las fases son secuenciales, pero **dentro de cada fase hay paralelismo**:
+Phases are sequential, but **inside each phase there is parallelism**:
 
-- **Fase 0:** F0-1 primero. Después, F0-2, F0-3 y F0-5 en paralelo. F0-4, F0-6 y
-  F0-7 dependen de F0-3.
-- **Fase 2:** F2-1 → F2-2 → F2-3, y luego **F2-4, F2-5 y F2-6 son paralelas**.
-  Es el mejor punto del plan para repartir trabajo.
-- **Fase 3:** F3-5 sólo depende de F2-2, así que puede adelantarse.
+- **Phase 0:** F0-1 first. Then F0-2, F0-3 and F0-5 in parallel. F0-4, F0-6 and
+  F0-7 depend on F0-3.
+- **Phase 2:** F2-1 → F2-2 → F2-3, and then **F2-4, F2-5 and F2-6 are parallel**.
+  It is the best point of the plan to share out work.
+- **Phase 3:** F3-5 only depends on F2-2, so it can be brought forward.
 
-### Cola de ejecución
+### Execution queue
 
-**La siguiente tarea es siempre la primera de esta lista.** Es la respuesta a
-cualquier pregunta por el estado del plan o por lo siguiente, la haga quien la
-haga y en el idioma que sea. Si el desarrollador cambia una prioridad —como
-adelantar el paso a inglés, que se encarece cuanto más crece el proyecto—, se
-mueve la entrada y se escribe el motivo en el criterio correspondiente. Al cerrar
-una tarea, su PR la saca de la cola; al crear una tarea nueva, la misma PR la
-coloca. `pnpm check:coherence` falla si una tarea pendiente no está,
-si una completada sigue, o si alguna va antes que aquello de lo que depende.
+**The next task is always the first one in this list.** It is the answer to
+any question about the state of the plan or about what comes next, whoever
+asks it and in whatever language. If the developer changes a priority —like
+bringing forward the switch to English, which gets more expensive the more the
+project grows—, the entry is moved and the reason is written in the matching
+criterion. When a task is closed, its PR takes it out of the queue; when a new
+task is created, the same PR places it. `pnpm check:coherence` fails if a
+pending task is missing, if a completed one is still there, or if any comes
+before something it depends on.
 
-El orden de la Fase 0 sigue cuatro criterios, en este orden de prioridad:
+The order of Phase 0 follows four criteria, in this order of priority:
 
-1. **Primero, el inglés como idioma principal.** Decisión del 2026-09-13 (F0-41):
-   instrucciones, plan, documentación, comentarios, tests y lo que el producto
-   genera por defecto pasan a inglés. Va delante de todo porque cada tarea
-   posterior lee y escribe en ese idioma: hecho primero, las tareas siguientes se
-   escriben ya en inglés y cada sesión lee menos tokens; hecho al final, habría
-   que traducir también todo lo que produjeran. Dentro del bloque, primero el
-   control que impide español nuevo y las instrucciones que se leen en cada
-   sesión; después los nombres, para que las traducciones caigan en su ruta
-   definitiva; después el plan, que es lo más leído.
-2. **Después, que el verde signifique algo.** Antes de tocar lo que puede
-   perder datos, los tests y controles que dicen cubrirlo tienen que fallar
-   cuando se rompe. Un cambio arriesgado sobre una red con agujeros es el
-   escenario que las revisiones han encontrado una y otra vez.
-3. **Luego, las garantías que vendemos y hoy no se cumplen** (riesgos R5 y
-   R7): escritura fuera del repositorio, `rollback` que pierde trabajo,
-   instalación irreversible. El formato del journal se decide antes de volver a
-   cambiarlo, y su contrato se documenta después del último cambio, no antes.
-4. **Por último, detección, convenciones e infraestructura de publicación**,
-   que no ponen en riesgo el repositorio de un cliente.
+1. **First, English as the main language.** Decision of 2026-09-13 (F0-41):
+   instructions, plan, documentation, comments, tests and what the product
+   generates by default switch to English. It goes before everything because
+   every later task reads and writes in that language: done first, the next
+   tasks are already written in English and every session reads fewer tokens;
+   done last, everything they produced would have to be translated too. Inside
+   the block, first the control that stops new Spanish and the instructions
+   read in every session; then the names, so the translations land on their
+   final path; then the plan, which is what is read the most.
+2. **Then, making green mean something.** Before touching what can lose data,
+   the tests and controls that claim to cover it have to fail when it breaks. A
+   risky change on a net full of holes is the scenario reviews have found again
+   and again.
+3. **Next, the guarantees we sell and do not hold today** (risks R5 and R7):
+   writing outside the repository, a `rollback` that loses work, an
+   irreversible installation. The journal format is decided before changing it
+   again, and its contract is documented after the last change, not before.
+4. **Last, detection, conventions and publishing infrastructure**, which do not
+   put a client's repository at risk.
 
-Las fases siguientes van en su orden de dependencias. Dentro de cada una, los
-controles que vigilan el trabajo de la fase van antes que ese trabajo.
+The following phases go in their dependency order. Inside each one, the
+controls that watch the work of the phase go before that work.
 
-<!-- cola:inicio -->
+<!-- queue:start -->
 
-#### Fase 0 · 1. El inglés, idioma principal
+#### Phase 0 · 1. English as the main language
 
-- **F0-42** — el plan, lo más leído después de `CLAUDE.md`.
-- **F0-18** — el resto de la documentación y todas las ADR.
-- **F0-43** — comentarios y tests del núcleo.
-- **F0-44** — comentarios y tests de la CLI, los packs y los scripts.
-- **F0-45** — el producto habla inglés por defecto; el español sigue en el perfil.
+- **F0-42** — the plan, the most read file after `CLAUDE.md`.
+- **F0-18** — the rest of the documentation and all the ADRs.
+- **F0-43** — comments and tests of the core.
+- **F0-44** — comments and tests of the CLI, the packs and the scripts.
+- **F0-45** — the product speaks English by default; Spanish stays in the profile.
 
-#### Fase 0 · 2. Que el verde signifique algo
+#### Phase 0 · 2. Making green mean something
 
-- **F0-34** — el único e2e del ciclo completo no ejercita la comprobación del commit.
-- **F0-22** — los tests de `packages/*/test/` no pasan por el typecheck y el control del job `quality` se vigila a sí mismo.
-- **F0-32** — el control de mutaciones da verdes vacíos por huecos de sus parsers.
+- **F0-34** — the only full-cycle e2e does not exercise the commit check.
+- **F0-22** — the tests in `packages/*/test/` do not go through the typecheck, and the control of the `quality` job watches itself.
+- **F0-32** — the mutation control gives empty greens through gaps in its parsers.
 - **F0-46** — the name and link controls of F0-16 pass without looking in some cases and flag valid English names.
-- **F0-36** — decidir si el guardián del journal entra en la batería de mutaciones antes de volver a tocarlo.
-- **F0-7** — umbral de cobertura del 90 % en `core`, la mitigación declarada de R5.
+- **F0-36** — decide whether the journal guard joins the mutation battery before touching it again.
+- **F0-7** — 90 % coverage threshold in `core`, the declared mitigation of R5.
 
-#### Fase 0 · 3. Garantías que vendemos y hoy no se cumplen
+#### Phase 0 · 3. Guarantees we sell and do not hold today
 
-- **F0-10** — un enlace simbólico permite escribir fuera del repositorio: la frontera que presenta `SECURITY.md`.
-- **F0-9** — un tipo de operación nuevo lo ignoraría `plan` y lo ejecutaría `apply`.
-- **F0-37** — política para journals antiguos y un remedio que deje el árbol limpio, antes de cambiar otra vez el formato.
-- **F0-38** — `rollback` sobrescribe trabajo: hash del contenido en el journal.
-- **F0-39** — fijar con tests los mensajes que F0-38 deja definitivos.
-- **F0-11** — la instalación de dependencias queda fuera del journal.
-- **F0-33** — código vivo que sólo alcanza un test, en el aviso de vuelta.
-- **F0-31** — contrato de `readJournal`, con el formato ya estable.
-- **F0-35** — contrato completo del journal y su política de versiones.
+- **F0-10** — a symbolic link allows writing outside the repository: the boundary `SECURITY.md` presents.
+- **F0-9** — a new operation type would be ignored by `plan` and run by `apply`.
+- **F0-37** — policy for old journals and a remedy that leaves the tree clean, before changing the format again.
+- **F0-38** — `rollback` overwrites work: content hash in the journal.
+- **F0-39** — pin down with tests the messages F0-38 makes final.
+- **F0-11** — dependency installation stays outside the journal.
+- **F0-33** — live code that only one test reaches, in the return notice.
+- **F0-31** — contract of `readJournal`, with the format already stable.
+- **F0-35** — full contract of the journal and its versioning policy.
 
-#### Fase 0 · 4. Detección, convenciones y publicación
+#### Phase 0 · 4. Detection, conventions and publishing
 
-- **F0-26** — `doctor` y la validación de `branches` miran datos sin entenderlos.
-- **F0-25** — exenciones por nombre en el control de ramas.
-- **F0-20** — decidir la estrategia de merge.
-- **F0-28** — el consejo `git branch -d`, según esa decisión.
-- **F0-19** — la plantilla de ramas del cliente se contradice en español.
-- **F0-21** — restos del plan y del diagrama de ramas.
-- **F0-23** — el escaneo del historial a su propio workflow.
-- **F0-2** — una única fuente para la versión, que usan el journal y `upgrade`.
-- **F0-4** — dogfooding: nuestros propios hooks y linters.
-- **F0-6** — versionado y changelog automatizados.
-- **F0-12** — los controles que quedan de los hallazgos de revisión (términos prohibidos, hechos protegidos...).
+- **F0-26** — `doctor` and the `branches` validation look at data without understanding it.
+- **F0-25** — exemptions by name in the branch control.
+- **F0-20** — decide the merge strategy.
+- **F0-28** — the `git branch -d` advice, according to that decision.
+- **F0-19** — the client's branch template contradicts itself in Spanish.
+- **F0-21** — leftovers of the plan and of the branch diagram.
+- **F0-23** — the history scan to its own workflow.
+- **F0-2** — a single source for the version, used by the journal and `upgrade`.
+- **F0-4** — dogfooding: our own hooks and linters.
+- **F0-6** — automated versioning and changelog.
+- **F0-12** — the remaining controls from review findings (forbidden terms, protected facts...).
 
-#### Fase 1 — Internacionalización
+#### Phase 1 — Internationalisation
 
-- **F1-1** — paquete `@plumbward/i18n`.
-- **F1-2** — pack de Node/TS a los catálogos.
-- **F1-3** — mensajes de la CLI en los dos idiomas.
-- **F1-4** — paridad entre idiomas.
-- **F1-5** — procedencia de cada regla.
+- **F1-1** — `@plumbward/i18n` package.
+- **F1-2** — Node/TS pack to the catalogues.
+- **F1-3** — CLI messages in both languages.
+- **F1-4** — parity between languages.
+- **F1-5** — provenance of each rule.
 
-#### Fase 2 — Cobertura de stacks
+#### Phase 2 — Stack coverage
 
-- **F2-1** — detección multi-stack.
-- **F2-2** — pack base universal.
-- **F2-3** — kit de conformidad.
-- **F2-13** — snapshots dorados, antes de que lleguen los packs que vigilan.
-- **F2-9** — límites operativos del asistente al pack base.
-- **F2-12** — herramientas de agente por stack.
-- **F2-4** — pack de Python.
-- **F2-5** — pack de PHP / Laravel.
-- **F2-6** — pack de Go.
+- **F2-1** — multi-stack detection.
+- **F2-2** — universal base pack.
+- **F2-3** — conformance kit.
+- **F2-13** — golden snapshots, before the packs they watch arrive.
+- **F2-9** — assistant operating limits to the base pack.
+- **F2-12** — agent tooling per stack.
+- **F2-4** — Python pack.
+- **F2-5** — PHP / Laravel pack.
+- **F2-6** — Go pack.
 - **F2-7** — monorepos.
-- **F2-8** — guía para autores de packs.
-- **F2-11** — frontera real para packs de terceros.
+- **F2-8** — guide for pack authors.
+- **F2-11** — real boundary for third-party packs.
 
-#### Fase 3 — Modos de aplicación y flujo de trabajo
+#### Phase 3 — Application modes and workflow
 
-- **F3-5** — gobierno del flujo de ramas.
-- **F3-6** — flujo de entrega y revisión asistida.
-- **F3-1** — baseline de la deuda existente.
-- **F3-2** — trinquete sobre lo que cambia.
-- **F3-3** — CI sólo sobre el diff.
-- **F3-4** — prohibido empeorar.
-- **F3-7** — testing acoplado al cambio.
-- **F3-8** — postura de seguridad.
-- **F3-9** — controles derivados de incidentes.
-- **F3-10** — cierre de sesión guiado.
+- **F3-5** — governance of the branch flow.
+- **F3-6** — delivery flow and assisted review.
+- **F3-1** — baseline of the existing debt.
+- **F3-2** — ratchet over what changes.
+- **F3-3** — CI only over the diff.
+- **F3-4** — no getting worse.
+- **F3-7** — testing coupled to the change.
+- **F3-8** — security posture.
+- **F3-9** — controls derived from incidents.
+- **F3-10** — guided session close.
 
-#### Fase 4 — Ciclo de vida
+#### Phase 4 — Lifecycle
 
-- **F4-1** — wizard `init`.
-- **F4-2** — `upgrade` con detección de personalizaciones.
+- **F4-1** — `init` wizard.
+- **F4-2** — `upgrade` with detection of customisations.
 - **F4-3** — `doctor --fix`.
-- **F4-4** — informe comercial.
-- **F4-5** — detectar versión nueva sin telemetría.
-- **F4-6** — changelog dirigido.
-- **F4-7** — catálogo de capacidades.
-- **F4-8** — flujos guiados.
+- **F4-4** — commercial report.
+- **F4-5** — detect a new version without telemetry.
+- **F4-6** — targeted changelog.
+- **F4-7** — capability catalogue.
+- **F4-8** — guided flows.
 
-#### Fase 5 — Licenciamiento
+#### Phase 5 — Licensing
 
 - **F5-1** — `@plumbward/licensing`.
-- **F5-2** — servicio de licencias.
+- **F5-2** — licence service.
 - **F5-3** — entitlements.
-- **F5-4** — tolerancia a fallos de red.
-- **F5-5** — suscripción anual y tramos.
+- **F5-4** — tolerance to network failures.
+- **F5-5** — annual subscription and tiers.
 
-#### Fase 6 — Lanzamiento
+#### Phase 6 — Launch
 
-- **F6-1** — publicación en NPM.
-- **F6-2** — E2E sobre repositorios reales.
-- **F6-3** — materiales de venta.
-- **F6-4** — lanzamiento 1.0.
+- **F6-1** — publishing on NPM.
+- **F6-2** — E2E over real repositories.
+- **F6-3** — sales materials.
+- **F6-4** — 1.0 launch.
 
-<!-- cola:fin -->
+<!-- queue:end -->
 
-### Camino más corto a una demo vendible
+### Shortest path to a sellable demo
 
-Si en algún momento hace falta enseñar el producto antes de terminar el plan, el
-mínimo defendible es: **F0-1 → F0-3 → F0-5 → F2-1 → F2-2 → F4-4**. Con eso hay
-un repositorio serio, cobertura universal por el pack base y un informe que
-enseñar a quien decide la compra.
+If at some point the product has to be shown before the plan is finished, the
+defensible minimum is: **F0-1 → F0-3 → F0-5 → F2-1 → F2-2 → F4-4**. With that
+there is a serious repository, universal coverage through the base pack and a
+report to show whoever decides the purchase.
 
 ---
 
-## 6. Riesgos y decisiones pendientes
+## 6. Risks and open decisions
 
-| # | Riesgo | Impacto | Mitigación |
+| # | Risk | Impact | Mitigation |
 |---|---|---|---|
-| ~~R1~~ | **Cerrado el 2026-09-10.** El nombre que se barajaba, `aegiscode`, estaba ocupado en npm, incluido `@save3asy/aegiscode`: un competidor homónimo en nuestra misma categoría | — | Renombrado a Plumbward, organización registrada en npm y dominios adquiridos. Tarea F0-8 completada |
-| R7 | Documentar garantías que el código no cumple del todo | Pérdida de credibilidad justo en el punto que vendemos | La revisión en contexto nuevo (F3-6) lo detectó en F0-5; tareas F0-9, F0-10, F0-11 y F2-11 |
-| R2 | El modelo de licencia es de código visible: es copiable | Pérdida de ingresos | Se vende la actualización continua y el soporte, no el binario. Decisión consciente (ADR 0002) |
-| R3 | Cada pack nuevo es superficie de mantenimiento permanente | El coste crece con el catálogo | El kit de conformidad (F2-3) y el catálogo abierto a terceros (F2-8) |
-| R4 | La promesa de "5 minutos" puede no cumplirse en repos grandes | Credibilidad comercial | Medirlo en F6-2 y ajustar el producto o el mensaje, nunca ocultarlo |
-| R5 | Un `apply` que corrompa el repo de un cliente | Pérdida del cliente y del boca a boca | Journal, rollback, dry-run por defecto y el 90% de cobertura en `core` (F0-7) |
-| R6 | Cambios en las herramientas que generamos (ESLint 10, ruff...) | Las plantillas caducan | Es precisamente lo que el cliente paga con la suscripción; presupuestar mantenimiento continuo |
+| ~~R1~~ | **Closed on 2026-09-10.** The name under consideration, `aegiscode`, was taken on npm, including `@save3asy/aegiscode`: a namesake competitor in our same category | — | Renamed to Plumbward, organisation registered on npm and domains acquired. Task F0-8 completed |
+| R7 | Documenting guarantees the code does not fully hold | Loss of credibility exactly at the point we sell | The fresh-context review (F3-6) detected it in F0-5; tasks F0-9, F0-10, F0-11 and F2-11 |
+| R2 | The licence model is source-available: it can be copied | Loss of revenue | What is sold is the continuous updating and the support, not the binary. Conscious decision (ADR 0002) |
+| R3 | Every new pack is a permanent maintenance surface | The cost grows with the catalogue | The conformance kit (F2-3) and the catalogue open to third parties (F2-8) |
+| R4 | The "5 minutes" promise may not hold on large repos | Commercial credibility | Measure it in F6-2 and adjust the product or the message, never hide it |
+| R5 | An `apply` that corrupts a client's repo | Loss of the client and of word of mouth | Journal, rollback, dry-run by default and 90% coverage in `core` (F0-7) |
+| R6 | Changes in the tools we generate (ESLint 10, ruff...) | The templates go stale | It is precisely what the client pays for with the subscription; budget for continuous maintenance |
 
-**Decisiones abiertas, a cerrar en su fase:**
+**Open decisions, to be closed in their phase:**
 
-1. ~~**Licencia del código**~~ — cerrada el 2026-09-09: **BUSL-1.1**, con
-   `scan` y `report` de uso libre y paso automático a Apache-2.0 a los cuatro
-   años. Razonamiento y alternativas descartadas en
+1. ~~**Code licence**~~ — closed on 2026-09-09: **BUSL-1.1**, with `scan` and
+   `report` free to use and an automatic change to Apache-2.0 after four
+   years. Reasoning and discarded alternatives in
    [ADR 0003](adr/0003-busl-license.md).
-2. ~~**Nombre del producto**~~ — se cerró como "AegisCode" el 2026-09-08 y se reabrió al descubrir que el nicho estaba ocupado por un competidor homónimo. Cerrado definitivamente el 2026-09-09: **Plumbward**, con la organización de npm y los dominios ya registrados.
-3. **Telemetría**: la recomendación es **ninguna por defecto**, opt-in explícito.
-   Vendemos confianza; instrumentar el CLI la contradice.
+2. ~~**Product name**~~ — it was closed as "AegisCode" on 2026-09-08 and reopened on discovering that the niche was taken by a namesake competitor. Closed for good on 2026-09-09: **Plumbward**, with the npm organisation and the domains already registered.
+3. **Telemetry**: the recommendation is **none by default**, explicit opt-in.
+   We sell trust; instrumenting the CLI contradicts it.
 
 ---
 
-## 7. Cómo se mide que el plan va bien
+## 7. How to measure that the plan is going well
 
-| Indicador | Objetivo |
+| Indicator | Target |
 |---|---|
-| Stacks con pack propio | 5 al terminar la Fase 2 |
-| Repositorios en los que la herramienta no hace nada | 0 tras F2-2 |
-| Cobertura de `@plumbward/core` | ≥ 90% |
-| Tiempo de `scan` en un repo de 100k SLOC | < 10 s |
-| Tiempo del ciclo completo en un repo medio | < 5 min (verificado, no estimado) |
-| Incidentes de corrupción de repositorio de cliente | 0 |
+| Stacks with their own pack | 5 at the end of Phase 2 |
+| Repositories where the tool does nothing | 0 after F2-2 |
+| Coverage of `@plumbward/core` | ≥ 90% |
+| `scan` time on a 100k SLOC repo | < 10 s |
+| Full cycle time on an average repo | < 5 min (verified, not estimated) |
+| Client repository corruption incidents | 0 |

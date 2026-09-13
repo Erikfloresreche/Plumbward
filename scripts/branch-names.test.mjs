@@ -107,13 +107,13 @@ describe('analizador del plan', () => {
     '# Plan',
     '',
     '### [ ] F0-1 — Pendiente',
-    '**Rama:** `fix/f0-pending-task`',
+    '**Branch:** `fix/f0-pending-task`',
     '',
     '### [X] F0-2 — Cerrada con equis mayúscula',
-    '**Rama:** `fix/f0-ramas-cerradas`',
+    '**Branch:** `fix/f0-ramas-cerradas`',
     '',
     '## Otra cabecera que no es una tarea',
-    '**Rama:** `fix/f0-ramas-huerfanas`',
+    '**Branch:** `fix/f0-ramas-huerfanas`',
     '',
   ].join('\n')
 
@@ -127,7 +127,7 @@ describe('analizador del plan', () => {
 
   it('cuenta como declarada la tarea que dice no tener rama de código', () => {
     const { tasks, declarations, tasksWithoutDeclaration, branches } = parsePlan(
-      '### [ ] F0-1 — Sin rama\n**Rama:** configuración de GitHub, sin rama de código\n',
+      '### [ ] F0-1 — Sin rama\n**Branch:** GitHub configuration, no code branch\n',
     )
     expect({ tasks, declarations, tasksWithoutDeclaration, branches }).toEqual({
       tasks: 1,
@@ -158,15 +158,20 @@ describe('analizador del plan', () => {
   })
 
   it('falla si alguna tarea no declara su rama', () => {
-    const withoutBranch = '### [ ] F0-1 — Con rama\n**Rama:** `fix/f0-one`\n\n### [ ] F0-2 — Sin rama\n'
+    const withoutBranch = '### [ ] F0-1 — Con rama\n**Branch:** `fix/f0-one`\n\n### [ ] F0-2 — Sin rama\n'
     expect(checkPlan(withoutBranch)).toEqual([expect.stringContaining('1 de las 2 tareas')])
   })
 
   it('falla si la línea de rama no sigue un formato que el analizador reconoce', () => {
     // El fallo que motivó la aserción: el analizador se saltaba la línea y el
     // control pasaba como si la tarea no tuviera rama que juzgar.
-    const otherFormat = '### [ ] F0-1 — Tarea\n*Rama*: `fix/f0-ramas-protegidas`\n'
+    const otherFormat = '### [ ] F0-1 — Tarea\n*Branch*: `fix/f0-ramas-protegidas`\n'
     expect(checkPlan(otherFormat)).toEqual([expect.stringContaining('1 de las 1 tareas')])
+  })
+
+  it('does not recognise the Spanish branch line the plan used before F0-42', () => {
+    const oldFormat = '### [ ] F0-1 — Task\n**Rama:** `fix/f0-ramas-protegidas`\n'
+    expect(checkPlan(oldFormat)).toEqual([expect.stringContaining('1 de las 1 tareas')])
   })
 
   it('una rama fuera de toda tarea no compensa a la tarea que no la declara', () => {
@@ -175,13 +180,13 @@ describe('analizador del plan', () => {
     // llegaba a juzgar. Se cuenta por tarea, no por totales.
     const masked = [
       '### [ ] F0-1 — Con la rama mal escrita',
-      '*Rama*: `fix/f0-ramas-protegidas`',
+      '*Branch*: `fix/f0-ramas-protegidas`',
       '',
       '### [ ] F0-2 — Correcta',
-      '**Rama:** `fix/f0-two`',
+      '**Branch:** `fix/f0-two`',
       '',
       '## Apéndice',
-      '**Rama:** `fix/f0-three`',
+      '**Branch:** `fix/f0-three`',
       '',
     ].join('\n')
     const { tasks, declarations } = parsePlan(masked)
@@ -190,7 +195,7 @@ describe('analizador del plan', () => {
   })
 
   it('tolera espaciado distinto en la línea de rama', () => {
-    const { branches } = parsePlan('### [ ] T\n  **Rama:**   `fix/f0-spaced`\n')
+    const { branches } = parsePlan('### [ ] T\n  **Branch:**   `fix/f0-spaced`\n')
     expect(branches).toEqual([{ name: 'fix/f0-spaced', pending: true }])
   })
 

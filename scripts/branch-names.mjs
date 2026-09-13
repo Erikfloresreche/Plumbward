@@ -182,13 +182,13 @@ export function checkPullRequestBranch(branch, actor) {
  * tarea anterior: antes el estado `pendiente` sobrevivía a las cabeceras que no
  * son tareas y atribuía ramas a la tarea equivocada.
  *
- * `declarations` cuenta todas las líneas `**Rama:**`; `branches`, sólo las que
+ * `declarations` cuenta todas las líneas `**Branch:**`; `branches`, sólo las que
  * nombran una rama entre acentos graves. No son lo mismo: dos tareas del plan
- * declaran a propósito que no tienen rama de código ("configuración de GitHub",
- * "repositorio aparte").
+ * declaran a propósito que no tienen rama de código ("GitHub configuration",
+ * "separate repository").
  *
  * `tasksWithoutDeclaration` se cuenta **por tarea**, no comparando totales: una
- * línea `**Rama:**` que cuelgue de una cabecera que no es tarea compensaría a la
+ * línea `**Branch:**` que cuelgue de una cabecera que no es tarea compensaría a la
  * que falta, y la tarea sin rama volvería a pasar sin que nadie la juzgue. Es el
  * mismo fallo silencioso que la aserción venía a cerrar.
  *
@@ -225,10 +225,10 @@ export function parsePlan(text) {
       }
       continue
     }
-    if (!/^\s*\*\*Rama:\*\*/.test(line)) continue
+    if (!/^\s*\*\*Branch:\*\*/.test(line)) continue
     declarations += 1
     if (inTask) taskHasDeclaration = true
-    const branch = /^\s*\*\*Rama:\*\*\s*`([^`]+)`/.exec(line)
+    const branch = /^\s*\*\*Branch:\*\*\s*`([^`]+)`/.exec(line)
     if (branch) branches.push({ name: branch[1], pending })
   }
   closeTask()
@@ -250,7 +250,7 @@ export function checkPlan(text) {
   const { tasks, tasksWithoutDeclaration, branches } = parsePlan(text)
 
   // Aserción de mínimo. El analizador anterior fallaba en silencio: un plan
-  // vacío, una cabecera con otra forma o un `**Rama:**` con otro espaciado
+  // vacío, una cabecera con otra forma o un `**Branch:**` con otro espaciado
   // daban cero ramas y el control pasaba sin haber mirado nada.
   if (tasks === 0) {
     failures.push('el plan no declara ninguna tarea `### [ ] ...`: el analizador no reconoce su formato')
@@ -259,7 +259,7 @@ export function checkPlan(text) {
   if (tasksWithoutDeclaration > 0) {
     failures.push(
       `${tasksWithoutDeclaration} de las ${tasks} tareas del plan no declaran su rama antes de la ` +
-        'cabecera siguiente. Falta la línea "**Rama:**", o no sigue el formato que el analizador reconoce.',
+        'cabecera siguiente. Falta la línea "**Branch:**", o no sigue el formato que el analizador reconoce.',
     )
   }
 

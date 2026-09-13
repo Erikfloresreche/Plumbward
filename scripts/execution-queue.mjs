@@ -17,19 +17,21 @@
  * conecta. Tarea F0-40.
  */
 
-export const QUEUE_START = '<!-- cola:inicio -->'
-export const QUEUE_END = '<!-- cola:fin -->'
+export const QUEUE_START = '<!-- queue:start -->'
+export const QUEUE_END = '<!-- queue:end -->'
 
 const TASK_HEADER = /^### \[( |x)\] (F(\d+)-\d+) — /
 const QUEUE_ENTRY = /^- \*\*(F\d+-\d+)\*\*/
 const TASK_ID = /F\d+-\d+/g
-const WHOLE_PHASE = /Fase (\d+) completa/g
+const WHOLE_PHASE = /Phase (\d+) complete/g
+const DEPENDS_ON = '**Depends on:**'
 
 /**
  * @typedef {object} PlanTask
  * @property {string} id
  * @property {number} phase
  * @property {boolean} done
+ * @property {boolean} declaresDependencies whether the task has a `**Depends on:**` line
  * @property {string[]} dependsOnTasks
  * @property {number[]} dependsOnPhases
  */
@@ -37,8 +39,8 @@ const WHOLE_PHASE = /Fase (\d+) completa/g
 /**
  * Tareas del plan con su estado y sus dependencias.
  *
- * La dependencia se lee de la primera línea `**Depende de:**` del bloque de la
- * tarea, hasta el siguiente ` · ` o el final de la línea: `**Bloquea:**` va en
+ * La dependencia se lee de la primera línea `**Depends on:**` del bloque de la
+ * tarea, hasta el siguiente ` · ` o el final de la línea: `**Blocks:**` va en
  * la misma línea y sus identificadores no son dependencias.
  *
  * @param {string} text
@@ -56,6 +58,7 @@ export function parseTasks(text) {
         id: header[2],
         phase: Number(header[3]),
         done: header[1] === 'x',
+        declaresDependencies: false,
         dependsOnTasks: [],
         dependsOnPhases: [],
       }
@@ -66,10 +69,11 @@ export function parseTasks(text) {
       current = undefined
       continue
     }
-    if (!current || current.dependsOnTasks.length > 0 || current.dependsOnPhases.length > 0) continue
-    const at = line.indexOf('**Depende de:**')
+    if (!current || current.declaresDependencies) continue
+    const at = line.indexOf(DEPENDS_ON)
     if (at === -1) continue
-    const declared = line.slice(at + '**Depende de:**'.length).split(' · ')[0]
+    current.declaresDependencies = true
+    const declared = line.slice(at + DEPENDS_ON.length).split(' · ')[0]
     current.dependsOnTasks = declared.match(TASK_ID) ?? []
     current.dependsOnPhases = [...declared.matchAll(WHOLE_PHASE)].map((match) => Number(match[1]))
   }
@@ -124,6 +128,14 @@ export function checkQueue(text) {
     return [`el plan no tiene cola de ejecución entre \`${QUEUE_START}\` y \`${QUEUE_END}\``]
   }
 
+  // Same minimum assertion, per task: a dependency line the parser does not
+  // recognise reads as "no dependencies", and a broken order would pass (F0-42).
+  for (const task of tasks) {
+    if (!task.declaresDependencies) {
+      failures.push(`${task.id} has no \`${DEPENDS_ON}\` line: the parser cannot read its dependencies`)
+    }
+  }
+
   const byId = new Map(tasks.map((task) => [task.id, task]))
   /** @type {Map<string, number>} */
   const position = new Map()
@@ -168,7 +180,7 @@ export function checkQueue(text) {
     for (const dependency of task.dependsOnTasks) requireBefore(dependency, id, index, '')
     for (const phase of task.dependsOnPhases) {
       for (const member of tasks) {
-        if (member.phase === phase) requireBefore(member.id, id, index, ` (Fase ${phase} completa)`)
+        if (member.phase === phase) requireBefore(member.id, id, index, ` (Phase ${phase} complete)`)
       }
     }
   })
