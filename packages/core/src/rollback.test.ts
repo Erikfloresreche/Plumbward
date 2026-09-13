@@ -10,8 +10,8 @@ import { JOURNAL_FILE } from './types.js'
  *
  * Los casos de punta a punta con git real están en
  * `packages/cli/test/rollback-branch.test.ts`. Aquí se fija la decisión sola,
- * sin git, incluyendo las dos negativas que no se pueden provocar desde la CLI
- * sin montar un HEAD desacoplado o un journal antiguo.
+ * sin git, incluyendo las negativas que no se pueden provocar desde la CLI sin
+ * montar un journal antiguo o editado a mano.
  *
  * Todos comprueban además que **no se ha escrito** y que el journal sigue ahí:
  * negarse y dejar el repositorio a medias sería el mismo fallo con otra cara.
@@ -115,11 +115,40 @@ describe('rollbackLastApply: en qué rama se permite revertir', () => {
     )
   })
 
-  it('se niega con HEAD desacoplado aunque el journal también lo estuviera', async () => {
+  /**
+   * F0-29. Con HEAD desacoplado no hay nombre que comparar, pero sí commit, y el
+   * commit es lo que identifica el sitio desde F0-30. Negarse aquí dejaba el
+   * journal irreversible para siempre.
+   */
+  it('revierte con HEAD desacoplado si el journal también lo estaba, sobre el mismo commit', async () => {
+    const root = await createRepoWithJournal(journalWritingReadme(null))
+
+    const result = await rollbackLastApply(root, { currentBranch: null, currentCommit: WRITTEN_COMMIT })
+
+    expect(result.restoredFiles).toBe(1)
+    expect(await readme(root)).toBe('contenido anterior\n')
+    expect(await journalExists(root)).toBe(false)
+  })
+
+  it('se niega en una rama si el journal se escribió con HEAD desacoplado, aunque sea el mismo commit', async () => {
     const root = await createRepoWithJournal(journalWritingReadme(null))
 
     await expect(
-      rollbackLastApply(root, { currentBranch: null, currentCommit: WRITTEN_COMMIT }),
+      rollbackLastApply(root, { currentBranch: 'Prod', currentCommit: WRITTEN_COMMIT }),
+    ).rejects.toThrow(new RegExp(`desacoplado[\\s\\S]*"Prod"[\\s\\S]*git checkout --detach ${WRITTEN_COMMIT}`))
+
+    expect(await readme(root)).toBe('contenido actual\n')
+    expect(await journalExists(root)).toBe(true)
+  })
+
+  it('se niega si el journal no anota ni rama ni commit: no hay sitio que comprobar', async () => {
+    const root = await createRepoWithJournal({
+      ...(journalWritingReadme(null) as Record<string, unknown>),
+      writtenOnCommit: null,
+    })
+
+    await expect(
+      rollbackLastApply(root, { currentBranch: null, currentCommit: null }),
     ).rejects.toThrow(RollbackError)
 
     expect(await readme(root)).toBe('contenido actual\n')

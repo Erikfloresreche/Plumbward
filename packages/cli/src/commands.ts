@@ -325,29 +325,22 @@ export async function runApply(cwd: string, options: ApplyOptions): Promise<numb
     console.log(
       `  ${options.install ? '2' : '3'}. Revisa el diff con \`git diff\` y abre una Pull Request.`,
     )
-    // Sin rama que anotar no hay `rollback` posible (ver `assertSameBranch`):
-    // prometerlo igualmente sería vender una salida que no existe. Qué hacer
-    // con esta combinación, más allá de no mentir, es F0-29.
+    // La promesa vale también con HEAD desacoplado (F0-29): el commit identifica
+    // el sitio y `rollback` compara la rama vacía como cualquier otra.
     //
-    // Y la promesa caduca al commitear: el paso anterior manda abrir una Pull
-    // Request, y el commit mueve el sitio que `assertSameCommit` comprueba. Sin
-    // la condición, este paso deja de ser cierto en cuanto se sigue el de
-    // arriba, que es la misma promesa falsa que retiró F0-24.
+    // Y caduca al commitear: el paso anterior manda abrir una Pull Request, y el
+    // commit mueve el sitio que `assertSameCommit` comprueba. Sin la condición,
+    // este paso deja de ser cierto en cuanto se sigue el de arriba, que es la
+    // misma promesa falsa que retiró F0-24.
     const step = options.install ? '3' : '4'
     console.log(
-      writtenOnBranch === null
-        ? `  ${step}. Este \`apply\` no se podrá revertir con \`plumbward rollback\`: se ha escrito con HEAD desacoplado y no hay rama que comprobar al revertir.`
-        : `  ${step}. Si algo no encaja y aún no has commiteado: \`plumbward rollback\` lo deja todo como estaba.`,
+      `  ${step}. Si algo no encaja y aún no has commiteado: \`plumbward rollback\` lo deja todo como estaba.`,
     )
-    if (writtenOnBranch === null) {
-      console.log(pc.dim('     Deshaz los cambios con git si hace falta (`git diff`, `git checkout -- .`).'))
-    } else {
-      console.log(
-        pc.dim(
-          '     Después del commit ya no: el journal fotografió otro commit y `rollback` se niega. Deshaz con git.',
-        ),
-      )
-    }
+    console.log(
+      pc.dim(
+        '     Después del commit ya no: el journal fotografió otro commit y `rollback` se niega. Deshaz con git.',
+      ),
+    )
 
     return 0
   } catch (cause) {
