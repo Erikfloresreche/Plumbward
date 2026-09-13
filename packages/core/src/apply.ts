@@ -48,6 +48,12 @@ export interface ApplyOptions {
    * sobrescribiera `Prod` con los snapshots de la rama aislada.
    */
   readonly writtenOnBranch: string | null
+  /**
+   * Commit al que apunta HEAD al escribir, leído en la misma llamada que
+   * `writtenOnBranch`. Identifica el sitio; el nombre de la rama sólo lo
+   * etiqueta (ver `Journal.writtenOnCommit`).
+   */
+  readonly writtenOnCommit: string | null
   /** Rama desde la que se lanzó `apply`, para poder decir cómo volver a ella. */
   readonly startedOnBranch: string | null
   /** Si es `false`, los `execCommand` se registran pero no se ejecutan. */
@@ -101,10 +107,11 @@ export async function applyPlan(
   const startedAt = new Date().toISOString()
   const entries: JournalEntry[] = []
   const journal = (): Journal => ({
-    version: 2,
+    version: 3,
     startedAt,
     repoRoot: options.repoRoot,
     writtenOnBranch: options.writtenOnBranch,
+    writtenOnCommit: options.writtenOnCommit,
     startedOnBranch: options.startedOnBranch,
     entries: [...entries],
   })

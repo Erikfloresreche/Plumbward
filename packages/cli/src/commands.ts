@@ -153,11 +153,13 @@ async function readHead(repoRoot: string): Promise<HeadSnapshot> {
 async function printBranchNotice(
   repoRoot: string,
   startedOnBranch: string | null,
+  startedOnCommit: string | null,
   pendingRollback: boolean,
 ): Promise<void> {
   const notice = branchReturnNotice({
     currentBranch: branchNameOf(await readHead(repoRoot)),
     startedOnBranch,
+    startedOnCommit,
     isolatedBranch: GOVERNANCE_BRANCH,
     pendingRollback,
   })
@@ -281,15 +283,18 @@ export async function runApply(cwd: string, options: ApplyOptions): Promise<numb
 
   await prepareBranch(scan.repoRoot, scan.git, options.branch, context.context.profile)
 
-  // Después de `prepareBranch`, no antes: es la rama que de verdad se escribe, y
-  // es la única en la que `rollback` puede restaurar sin destruir trabajo.
-  const writtenOnBranch = branchNameOf(await readHead(scan.repoRoot))
+  // Después de `prepareBranch`, no antes: es el sitio que de verdad se escribe,
+  // y el único en el que `rollback` puede restaurar sin destruir trabajo. El
+  // commit va con la rama: el nombre etiqueta el sitio, el commit lo identifica.
+  const headWritten = await readHead(scan.repoRoot)
+  const writtenOnBranch = branchNameOf(headWritten)
 
   try {
     const result = await applyPlan(plan, {
       repoRoot: scan.repoRoot,
       version: CLI_VERSION,
       writtenOnBranch,
+      writtenOnCommit: headWritten.commit,
       startedOnBranch: scan.git.branch,
       runCommands: options.install,
       runner,
@@ -323,14 +328,25 @@ export async function runApply(cwd: string, options: ApplyOptions): Promise<numb
     // Sin rama que anotar no hay `rollback` posible (ver `assertSameBranch`):
     // prometerlo igualmente sería vender una salida que no existe. Qué hacer
     // con esta combinación, más allá de no mentir, es F0-29.
+    //
+    // Y la promesa caduca al commitear: el paso anterior manda abrir una Pull
+    // Request, y el commit mueve el sitio que `assertSameCommit` comprueba. Sin
+    // la condición, este paso deja de ser cierto en cuanto se sigue el de
+    // arriba, que es la misma promesa falsa que retiró F0-24.
     const step = options.install ? '3' : '4'
     console.log(
       writtenOnBranch === null
         ? `  ${step}. Este \`apply\` no se podrá revertir con \`plumbward rollback\`: se ha escrito con HEAD desacoplado y no hay rama que comprobar al revertir.`
-        : `  ${step}. Si algo no encaja: \`plumbward rollback\` lo deja todo como estaba.`,
+        : `  ${step}. Si algo no encaja y aún no has commiteado: \`plumbward rollback\` lo deja todo como estaba.`,
     )
     if (writtenOnBranch === null) {
       console.log(pc.dim('     Deshaz los cambios con git si hace falta (`git diff`, `git checkout -- .`).'))
+    } else {
+      console.log(
+        pc.dim(
+          '     Después del commit ya no: el journal fotografió otro commit y `rollback` se niega. Deshaz con git.',
+        ),
+      )
     }
 
     return 0
@@ -344,7 +360,7 @@ export async function runApply(cwd: string, options: ApplyOptions): Promise<numb
       )
       // Los ficheros sí, la rama no: revertir no deshace el checkout. Y si no
       // se pudo revertir, el consejo es otro: primero recuperar, luego volver.
-      await printBranchNotice(scan.repoRoot, scan.git.branch, !cause.rolledBack)
+      await printBranchNotice(scan.repoRoot, scan.git.branch, headBefore.commit, !cause.rolledBack)
       return 1
     }
     throw cause
@@ -356,9 +372,11 @@ export async function runRollback(cwd: string): Promise<number> {
   const { scan } = await buildContext(cwd)
 
   try {
-    // Con `readHead`, la misma fuente que usó `apply` al anotar la rama.
+    // Con `readHead`, la misma fuente que usó `apply` al anotar el sitio.
+    const headNow = await readHead(scan.repoRoot)
     const result = await rollbackLastApply(scan.repoRoot, {
-      currentBranch: branchNameOf(await readHead(scan.repoRoot)),
+      currentBranch: branchNameOf(headNow),
+      currentCommit: headNow.commit,
     })
     console.log(
       success(
@@ -366,7 +384,14 @@ export async function runRollback(cwd: string): Promise<number> {
       ),
     )
     console.log(pc.dim('  Comprueba con `git status --porcelain` que el árbol está limpio.'))
-    await printBranchNotice(scan.repoRoot, result.journal.startedOnBranch, false)
+    // El commit escrito es el de partida (ver `Journal.writtenOnCommit`): es el
+    // que hay que nombrar si se empezó con HEAD desacoplado.
+    await printBranchNotice(
+      scan.repoRoot,
+      result.journal.startedOnBranch,
+      result.journal.writtenOnCommit,
+      false,
+    )
     return 0
   } catch (cause) {
     console.log(error(cause instanceof Error ? cause.message : String(cause)))

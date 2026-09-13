@@ -89,6 +89,28 @@ describe('apply que falla y tampoco puede revertir', () => {
     expect(revertHere).toBeLessThan(printed.indexOf('git checkout Prod'))
   })
 
+  /**
+   * Hallazgo 2 de la revisión de F0-30. Los dos casos de arriba empiezan en la
+   * rama `Prod`, así que `startedOnBranch` nunca es `null` y el commit de
+   * partida que se le pasa al aviso no se consume: sustituirlo por `null` no
+   * rompía ningún test. Con HEAD desacoplado es justo al revés —no hay rama que
+   * nombrar— y es el camino en el que el usuario queda más atrapado: `apply` ha
+   * fallado y está en la rama aislada.
+   */
+  it('nombra el commit de partida si se empezó con HEAD desacoplado', async () => {
+    const root = await createRepo()
+    await git(root, 'checkout', '--detach')
+    const commitDePartida = await git(root, 'rev-parse', 'HEAD')
+    applyPlanMock.mockRejectedValue(new ApplyFailedError('EACCES al escribir', undefined, true))
+    const output = captureOutput()
+
+    expect(await runApply(root, { yes: true, install: false, branch: true })).toBe(1)
+    const printed = output()
+
+    expect(printed).toContain(`git checkout ${commitDePartida}`)
+    expect(printed).not.toContain('no tenía ningún commit')
+  })
+
   it('sigue proponiendo volver y borrar cuando sí se revirtió', async () => {
     const root = await createRepo()
     applyPlanMock.mockRejectedValue(new ApplyFailedError('EACCES al escribir', undefined, true))

@@ -11,10 +11,13 @@ import { branchReturnNotice } from '../src/branch-notice.js'
 
 const ISOLATED = 'chore/setup-ai-governance'
 
+const STARTED_COMMIT = '9f1c0d3a8b7e6f5d4c3b2a1908f7e6d5c4b3a219'
+
 function notice(currentBranch: string | null, startedOnBranch: string | null): string {
   return branchReturnNotice({
     currentBranch,
     startedOnBranch,
+    startedOnCommit: STARTED_COMMIT,
     isolatedBranch: ISOLATED,
     pendingRollback: false,
   }).join('\n')
@@ -25,6 +28,7 @@ function noticePending(currentBranch: string | null, startedOnBranch: string | n
   return branchReturnNotice({
     currentBranch,
     startedOnBranch,
+    startedOnCommit: STARTED_COMMIT,
     isolatedBranch: ISOLATED,
     pendingRollback: true,
   }).join('\n')
@@ -65,8 +69,10 @@ describe('branchReturnNotice', () => {
     const text = notice(ISOLATED, null)
 
     expect(text).toContain(`Sigues en la rama "${ISOLATED}"`)
-    expect(text).toContain('git checkout <commit>')
-    expect(text).not.toMatch(/git checkout (?!<commit>)/)
+    // El único `git checkout` de vuelta es al commit anotado (F0-30): no hay
+    // rama que nombrar, y antes aquí había un `<commit>` sin rellenar.
+    expect(text).toContain(`git checkout ${STARTED_COMMIT}`)
+    expect(text).not.toMatch(new RegExp(`git checkout (?!${STARTED_COMMIT})`))
   })
 })
 
@@ -103,5 +109,41 @@ describe('branchReturnNotice con un rollback pendiente', () => {
 
   it('calla igualmente si la rama no cambió: no hay nada de ramas que decir', () => {
     expect(noticePending('Prod', 'Prod')).toBe('')
+  })
+})
+
+/**
+ * F0-30, punto 3: sin el commit anotado el consejo era `git checkout <commit>`,
+ * un hueco que quien lo lee ya no puede rellenar: HEAD está en la rama aislada
+ * desde que `apply` la creó, y el commit de partida no se ve por ninguna parte.
+ */
+describe('branchReturnNotice cuando se empezó con HEAD desacoplado', () => {
+  it('nombra el commit de partida en lugar de un hueco', () => {
+    const text = notice(ISOLATED, null)
+
+    expect(text).toContain(`git checkout ${STARTED_COMMIT}`)
+    expect(text).not.toContain('<commit>')
+  })
+
+  it('también con un rollback pendiente, detrás del rollback', () => {
+    const text = noticePending(ISOLATED, null)
+
+    expect(text).toContain(`git checkout ${STARTED_COMMIT}`)
+    expect(text.indexOf('plumbward rollback')).toBeLessThan(
+      text.indexOf(`git checkout ${STARTED_COMMIT}`),
+    )
+  })
+
+  it('sin ningún commit en el repositorio no inventa uno al que volver', () => {
+    const text = branchReturnNotice({
+      currentBranch: ISOLATED,
+      startedOnBranch: null,
+      startedOnCommit: null,
+      isolatedBranch: ISOLATED,
+      pendingRollback: false,
+    }).join('\n')
+
+    expect(text).not.toContain('<commit>')
+    expect(text).toContain('no tenía ningún commit')
   })
 })

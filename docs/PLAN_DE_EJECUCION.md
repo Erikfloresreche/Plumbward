@@ -6,7 +6,7 @@
 > misma Pull Request que la implementa.
 
 **Última actualización:** 2026-09-12
-**Estado global:** Fase 0 en curso — F0-1, F0-3, F0-5, F0-8, F0-13, F0-14, F0-15, F0-17, F0-24 y F0-27 completadas. Quedan F0-2, F0-4, F0-6, F0-7, F0-9 a F0-12, F0-16, F0-18 a F0-23, F0-25, F0-26 y F0-28 a F0-32.
+**Estado global:** Fase 0 en curso — F0-1, F0-3, F0-5, F0-8, F0-13, F0-14, F0-15, F0-17, F0-24, F0-27 y F0-30 completadas. Quedan F0-2, F0-4, F0-6, F0-7, F0-9 a F0-12, F0-16, F0-18 a F0-23, F0-25, F0-26, F0-28, F0-29 y F0-31 a F0-37.
 **Producto:** Plumbward · https://github.com/Erikfloresreche/Plumbward
 **Modelo de negocio:** suscripción anual por repositorio — ver
 [MODELO_DE_NEGOCIO.md](MODELO_DE_NEGOCIO.md)
@@ -1403,7 +1403,7 @@ La retirada de la promesa ya tiene el suyo en `rollback-branch.test.ts`.
 
 ---
 
-### [ ] F0-30 — El journal identifica el sitio por commit, no sólo por nombre
+### [x] F0-30 — El journal identifica el sitio por commit, no sólo por nombre
 **Rama:** `feat/f0-journal-commit-identity` · **Depende de:** F0-24
 
 **Origen:** hallazgos 3 y 4 de la revisión en contexto nuevo de la PR #11.
@@ -1508,6 +1508,113 @@ test. El párrafo anterior, no: queda escrito donde se lee.
 
 **Criterios de aceptación:**
 - El JSDoc de `readJournal` dice qué lanza y en qué casos.
+
+---
+
+### [ ] F0-33 — El aviso sin ningún commit describe un estado imposible
+**Rama:** `fix/f0-unreachable-notice-branch` · **Depende de:** F0-30
+
+**Origen:** hallazgo 3 de la revisión en contexto nuevo de la PR de F0-30.
+
+**Trabajo:** `returnToCommit` tiene una rama para `startedOnCommit === null` que
+no se puede alcanzar desde la CLI: `startedOnBranch === null` significa HEAD
+desacoplado, y desacoplar exige que exista un commit; en un repositorio sin
+commits el escáner devuelve el nombre de la rama no nacida, no `null`. Los dos
+sitios de llamada derivan rama y commit de la misma lectura de HEAD, así que el
+par `(null, null)` no se produce. Sólo existe en un test que lo construye a
+mano. Decidir entre hacerla imposible por tipos o justificar por qué se queda.
+
+**Qué se convierte en control mecánico:** si se retira, su test desaparece con
+ella; si se queda, un test que la provoque por el camino real.
+
+**Criterios de aceptación:**
+- No queda código vivo que sólo pueda ejecutar un test.
+
+---
+
+### [ ] F0-34 — El e2e revierte con un commit que el repositorio no tiene
+**Rama:** `test/f0-e2e-journal-commit` · **Depende de:** F0-30
+
+**Origen:** hallazgo 4 de la revisión en contexto nuevo de la PR de F0-30.
+
+**Trabajo:** el e2e escribe el journal con `writtenOnCommit: null` y revierte con
+`currentCommit: null` sobre un repositorio que sí tiene commits: una combinación
+que en producción no ocurre. `assertSameCommit` pasa por `null === null` y no
+ejercita nada. Es el punto 3 del napkin —datos que hacen la mutación
+invisible— en el único test que dice cubrir el ciclo completo.
+
+**Qué se convierte en control mecánico:** pasar el commit real del repositorio
+de pruebas y comprobar que mutar la comprobación del commit mata el test.
+
+**Criterios de aceptación:**
+- El e2e usa el commit real en `applyPlan` y en `rollbackLastApply`.
+- Quitar `assertSameCommit` pone el e2e en rojo.
+
+---
+
+### [ ] F0-35 — Anotar los cambios de contrato del journal v3
+**Rama:** `docs/f0-journal-v3-contract` · **Depende de:** F0-30, F0-31
+
+**Origen:** hallazgo 5 de la revisión en contexto nuevo de la PR de F0-30.
+
+**Trabajo:** F0-30 cambió tres veces la superficie pública exportada en
+`packages/core/src/index.ts`: `ApplyOptions.writtenOnCommit` y
+`RollbackOptions.currentCommit` son campos requeridos nuevos, y `Journal.version`
+pasó de 2 a 3, con lo que `readJournal` lanza `OutdatedJournalError` donde antes
+devolvía el journal de un v2. F0-31 cubre sólo el JSDoc de `readJournal`.
+Anotarlo entero, con la política de versiones del journal.
+
+**Qué se convierte en control mecánico:** nada por sí mismo, igual que en F0-31:
+ningún control ve qué esperaba un consumidor externo. La defensa es que esté
+escrito donde se lee.
+
+**Criterios de aceptación:**
+- El JSDoc de los tipos exportados dice qué campos son nuevos y desde cuándo.
+
+---
+
+### [ ] F0-36 — La mutación del commit nombra otra cosa de la que muta
+**Rama:** `fix/f0-mutation-name-collision` · **Depende de:** F0-30
+
+**Origen:** hallazgo 6 de la revisión en contexto nuevo de la PR de F0-30.
+
+**Trabajo:** la entrada `Comparar sólo la rama, no el commit` de
+`scripts/check-mutations.mjs` es anterior a F0-30 y muta `headMoved`, no
+`assertSameCommit`. Quien lea la lista concluirá que el guardián del journal
+está cubierto por la batería, y no lo está: la batería no muta
+`packages/core/`. Renombrarla, y decidir si el guardián del journal entra en la
+batería —lo que arrastra el filtro `paths:` de `mutations.yml`— o se deja fuera
+diciéndolo.
+
+**Qué se convierte en control mecánico:** la propia entrada, si se añade.
+
+**Criterios de aceptación:**
+- Ningún nombre de mutación describe una pieza distinta de la que muta.
+
+---
+
+### [ ] F0-37 — Un journal v2 pendiente se queda sin `rollback`
+**Rama:** `fix/f0-v2-journal-remedy` · **Depende de:** F0-30
+
+**Origen:** hallazgo 7 de la revisión en contexto nuevo de la PR de F0-30.
+
+**Trabajo:** quien actualice la CLI con un `apply` v2 sin revertir pierde
+`plumbward rollback`: `readJournal` lanza `OutdatedJournalError`. La dirección
+es la segura y está documentada, pero es una retirada de capacidad que para un
+v2 aún era posible por nombre de rama, que es el nivel que F0-24 dio por bueno.
+Y el remedio que sugiere el error, `git checkout -- .`, no borra los ficheros
+nuevos sin seguimiento que creó el `apply` —defecto anterior, que ahora alcanza
+a muchos más casos—. Decidir qué se ofrece a esos journals y arreglar el
+remedio.
+
+**Qué se convierte en control mecánico:** un test del remedio que deje el árbol
+limpio de verdad, comprobado con `git status --porcelain`.
+
+**Criterios de aceptación:**
+- El texto del error lleva a un árbol limpio, ficheros sin seguimiento
+  incluidos.
+- La decisión sobre los journals v2 está escrita, con la alternativa
+  descartada.
 
 ---
 

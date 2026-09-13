@@ -29,13 +29,17 @@ async function createRepoWithJournal(journal: unknown): Promise<string> {
   return root
 }
 
+/** Commit sobre el que se escribió el journal de las pruebas. */
+const WRITTEN_COMMIT = '9f1c0d3a8b7e6f5d4c3b2a1908f7e6d5c4b3a219'
+
 /** Journal que, si se aplicase, devolvería `README.md` a su versión anterior. */
-function journalWritingReadme(writtenOnBranch: string | null, version = 2): unknown {
+function journalWritingReadme(writtenOnBranch: string | null, version = 3): unknown {
   return {
     version,
     startedAt: '2026-09-12T00:00:00.000Z',
     repoRoot: '/irrelevante',
     writtenOnBranch,
+    writtenOnCommit: WRITTEN_COMMIT,
     startedOnBranch: writtenOnBranch,
     entries: [
       {
@@ -80,7 +84,10 @@ describe('rollbackLastApply: en qué rama se permite revertir', () => {
   it('revierte en la rama en la que apply escribió', async () => {
     const root = await createRepoWithJournal(journalWritingReadme('chore/setup-ai-governance'))
 
-    const result = await rollbackLastApply(root, { currentBranch: 'chore/setup-ai-governance' })
+    const result = await rollbackLastApply(root, {
+      currentBranch: 'chore/setup-ai-governance',
+      currentCommit: WRITTEN_COMMIT,
+    })
 
     expect(result.restoredFiles).toBe(1)
     expect(await readme(root)).toBe('contenido anterior\n')
@@ -90,7 +97,9 @@ describe('rollbackLastApply: en qué rama se permite revertir', () => {
   it('se niega en otra rama, sin escribir y conservando el journal', async () => {
     const root = await createRepoWithJournal(journalWritingReadme('chore/setup-ai-governance'))
 
-    await expect(rollbackLastApply(root, { currentBranch: 'Prod' })).rejects.toThrow(RollbackError)
+    await expect(
+      rollbackLastApply(root, { currentBranch: 'Prod', currentCommit: WRITTEN_COMMIT }),
+    ).rejects.toThrow(RollbackError)
 
     expect(await readme(root)).toBe('contenido actual\n')
     expect(await journalExists(root)).toBe(true)
@@ -99,7 +108,9 @@ describe('rollbackLastApply: en qué rama se permite revertir', () => {
   it('el mensaje dice en qué rama se escribió y cómo volver', async () => {
     const root = await createRepoWithJournal(journalWritingReadme('chore/setup-ai-governance'))
 
-    await expect(rollbackLastApply(root, { currentBranch: 'Prod' })).rejects.toThrow(
+    await expect(
+      rollbackLastApply(root, { currentBranch: 'Prod', currentCommit: WRITTEN_COMMIT }),
+    ).rejects.toThrow(
       /"chore\/setup-ai-governance"[\s\S]*"Prod"[\s\S]*git checkout chore\/setup-ai-governance/,
     )
   })
@@ -107,22 +118,84 @@ describe('rollbackLastApply: en qué rama se permite revertir', () => {
   it('se niega con HEAD desacoplado aunque el journal también lo estuviera', async () => {
     const root = await createRepoWithJournal(journalWritingReadme(null))
 
-    await expect(rollbackLastApply(root, { currentBranch: null })).rejects.toThrow(RollbackError)
+    await expect(
+      rollbackLastApply(root, { currentBranch: null, currentCommit: WRITTEN_COMMIT }),
+    ).rejects.toThrow(RollbackError)
 
     expect(await readme(root)).toBe('contenido actual\n')
     expect(await journalExists(root)).toBe(true)
   })
 
-  it('se niega si el journal lo escribió una versión que no anotaba la rama', async () => {
+  it('se niega si el journal lo escribió una versión que no anotaba el sitio', async () => {
     const root = await createRepoWithJournal({
       ...(journalWritingReadme(null, 1) as Record<string, unknown>),
       writtenOnBranch: undefined,
       branch: 'Prod',
     })
 
-    await expect(rollbackLastApply(root, { currentBranch: 'Prod' })).rejects.toThrow(
-      OutdatedJournalError,
+    await expect(
+      rollbackLastApply(root, { currentBranch: 'Prod', currentCommit: WRITTEN_COMMIT }),
+    ).rejects.toThrow(OutdatedJournalError)
+
+    expect(await readme(root)).toBe('contenido actual\n')
+    expect(await journalExists(root)).toBe(true)
+  })
+})
+
+/**
+ * F0-30: el nombre etiqueta el sitio, el commit lo identifica. Los casos con
+ * git real —rama recreada, commit encima del `apply`— están en
+ * `packages/cli/test/rollback-branch.test.ts`.
+ */
+describe('rollbackLastApply: sobre qué commit se permite revertir', () => {
+  it('se niega en la misma rama si apunta a otro commit', async () => {
+    const root = await createRepoWithJournal(journalWritingReadme('chore/setup-ai-governance'))
+
+    await expect(
+      rollbackLastApply(root, {
+        currentBranch: 'chore/setup-ai-governance',
+        currentCommit: '0000000000000000000000000000000000000000',
+      }),
+    ).rejects.toThrow(RollbackError)
+
+    expect(await readme(root)).toBe('contenido actual\n')
+    expect(await journalExists(root)).toBe(true)
+  })
+
+  it('el mensaje nombra los dos commits y no manda volver a una rama que ya está', async () => {
+    const root = await createRepoWithJournal(journalWritingReadme('chore/setup-ai-governance'))
+
+    await expect(
+      rollbackLastApply(root, {
+        currentBranch: 'chore/setup-ai-governance',
+        currentCommit: '0000000000000000000000000000000000000000',
+      }),
+    ).rejects.toThrow(
+      new RegExp(`${WRITTEN_COMMIT}[\\s\\S]*0000000000000000000000000000000000000000`),
     )
+  })
+
+  it('revierte en un repositorio que no tenía ningún commit ni lo tiene ahora', async () => {
+    const root = await createRepoWithJournal({
+      ...(journalWritingReadme('Prod') as Record<string, unknown>),
+      writtenOnCommit: null,
+    })
+
+    const result = await rollbackLastApply(root, { currentBranch: 'Prod', currentCommit: null })
+
+    expect(result.restoredFiles).toBe(1)
+    expect(await readme(root)).toBe('contenido anterior\n')
+  })
+
+  it('se niega con un journal v2, que anotaba la rama pero no el commit', async () => {
+    const root = await createRepoWithJournal({
+      ...(journalWritingReadme('Prod', 2) as Record<string, unknown>),
+      writtenOnCommit: undefined,
+    })
+
+    await expect(
+      rollbackLastApply(root, { currentBranch: 'Prod', currentCommit: WRITTEN_COMMIT }),
+    ).rejects.toThrow(OutdatedJournalError)
 
     expect(await readme(root)).toBe('contenido actual\n')
     expect(await journalExists(root)).toBe(true)
