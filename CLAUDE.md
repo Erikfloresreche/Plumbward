@@ -241,6 +241,13 @@ does not cost more for what is written, but for everything it drags along.
    delivers the texts. The developer does the merge. Everything after that,
    without exception, starts in a new session: the assistant says so when
    closing.
+7. **Next-session prompt, unasked.** When a task, a batch or a review round
+   closes and the next work belongs in a new session, the reply ends with the
+   prompt to open it, ready to paste. It carries only what the repository does
+   not: conventions fixed in the chat and decisions still open. The developer
+   opens that chat, not a subagent. **Why:** asking for the prompt cost a round
+   trip per batch of F0-42; a subagent boots just as cold, its report is resent
+   on every later turn of this chat, and the developer cannot talk to it.
 
 **Why:** the session of PR #7 (F0-14) used more than 80 % of the usage window:
 five review rounds in a fresh context, and each follow-up fixed inside the PR
