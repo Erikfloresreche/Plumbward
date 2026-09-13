@@ -6,7 +6,7 @@
 > checkbox in this file, inside the same Pull Request that implements it.
 
 **Last updated:** 2026-09-13
-**Global status:** Phase 0 in progress — F0-1, F0-3, F0-5, F0-8, F0-13, F0-14, F0-15, F0-16, F0-17, F0-24, F0-27, F0-29, F0-30, F0-40, F0-41 and F0-48 completed. Remaining: F0-2, F0-4, F0-6, F0-7, F0-9 to F0-12, F0-18 to F0-23, F0-25, F0-26, F0-28, F0-31 to F0-39 and F0-42 to F0-47.
+**Global status:** Phase 0 in progress — F0-1, F0-3, F0-5, F0-8, F0-13, F0-14, F0-15, F0-16, F0-17, F0-24, F0-27, F0-29, F0-30, F0-40, F0-41, F0-42 and F0-48 completed. Remaining: F0-2, F0-4, F0-6, F0-7, F0-9 to F0-12, F0-18 to F0-23, F0-25, F0-26, F0-28, F0-31 to F0-39 and F0-43 to F0-47.
 **Product:** Plumbward · https://github.com/Erikfloresreche/Plumbward
 **Business model:** annual subscription per repository — see
 [BUSINESS_MODEL.md](BUSINESS_MODEL.md)
@@ -1787,7 +1787,7 @@ fresh-context review of each translation PR, comparing with the original.
 
 ---
 
-### [ ] F0-42 — The execution plan in English
+### [x] F0-42 — The execution plan in English
 **Branch:** `docs/f0-english-plan` · **Depends on:** F0-16, F0-48
 
 **Origin:** F0-41. The plan is over 3,000 lines and is, after `CLAUDE.md`, what
@@ -1816,7 +1816,7 @@ is read the most: every task starts by reading its own.
 - [x] Batch 2: Phase 0, first half (F0-1 to F0-20).
 - [x] Batch 3: Phase 0, second half (F0-21 to F0-46).
 - [x] Batch 4: Phases 1 to 6.
-- [ ] Close, after F0-48: the kept literals registered as fragment exceptions,
+- [x] Close, after F0-48: the kept literals registered as fragment exceptions,
   and the plan out of the pending list.
 
 **What becomes a mechanical control:** the F0-41 one over the plan, and the
@@ -3296,7 +3296,6 @@ controls that watch the work of the phase go before that work.
 
 #### Phase 0 · 1. English as the main language
 
-- **F0-42** — the plan, the most read file after `CLAUDE.md`.
 - **F0-47** — the assistant hands over the next-session prompt without being asked. Right after F0-42: it is ten lines of `CLAUDE.md` and saves a round trip in every multi-session task after it.
 - **F0-18** — the rest of the documentation and all the ADRs.
 - **F0-43** — comments and tests of the core.
