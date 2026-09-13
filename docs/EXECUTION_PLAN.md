@@ -203,772 +203,780 @@ It applies to **all** tasks, on top of their own criteria:
 
 ---
 
-## FASE 0 — Fundación del repositorio
+## PHASE 0 — Repository foundation
 
-**Objetivo:** que el proyecto sea un proyecto: versionado, verificado en CI,
-documentado y publicable. Bloquea todo lo demás.
-**Estimación:** 1-2 sesiones de trabajo.
-**Criterio de salida de fase:** un desarrollador ajeno clona, ejecuta
-`pnpm install && pnpm test` y todo funciona sin preguntar nada.
+**Objective:** make the project a real project: versioned, verified in CI,
+documented and publishable. It blocks everything else.
+**Estimate:** 1-2 work sessions.
+**Phase exit criterion:** an outside developer clones, runs
+`pnpm install && pnpm test` and everything works without asking anything.
 
 ---
 
-### [x] F0-1 — Poner el proyecto bajo control de versiones
+### [x] F0-1 — Put the project under version control
 **Branch:** `chore/f0-git-bootstrap` · **Depends on:** nothing · **Blocks:** everything
 
-**Por qué primero:** hoy todo el trabajo existe sólo en el disco de una máquina.
-Cualquier error irreversible lo pierde entero.
+**Why first:** today all the work exists only on the disk of one machine.
+Any irreversible mistake loses all of it.
 
-**Trabajo:**
-1. `git init -b main` en la raíz.
-2. Revisar `.gitignore`: ya cubre `node_modules/`, `dist/`, `.turbo/`,
-   `coverage/`, `.env*`. Añadir `.DS_Store` (ya está) y `*.log`.
-3. Crear `.gitattributes`: `* text=auto eol=lf`, y marcar `pnpm-lock.yaml`
-   como `linguist-generated`.
-4. Commit inicial: `chore: importa la base del monorepo de gobernanza`.
-5. Crear `develop` desde `main` y dejarla como rama activa.
-6. Crear el repositorio remoto (privado) y hacer push de ambas ramas.
+**Work:**
+1. `git init -b main` at the root.
+2. Review `.gitignore`: it already covers `node_modules/`, `dist/`, `.turbo/`,
+   `coverage/`, `.env*`. Add `.DS_Store` (already there) and `*.log`.
+3. Create `.gitattributes`: `* text=auto eol=lf`, and mark `pnpm-lock.yaml`
+   as `linguist-generated`.
+4. Initial commit: `chore: importa la base del monorepo de gobernanza`.
+5. Create `develop` from `main` and leave it as the active branch.
+6. Create the remote repository (private) and push both branches.
 
-**Criterios de aceptación:**
-- [x] `git log` muestra el commit inicial con todo el árbol de `packages/`.
-- [x] `git status` limpio tras un `pnpm install && pnpm build` (nada generado se cuela).
-- [x] `main` y `develop` existen en el remoto.
+**Acceptance criteria:**
+- [x] `git log` shows the initial commit with the whole `packages/` tree.
+- [x] `git status` clean after a `pnpm install && pnpm build` (nothing generated slips in).
+- [x] `main` and `develop` exist on the remote.
 
-**Cerrada el 2026-09-08.** Commit inicial de 63 ficheros y 440 KB. Además de lo
-previsto: se movió a la raíz un `.code-workspace` de VSCode que estaba guardado
-por error dentro de `packages/scanner/src/`, y se añadió un README mínimo (el
-definitivo es F0-5). La identidad de git se configuró **local al repositorio**,
-no global: `Erik Flores Reche <erikfloresreche@gmail.com>`, el correo asociado a
-la cuenta personal de GitHub que aloja el repositorio. GitHub atribuye los
-commits por dirección de correo, no por nombre, así que usar otra dirección los
-vincula a otra cuenta.
+**Closed on 2026-09-08.** Initial commit of 63 files and 440 KB. Beyond what was
+planned: a VSCode `.code-workspace` saved by mistake inside
+`packages/scanner/src/` was moved to the root, and a minimal README was added
+(the final one is F0-5). The git identity was configured **local to the
+repository**, not global: `Erik Flores Reche <erikfloresreche@gmail.com>`, the
+email tied to the personal GitHub account that hosts the repository. GitHub
+attributes commits by email address, not by name, so using another address
+links them to another account.
 
 ---
 
-### [ ] F0-2 — Una única fuente para el número de versión
+### [ ] F0-2 — A single source for the version number
 **Branch:** `build/f0-single-version-source` · **Depends on:** F0-1
 
-**Por qué:** `CLI_VERSION` está hardcodeado como `'0.1.0'` en
-[context.ts](../packages/cli/src/context.ts). En cuanto publiquemos, el journal
-y las cabeceras de fichero gestionado mentirán sobre qué versión generó qué, y
-`upgrade` (F4-2) depende de ese dato para decidir si regenera.
+**Why:** `CLI_VERSION` is hardcoded as `'0.1.0'` in
+[context.ts](../packages/cli/src/context.ts). As soon as we publish, the journal
+and the managed-file headers will lie about which version generated what, and
+`upgrade` (F4-2) depends on that data to decide whether to regenerate.
 
-**Trabajo:**
-1. Inyectar la versión en build time con `define` en
-   [tsup.config.ts](../packages/cli/tsup.config.ts), leyendo `package.json`.
-2. Sustituir la constante por la variable inyectada, con fallback legible en dev.
-3. Test que compara la versión que reporta `plumbward --version` con la del
-   `package.json` del CLI.
+**Work:**
+1. Inject the version at build time with `define` in
+   [tsup.config.ts](../packages/cli/tsup.config.ts), reading `package.json`.
+2. Replace the constant with the injected variable, with a readable fallback in dev.
+3. Test that compares the version reported by `plumbward --version` with the one
+   in the CLI's `package.json`.
 
-**Criterios de aceptación:**
-- Cambiar la versión en `package.json` y reconstruir cambia la salida de
-  `plumbward --version` sin tocar código.
-- El test falla si alguien vuelve a hardcodearla.
+**Acceptance criteria:**
+- Changing the version in `package.json` and rebuilding changes the output of
+  `plumbward --version` without touching code.
+- The test fails if someone hardcodes it again.
 
 ---
 
-### [x] F0-3 — Pipeline de integración continua propio
+### [x] F0-3 — Our own continuous integration pipeline
 **Branch:** `ci/f0-pipeline-propio` · **Depends on:** F0-1
 
-**Por qué:** vendemos CI. No tener CI es un problema de credibilidad además de
-uno técnico.
+**Why:** we sell CI. Not having CI is a credibility problem as well as a
+technical one.
 
-**Trabajo:**
-1. `.github/workflows/ci.yml`: se dispara en PR a `develop` y `main`.
-   - Matriz Node **18, 20, 22** (el paquete declara `>=18`; hay que probarlo).
-   - Pasos: `pnpm install --frozen-lockfile` → `build` → `typecheck` → `test`.
-   - Caché de pnpm y de turbo.
-2. `.github/workflows/e2e.yml`: los tests E2E sobre repos temporales, separados
-   porque son lentos y tocan git de verdad.
-3. Ejecutar `gitleaks` sobre nuestro propio repo en cada PR.
+**Work:**
+1. `.github/workflows/ci.yml`: triggered on PRs to `develop` and `main`.
+   - Node matrix **18, 20, 22** (the package declares `>=18`; it has to be tested).
+   - Steps: `pnpm install --frozen-lockfile` → `build` → `typecheck` → `test`.
+   - pnpm and turbo cache.
+2. `.github/workflows/e2e.yml`: the E2E tests on temporary repos, kept separate
+   because they are slow and touch real git.
+3. Run `gitleaks` on our own repo on every PR.
 
-**Criterios de aceptación:**
-- [ ] Una PR con un test roto queda bloqueada en rojo. **No se cumple.** La CI
-      pinta el rojo, pero sin protección de rama ni ruleset la PR sigue siendo
-      mergeable. Requiere configuración en GitHub, que no vive en el
-      repositorio: tarea **F0-13**.
-- [ ] El pipeline completo baja de 5 minutos con caché caliente. *Pendiente de
-      medir en la primera ejecución real.*
-- [x] Node 18 pasa, o se sube `engines` conscientemente y se documenta. **Se
-      subió a `>=22`, con el motivo verificado en CI.**
+**Acceptance criteria:**
+- [ ] A PR with a broken test is blocked in red. **Not met.** CI shows the red,
+      but without branch protection or a ruleset the PR is still mergeable. It
+      needs configuration in GitHub, which does not live in the repository:
+      task **F0-13**.
+- [ ] The full pipeline runs under 5 minutes with a warm cache. *Pending
+      measurement on the first real run.*
+- [x] Node 18 passes, or `engines` is raised deliberately and documented. **It
+      was raised to `>=22`, with the reason verified in CI.**
 
-**Cerrada el 2026-09-10.** Entregado: `ci.yml` (matriz de Node, build,
-typecheck y unitarios, más escaneo de secretos), `e2e.yml` y `dependabot.yml`
-para las acciones de GitHub.
+**Closed on 2026-09-10.** Delivered: `ci.yml` (Node matrix, build, typecheck and
+unit tests, plus secret scanning), `e2e.yml` and `dependabot.yml` for the
+GitHub actions.
 
-**Cuatro decisiones tomadas durante la ejecución:**
+**Four decisions taken during execution:**
 
-1. **Matriz 22 / 24 / 26, y `engines` a `>=22`.** El plan pedía 18 / 20 / 22.
-   Node 18 y 20 llevan sin soporte de seguridad desde abril de 2025 y abril de
-   2026, así que se descartaron por coherencia con lo que vende el producto.
-   Node 20 se intentó igualmente como suelo pragmático, y **la primera ejecución
-   real de la CI lo tumbó**: pnpm 11 usa `node:sqlite` y exige Node >= 22.13, de
-   modo que en 20 no se pueden ni instalar las dependencias.
+1. **Matrix 22 / 24 / 26, and `engines` at `>=22`.** The plan asked for
+   18 / 20 / 22. Node 18 and 20 have been out of security support since April
+   2025 and April 2026, so they were discarded for consistency with what the
+   product sells. Node 20 was tried anyway as a pragmatic floor, and **the first
+   real CI run knocked it down**: pnpm 11 uses `node:sqlite` and requires
+   Node >= 22.13, so on 20 the dependencies cannot even be installed.
 
-   La lección importante no es el número: es que estábamos a punto de declarar
-   en `engines` un soporte que **no podíamos verificar**. Se soporta lo que se
-   prueba. Se añadió 26 a la matriz porque es sobre lo que se desarrolla en
-   local, y un fallo exclusivo de 26 se descubriría tarde.
+   The important lesson is not the number: it is that we were about to declare
+   in `engines` a support we **could not verify**. What is tested is what is
+   supported. 26 was added to the matrix because it is what local development
+   runs on, and a failure exclusive to 26 would be discovered late.
 
-2. **Pruebas partidas en `test:unit` y `test:e2e`.** Las unitarias tardan menos
-   de un segundo y corren en las tres versiones de Node; las de punta a punta
-   crean repositorios git reales y corren una sola vez. La división sale gratis
-   de la estructura que ya había: `src/` frente a `test/`.
+2. **Tests split into `test:unit` and `test:e2e`.** The unit tests take less
+   than a second and run on the three Node versions; the end-to-end ones create
+   real git repositories and run only once. The split comes for free from the
+   structure that already existed: `src/` versus `test/`.
 
-3. **`fail-fast: false` en la matriz.** Interesa saber si un fallo es de una
-   versión concreta o de todas; cancelar el resto oculta esa información.
+3. **`fail-fast: false` in the matrix.** We want to know whether a failure
+   belongs to one specific version or to all of them; cancelling the rest hides
+   that information.
 
-4. **Dependabot sólo para acciones de GitHub, por ahora.** Son código de
-   terceros que se ejecuta con acceso al repositorio. Las dependencias de npm
-   esperan a que exista el flujo de changesets (F0-6), para no generar ruido de
-   PRs sin forma de versionarlas.
+4. **Dependabot only for GitHub actions, for now.** They are third-party code
+   that runs with access to the repository. The npm dependencies wait until the
+   changesets flow exists (F0-6), so as not to generate noise of PRs with no way
+   to version them.
 
-**Dos cosas que conviene que sepas:**
+**Two things you should know:**
 
-- **El repositorio se hizo público el 2026-09-11**, lo que deja los minutos de
-  Actions sin límite y alinea el repositorio con la licencia BUSL y con el
-  argumento comercial de que el código es auditable. Consecuencia que hay que
-  asumir: **todo el historial anterior es visible para cualquiera**, y el
-  escaneo de secretos por PR sólo mira los commits de esa PR. De ahí el job
-  `history`, que revisa el historial completo semanalmente.
-- Si el repositorio se mueve a una **organización** de GitHub,
-  `gitleaks-action` pasa a exigir un secreto `GITLEAKS_LICENSE`. Mientras sea
-  una cuenta personal es gratuita. Está anotado en el propio workflow.
+- **The repository was made public on 2026-09-11**, which leaves the Actions
+  minutes unlimited and aligns the repository with the BUSL licence and with the
+  commercial argument that the code is auditable. A consequence that has to be
+  accepted: **the whole previous history is visible to anyone**, and the
+  per-PR secret scan only looks at the commits of that PR. Hence the `history`
+  job, which reviews the full history weekly.
+- If the repository moves to a GitHub **organisation**, `gitleaks-action`
+  starts requiring a `GITLEAKS_LICENSE` secret. While it is a personal account
+  it is free. It is noted in the workflow itself.
 
 ---
 
-### [ ] F0-4 — Dogfooding: aplicar nuestras propias reglas a este repo
+### [ ] F0-4 — Dogfooding: apply our own rules to this repo
 **Branch:** `chore/f0-dogfooding-hooks` · **Depends on:** F0-3
 
-**Por qué:** es la prueba más barata de que el producto sirve, y el mejor sitio
-donde detectar que una regla molesta más de lo que aporta.
+**Why:** it is the cheapest proof that the product works, and the best place to
+detect that a rule annoys more than it helps.
 
-**Trabajo:**
+**Work:**
 1. Husky + lint-staged + commitlint (`@commitlint/config-conventional`).
-2. ESLint 9 plano + Prettier para el propio monorepo, alineados con lo que
-   genera el pack de Node.
-3. `.gitleaks.toml` propio.
+2. Flat ESLint 9 + Prettier for the monorepo itself, aligned with what the Node
+   pack generates.
+3. Our own `.gitleaks.toml`.
 4. `CODEOWNERS`.
-5. Documentar en `CONTRIBUTING.md` (F0-5) cómo saltarse un hook en una
-   emergencia y por qué casi nunca debe hacerse.
+5. Document in `CONTRIBUTING.md` (F0-5) how to skip a hook in an emergency and
+   why it should almost never be done.
 
-**Criterios de aceptación:**
-- Un commit con mensaje no convencional se rechaza.
-- Un commit que introduce una cadena tipo secreto se rechaza.
-- `pnpm lint` en verde sobre todo el repo.
+**Acceptance criteria:**
+- A commit with a non-conventional message is rejected.
+- A commit that introduces a secret-like string is rejected.
+- `pnpm lint` green across the whole repo.
 
 ---
 
-### [x] F0-5 — Documentación base del proyecto
+### [x] F0-5 — Base project documentation
 **Branch:** `docs/f0-documentacion-base` · **Depends on:** F0-1
 
-**Por qué:** sin README no hay demo, ni onboarding, ni conversación de venta.
+**Why:** without a README there is no demo, no onboarding and no sales
+conversation.
 
-**Trabajo:**
-1. `README.md` raíz: el problema en tres frases, la demo en un bloque
-   (`npx @plumbward/cli scan`), qué instala, los tres invariantes, y el enlace a
-   este plan. Escrito para un CTO, no para un contribuidor.
-2. `LICENSE` — decidir y documentar el modelo (ver §Riesgos: afecta a Fase 5).
-3. `CONTRIBUTING.md` — flujo de ramas de §3, cómo correr los tests, cómo escribir un pack.
-4. `SECURITY.md` — canal de reporte de vulnerabilidades. Lo piden en compras enterprise.
-5. `docs/ARCHITECTURE.md` — el diagrama de flujo `scan → plan → apply` y por qué
-   nadie escribe en disco.
-6. `docs/adr/0001-plan-before-apply.md` y `0002-local-first-licensing.md` —
-   las dos decisiones que más nos van a cuestionar; conviene tener la respuesta escrita.
-7. `.github/PULL_REQUEST_TEMPLATE.md` con la plantilla de §3.4.
+**Work:**
+1. Root `README.md`: the problem in three sentences, the demo in one block
+   (`npx @plumbward/cli scan`), what it installs, the three invariants, and the
+   link to this plan. Written for a CTO, not for a contributor.
+2. `LICENSE` — decide and document the model (see §Risks: it affects Phase 5).
+3. `CONTRIBUTING.md` — branch flow from §3, how to run the tests, how to write a pack.
+4. `SECURITY.md` — vulnerability reporting channel. Enterprise procurement asks for it.
+5. `docs/ARCHITECTURE.md` — the `scan → plan → apply` flow diagram and why
+   nobody writes to disk.
+6. `docs/adr/0001-plan-before-apply.md` and `0002-local-first-licensing.md` —
+   the two decisions we will be questioned on the most; better to have the
+   answer written down.
+7. `.github/PULL_REQUEST_TEMPLATE.md` with the template from §3.4.
 
-**Criterios de aceptación:**
-- [x] El README permite a alguien sin contexto ejecutar la herramienta en 2 minutos.
-- [x] Las ADR explican la decisión, la alternativa descartada y el coste asumido.
+**Acceptance criteria:**
+- [x] The README lets someone with no context run the tool in 2 minutes.
+- [x] The ADRs explain the decision, the discarded alternative and the cost taken on.
 
-**Cerrada el 2026-09-09.** Entregado: `README.md` reescrito para un CTO,
+**Closed on 2026-09-09.** Delivered: `README.md` rewritten for a CTO,
 `LICENSE` (BUSL-1.1), `CONTRIBUTING.md`, `SECURITY.md`,
-[ARCHITECTURE.md](ARCHITECTURE.md) con el porqué de cada fichero del monorepo, y
-`.github/PULL_REQUEST_TEMPLATE.md`.
+[ARCHITECTURE.md](ARCHITECTURE.md) with the reason for each file of the
+monorepo, and `.github/PULL_REQUEST_TEMPLATE.md`.
 
-Se escribieron **tres** ADR en lugar de dos: la licencia del código resultó ser
-una decisión distinta de la del licenciamiento técnico y merecía la suya
+**Three** ADRs were written instead of two: the licence of the code turned out
+to be a decision separate from the technical licensing and deserved its own
 ([0003](adr/0003-busl-license.md)).
 
-**Revisión en contexto nuevo (2026-09-09).** La PR se sometió al flujo de F3-6 y
-la revisión encontró 12 hallazgos reales, tres de ellos afirmaciones falsas sobre
-el propio código que la primera redacción daba por buenas. Corregido todo en la
-misma PR. Lo que destapó del código son las tareas nuevas **F0-9, F0-10, F0-11 y
-F2-11**.
+**Fresh-context review (2026-09-09).** The PR went through the F3-6 flow and the
+review found 12 real findings, three of them false claims about the code itself
+that the first draft took for granted. All fixed in the same PR. What it
+uncovered in the code became the new tasks **F0-9, F0-10, F0-11 and F2-11**.
 
-El hallazgo más grave: el README indicaba `npx aegiscode`, que entonces era el
-nombre del producto y **un paquete real de otro autor** publicado en npm. Se
-corrigió, y el conflicto de nombre acabó provocando el renombrado a Plumbward
-en F0-8.
+The most serious finding: the README said `npx aegiscode`, which was then the
+product's name and **a real package by another author** published on npm. It
+was corrected, and the name conflict ended up causing the rename to Plumbward
+in F0-8.
 
-**Pendiente que deja abierto:** el texto de `LICENSE` **debe contrastarse contra
-https://mariadb.com/bsl11/** antes de hacer público el repositorio y revisarse
-legalmente antes de facturar.
+**Left open:** the text of `LICENSE` **must be checked against
+https://mariadb.com/bsl11/** before making the repository public, and reviewed
+legally before invoicing.
 
 ---
 
-### [ ] F0-6 — Versionado y changelog automatizados
+### [ ] F0-6 — Automated versioning and changelog
 **Branch:** `build/f0-changesets` · **Depends on:** F0-3
 
-**Por qué:** son seis paquetes con dependencias `workspace:*`. Versionarlos a
-mano acaba en incoherencias, y el cliente paga una suscripción anual por recibir
-actualizaciones: tiene que poder leer qué cambió en cada una.
+**Why:** there are six packages with `workspace:*` dependencies. Versioning them
+by hand ends in inconsistencies, and the client pays an annual subscription to
+receive updates: they have to be able to read what changed in each one.
 
-**Trabajo:**
-1. Instalar y configurar `@changesets/cli`.
-2. Regla en CI: toda PR que toque `packages/**` debe traer un changeset (o
-   marcarse explícitamente como `no-release`).
-3. Workflow de release: al mergear a `main`, versiona, genera CHANGELOG y publica.
-   Se deja **desactivada la publicación real** hasta F6-1.
+**Work:**
+1. Install and configure `@changesets/cli`.
+2. CI rule: every PR that touches `packages/**` must bring a changeset (or be
+   explicitly marked as `no-release`).
+3. Release workflow: on merge to `main`, it versions, generates the CHANGELOG
+   and publishes. **Real publishing stays disabled** until F6-1.
 
-**Criterios de aceptación:**
-- Un changeset en un paquete propaga la subida de versión a sus dependientes.
-- El CHANGELOG generado es legible por un cliente, no sólo por nosotros.
+**Acceptance criteria:**
+- A changeset in one package propagates the version bump to its dependents.
+- The generated CHANGELOG is readable by a client, not only by us.
 
 ---
 
-### [ ] F0-7 — Umbral de cobertura de tests
+### [ ] F0-7 — Test coverage threshold
 **Branch:** `test/f0-coverage-threshold` · **Depends on:** F0-3
 
-**Trabajo:**
-1. Activar `coverage` en [vitest.config.ts](../vitest.config.ts) con proveedor `v8`.
-2. Umbrales: **90% en `@plumbward/core`** (es el que puede corromper el repo de
-   un cliente), 80% en el resto, sin umbral en las plantillas de texto.
-3. Publicar el informe como artefacto de la PR.
+**Work:**
+1. Enable `coverage` in [vitest.config.ts](../vitest.config.ts) with the `v8` provider.
+2. Thresholds: **90% in `@plumbward/core`** (it is the one that can corrupt a
+   client's repo), 80% in the rest, no threshold in the text templates.
+3. Publish the report as a PR artifact.
 
-**Criterios de aceptación:**
-- CI falla si la cobertura de `core` baja del 90%.
-- Los umbrales reflejan la cobertura real actual, no un número aspiracional.
+**Acceptance criteria:**
+- CI fails if `core` coverage drops below 90%.
+- The thresholds reflect the real current coverage, not an aspirational number.
 
 ---
 
-### [x] F0-8 — Renombrar el scope de los paquetes a Plumbward
+### [x] F0-8 — Rename the package scope to Plumbward
 **Branch:** `refactor/f0-scope-plumbward` · **Depends on:** F0-1 · **Blocks:** Phase 2
 
-**Por qué antes de la Fase 2:** los seis paquetes nacieron bajo `@governance/*`,
-un scope provisional. Cada pack nuevo multiplica los imports que habría que
-reescribir después, así que el momento más barato para renombrar es antes de que
-existan cinco packs.
+**Why before Phase 2:** the six packages were born under `@governance/*`, a
+provisional scope. Every new pack multiplies the imports that would have to be
+rewritten later, so the cheapest moment to rename is before five packs exist.
 
-**Trabajo:**
-1. **Registrar la organización en npm antes de tocar nada.**
-   Comprobado el 2026-09-09: el nombre que se barajaba entonces, `aegiscode`,
-   estaba **ocupado** —igual que `aegiscode-cli` y `aegiscode-gui`— y, lo más
-   grave, existía `@save3asy/aegiscode`, publicado tres semanas antes y descrito
-   como *"AI Code Governance & Architecture Guardrails"*: un competidor
-   homónimo en nuestra categoría exacta. Eso obligó a cambiar de nombre.
-   `plumbward` se comprobó libre en npm y en los dominios `.com`, `.dev` e
-   `.io`. La organización `plumbward` quedó registrada el 2026-09-09.
-2. Renombrar los seis paquetes a `@plumbward/*` y actualizar las dependencias
-   `workspace:*` de todos los `package.json`.
-3. Renombrar el binario de `governance` a `plumbward`.
-4. Decidir si el directorio de estado en el repositorio del cliente pasa de
-   `.governance/` a `.plumbward/`. **Recomendación: mantener `.governance/`** —
-   describe la función, no la marca, y así una migración de marca futura no
-   obliga a tocar los repositorios ya configurados.
-5. Actualizar README, plan y textos de la CLI.
+**Work:**
+1. **Register the organisation on npm before touching anything.**
+   Checked on 2026-09-09: the name being considered then, `aegiscode`, was
+   **taken** —as were `aegiscode-cli` and `aegiscode-gui`— and, most seriously,
+   there was `@save3asy/aegiscode`, published three weeks earlier and described
+   as *"AI Code Governance & Architecture Guardrails"*: a competitor with the
+   same name in our exact category. That forced a name change. `plumbward` was
+   checked as free on npm and on the `.com`, `.dev` and `.io` domains. The
+   `plumbward` organisation was registered on 2026-09-09.
+2. Rename the six packages to `@plumbward/*` and update the `workspace:*`
+   dependencies of every `package.json`.
+3. Rename the binary from `governance` to `plumbward`.
+4. Decide whether the state directory in the client's repository changes from
+   `.governance/` to `.plumbward/`. **Recommendation: keep `.governance/`** —
+   it describes the function, not the brand, so a future brand migration does
+   not force touching repositories already configured.
+5. Update README, plan and CLI texts.
 
-**Criterios de aceptación:**
-- `pnpm build && pnpm test` en verde tras el renombrado.
-- Ni una referencia a `@plumbward/` fuera del historial de git.
-- El scope de NPM queda registrado a nombre de la empresa.
+**Acceptance criteria:**
+- `pnpm build && pnpm test` green after the rename.
+- Not a single reference to `@plumbward/` outside the git history.
+- The NPM scope is registered in the company's name.
 
 ---
 
-### [ ] F0-9 — Guarda de exhaustividad en el simulador y el renderizador
+### [ ] F0-9 — Exhaustiveness guard in the simulator and the renderer
 **Branch:** `fix/f0-simulate-exhaustiveness` · **Depends on:** F0-1
 
-**Origen:** revisión de F0-5. El documento de arquitectura afirmaba que añadir un
-tipo de operación nuevo obliga al compilador a tratarlo en todas partes. Sólo es
-cierto en `executeOperation` y en `plan.ts`.
+**Origin:** F0-5 review. The architecture document claimed that adding a new
+operation type forces the compiler to handle it everywhere. It is only true in
+`executeOperation` and in `plan.ts`.
 
-**Por qué importa:** el `switch` de
-[simulate.ts](../packages/core/src/simulate.ts) no tiene `default` ni
-aserción `never`. Un séptimo tipo de operación compilaría limpio y sería
-**ignorado en silencio por `plan` pero ejecutado por `apply`**. Es exactamente la
-divergencia que toda la arquitectura existe para impedir, y hoy nada la detecta.
+**Why it matters:** the `switch` in
+[simulate.ts](../packages/core/src/simulate.ts) has no `default` and no `never`
+assertion. A seventh operation type would compile cleanly and be **silently
+ignored by `plan` but executed by `apply`**. It is exactly the divergence the
+whole architecture exists to prevent, and today nothing detects it.
 
-**Trabajo:**
-1. Añadir `default: { const _exhaustivo: never = operation; ... }` al switch de
-   `simulatePlan`.
-2. Revisar `render.ts`, que hoy no discrimina por `kind` de forma exhaustiva.
-3. Test que añada un tipo de operación falso y verifique que el typecheck falla.
+**Work:**
+1. Add `default: { const _exhaustive: never = operation; ... }` to the
+   `simulatePlan` switch.
+2. Review `render.ts`, which today does not discriminate by `kind` exhaustively.
+3. Test that adds a fake operation type and verifies that the typecheck fails.
 
-**Criterios de aceptación:**
-- Añadir un miembro a la unión `Operation` rompe `pnpm typecheck` señalando cada
-  sitio que hay que actualizar.
+**Acceptance criteria:**
+- Adding a member to the `Operation` union breaks `pnpm typecheck`, pointing at
+  every place that has to be updated.
 
 ---
 
-### [ ] F0-10 — Contención de rutas resistente a enlaces simbólicos
+### [ ] F0-10 — Path containment resistant to symbolic links
 **Branch:** `fix/f0-symlink-containment` · **Depends on:** F0-1
 
-**Origen:** revisión de F0-5.
+**Origin:** F0-5 review.
 
-**Por qué importa:** `resolveInRepo()` en [fs.ts](../packages/core/src/fs.ts)
-compara rutas de forma **léxica**, sin `realpath`. Un enlace simbólico dentro del
-repositorio que apunte fuera (`enlace -> /home/usuario/.ssh`) hace que
-`enlace/authorized_keys` supere la validación, y `writeFileEnsuringDir` escriba a
-través de él. `SECURITY.md` presenta esta función como la barrera principal.
+**Why it matters:** `resolveInRepo()` in [fs.ts](../packages/core/src/fs.ts)
+compares paths **lexically**, without `realpath`. A symbolic link inside the
+repository that points outside (`link -> /home/user/.ssh`) makes
+`link/authorized_keys` pass the validation, and `writeFileEnsuringDir` writes
+through it. `SECURITY.md` presents this function as the main barrier.
 
-**Trabajo:**
-1. Resolver enlaces con `realpath` en el directorio padre existente más cercano
-   antes de comparar, sin romper el caso legítimo de crear ficheros nuevos.
-2. Decidir la política ante un symlink que apunta fuera: rechazar y reportarlo
-   como conflicto, nunca seguirlo en silencio.
-3. Tests con un symlink a un directorio externo y con uno interno legítimo.
-4. Actualizar `SECURITY.md` y `ARCHITECTURE.md` cuando el hueco esté cerrado.
+**Work:**
+1. Resolve links with `realpath` on the closest existing parent directory
+   before comparing, without breaking the legitimate case of creating new files.
+2. Decide the policy for a symlink that points outside: reject it and report it
+   as a conflict, never follow it silently.
+3. Tests with a symlink to an external directory and with a legitimate internal one.
+4. Update `SECURITY.md` and `ARCHITECTURE.md` once the gap is closed.
 
-**Criterios de aceptación:**
-- Escribir a través de un symlink que sale del repositorio se rechaza.
-- Los symlinks internos legítimos siguen funcionando.
+**Acceptance criteria:**
+- Writing through a symlink that leaves the repository is rejected.
+- Legitimate internal symlinks keep working.
 
 ---
 
-### [ ] F0-11 — Reversibilidad de los efectos de la instalación
+### [ ] F0-11 — Reversibility of the effects of installation
 **Branch:** `feat/f0-install-rollback` · **Depends on:** F0-1
 
-**Origen:** revisión de F0-5.
+**Origin:** F0-5 review.
 
-**Por qué importa:** el producto promete que `rollback` deja el repositorio
-idéntico. Hoy sólo es cierto con `--no-install`: las operaciones `execCommand`
-devuelven `snapshots: []`, así que el lockfile que reescribe `pnpm add` y el
-contenido de `node_modules` quedan fuera del journal. El test E2E y el guion de
-prueba de la documentación **usan `--no-install`**, que es como el hueco pasó
-desapercibido.
+**Why it matters:** the product promises that `rollback` leaves the repository
+identical. Today it is only true with `--no-install`: the `execCommand`
+operations return `snapshots: []`, so the lockfile that `pnpm add` rewrites and
+the content of `node_modules` are left out of the journal. The E2E test and the
+documentation's trial script **use `--no-install`**, which is how the gap went
+unnoticed.
 
-**Trabajo:**
-1. Fotografiar los ficheros de manifiesto y de bloqueo (`package.json`,
-   `pnpm-lock.yaml`, `composer.lock`, `poetry.lock`...) antes de ejecutar un
-   comando de instalación, y registrarlos en el journal.
-2. Decidir qué hacer con `node_modules`: probablemente no restaurarlo, pero sí
-   **decirlo con claridad** en la salida de `rollback` en lugar de callarlo.
-3. Test E2E con instalación real que verifique el ciclo completo.
-4. Al cerrar la tarea, retirar la advertencia del README y de `ARCHITECTURE.md`.
+**Work:**
+1. Snapshot the manifest and lock files (`package.json`, `pnpm-lock.yaml`,
+   `composer.lock`, `poetry.lock`...) before running an install command, and
+   record them in the journal.
+2. Decide what to do with `node_modules`: probably not restore it, but **say so
+   clearly** in the `rollback` output instead of keeping quiet about it.
+3. E2E test with a real installation that verifies the full cycle.
+4. When closing the task, remove the warning from the README and from
+   `ARCHITECTURE.md`.
 
-**Criterios de aceptación:**
-- `apply` con instalación seguido de `rollback` deja el lockfile como estaba.
-- `rollback` informa explícitamente de lo que no puede deshacer.
+**Acceptance criteria:**
+- `apply` with installation followed by `rollback` leaves the lockfile as it was.
+- `rollback` reports explicitly what it cannot undo.
 
 ---
 
-### [ ] F0-12 — Convertir en controles los hallazgos de nuestras revisiones
+### [ ] F0-12 — Turn the findings of our reviews into controls
 **Branch:** `test/f0-review-controls` · **Depends on:** F0-3
 
-**Origen:** las dos revisiones en contexto nuevo de septiembre de 2026
-produjeron 30 hallazgos. Repasándolos, **cinco controles habrían evitado unos
-dos tercios**.
+**Origin:** the two fresh-context reviews of September 2026 produced 30
+findings. Going over them, **five controls would have prevented about two
+thirds**.
 
-**Por qué en forma de control y no de regla escrita:** `CLAUDE.md` ya ronda las
-130 líneas. A las 400 nadie las aplica de forma fiable, porque cada regla nueva
-diluye a las demás. Un test que falla, falla siempre. Es la misma tesis que
-vende el producto, aplicada a nosotros.
+**Why as a control and not a written rule:** `CLAUDE.md` is already around 130
+lines. At 400 nobody applies them reliably, because every new rule dilutes the
+others. A test that fails always fails. It is the same thesis the product
+sells, applied to ourselves.
 
-**Trabajo — los cinco controles, como tests:**
+**Work — the five controls, as tests:**
 
-1. **Términos prohibidos.** Tras un renombrado, ninguna aparición del nombre
-   viejo sobrevive salvo en contextos declarados. Habría cazado
-   `GOVERNANCE_DEBUG`, `$AEGIS`, el prefijo `governance-e2e-` y el
-   `governance --version` de los criterios de F0-6.
+1. **Forbidden terms.** After a rename, no occurrence of the old name survives
+   except in declared contexts. It would have caught `GOVERNANCE_DEBUG`,
+   `$AEGIS`, the `governance-e2e-` prefix and the `governance --version` in the
+   F0-6 criteria.
 
-2. **Hechos protegidos.** Una lista de nombres de terceros y registros fechados
-   que un reemplazo masivo **nunca** puede tocar. Es el que habría parado el
-   fallo más grave: renombrar `@save3asy/aegiscode`, el paquete real de un
-   competidor, a un nombre que no existe. **El más importante de los cinco.**
+2. **Protected facts.** A list of third-party names and dated records that a
+   mass replacement can **never** touch. It is the one that would have stopped
+   the most serious failure: renaming `@save3asy/aegiscode`, a competitor's real
+   package, to a name that does not exist. **The most important of the five.**
 
-3. **Los comandos documentados existen.** Cada `plumbward <x>` en documentación
-   o en el `LICENSE` debe corresponder a un comando registrado en el CLI. Habría
-   cazado el *Additional Use Grant* nombrando `report` e `init`, y `upgrade`
-   descrito en presente sin existir.
+3. **Documented commands exist.** Every `plumbward <x>` in documentation or in
+   the `LICENSE` must match a command registered in the CLI. It would have
+   caught the *Additional Use Grant* naming `report` and `init`, and `upgrade`
+   described in the present tense without existing.
 
-4. **Snapshots de lo generado.** Ficheros dorados con la salida exacta de cada
-   pack, para que cualquier cambio en marcadores, identificadores de bloque o
-   tokens persistidos aparezca en el diff. Habría cazado el cambio silencioso
-   del identificador del bloque de `.gitignore`.
+4. **Snapshots of what is generated.** Golden files with the exact output of
+   each pack, so that any change in markers, block identifiers or persisted
+   tokens shows up in the diff. It would have caught the silent change of the
+   `.gitignore` block identifier.
 
-5. **Tablas derivadas, no escritas.** El diagrama de dependencias se genera
-   desde los `package.json`. Habría cazado el diagrama que inventaba una arista
-   y omitía dos.
+5. **Derived tables, not written ones.** The dependency diagram is generated
+   from the `package.json` files. It would have caught the diagram that invented
+   an edge and left out two.
 
-**Lo que NO es mecanizable, y hay que aceptarlo:** afirmar en la documentación
-que existe una frontera de seguridad que el código no implementa. Ningún linter
-detecta eso. Para esa clase, la única defensa es la revisión en contexto nuevo.
+**What cannot be mechanised, and has to be accepted:** claiming in the
+documentation that a security boundary exists when the code does not implement
+it. No linter detects that. For that class, the only defence is the
+fresh-context review.
 
-**Ya entregado (en F0-3):** `scripts/check-coherence.mjs`, que comprueba
-que el suelo de Node declarado en `package.json` coincide con el más bajo que
-prueba la CI, que README y CONTRIBUTING dicen esa misma versión, y que cada
-paquete publicable declara su propio `engines`. Nació de tres hallazgos de la
-revisión de F0-3 y encontró el tercero solo, en su primera ejecución.
+**Already delivered (in F0-3):** `scripts/check-coherence.mjs`, which checks
+that the Node floor declared in `package.json` matches the lowest one CI tests,
+that README and CONTRIBUTING state that same version, and that every
+publishable package declares its own `engines`. It was born from three findings
+of the F0-3 review and found the third one by itself, on its first run.
 
-**Criterios de aceptación:**
-- Reintroducir a propósito cada uno de los cuatro fallos citados hace fallar su
-  control correspondiente.
-- La lista de hechos protegidos y la de términos prohibidos viven en un fichero
-  legible y se revisan en la PR, no escondidas en un test.
+**Acceptance criteria:**
+- Deliberately reintroducing each of the four failures cited makes its
+  corresponding control fail.
+- The list of protected facts and the list of forbidden terms live in a
+  readable file and are reviewed in the PR, not hidden in a test.
 
 ---
 
-### [x] F0-13 — Proteger las ramas para que el rojo bloquee de verdad
+### [x] F0-13 — Protect the branches so that red really blocks
 **Branch:** GitHub configuration, no code branch · **Depends on:** F0-3
 
-**Origen:** la revisión de F0-3. La CI pinta el rojo pero no impide nada: con
-una PR en rojo, `gh pr view --json mergeable` devuelve `MERGEABLE`. Un control
-que se puede ignorar no es un control.
+**Origin:** the F0-3 review. CI shows the red but prevents nothing: with a PR in
+red, `gh pr view --json mergeable` returns `MERGEABLE`. A control that can be
+ignored is not a control.
 
-**Trabajo:**
-1. ~~Renombrar `Prod` a `main`.~~ **Descartado.** `Prod` es la convención del
-   equipo y es perfectamente válida; había que arreglar los workflows, no la
-   rama. Ya apuntan a `Prod`, y hay un control que impide que vuelva a pasar.
-2. Ruleset sobre `Prod` y `develop`: prohibir push directo, exigir Pull Request
-   y exigir los checks en verde.
-3. Los nombres de check obligatorios son `Node 22.13`, `Node 24`, `Node 26`,
-   `Tipos y coherencia`, `Escaneo de secretos` y `Ciclo completo sobre
+**Work:**
+1. ~~Rename `Prod` to `main`.~~ **Discarded.** `Prod` is the team's convention
+   and perfectly valid; the workflows had to be fixed, not the branch. They
+   already target `Prod`, and a control prevents it from happening again.
+2. Ruleset on `Prod` and `develop`: forbid direct push, require a Pull Request
+   and require green checks.
+3. The required check names are `Node 22.13`, `Node 24`, `Node 26`,
+   `Tipos y coherencia`, `Escaneo de secretos` and `Ciclo completo sobre
    repositorios reales`.
-   **Cuidado:** vienen del campo `name` de cada job, así que **cualquier cambio
-   en la matriz invalida la lista**. Un check obligatorio que ya no existe
-   bloquea todas las PRs para siempre.
-4. Borrar del remoto las ramas de tareas ya integradas.
+   **Careful:** they come from the `name` field of each job, so **any change to
+   the matrix invalidates the list**. A required check that no longer exists
+   blocks every PR forever.
+4. Delete from the remote the branches of tasks already integrated.
 
-**Criterios de aceptación:**
-- [x] Una PR con un check en rojo no se puede mergear desde la interfaz.
-- [x] `gh api repos/.../rulesets` devuelve las reglas configuradas.
-- [x] Las reglas cubren `Prod` y `develop`, los nombres reales de las ramas.
+**Acceptance criteria:**
+- [x] A PR with a red check cannot be merged from the interface.
+- [x] `gh api repos/.../rulesets` returns the configured rules.
+- [x] The rules cover `Prod` and `develop`, the real names of the branches.
 
-**Cerrada el 2026-09-11**, configurada a mano en GitHub. Ruleset activo sobre
-`develop` y `Prod`: bloqueo de borrado y de force push, PR obligatoria con **0
-aprobaciones** —con 1, un desarrollador en solitario no podría mergear nunca sus
-propias PRs— y los seis checks obligatorios, verificados uno a uno contra los
-nombres reales de los jobs. Un push directo a `develop` es rechazado; probado.
+**Closed on 2026-09-11**, configured by hand in GitHub. Active ruleset on
+`develop` and `Prod`: deletion and force push blocked, PR required with **0
+approvals** —with 1, a solo developer could never merge their own PRs— and the
+six required checks, verified one by one against the real names of the jobs. A
+direct push to `develop` is rejected; tested.
 
-Llegó tarde: horas antes, F0-14 había entrado en `develop` por un push directo,
-porque la rama local se creó enganchada a `origin/develop`. Con esta regla un
-push directo ya no es posible. **Una PR sin revisión, sí**: con 0 aprobaciones,
-la revisión depende de que se pida. Para un desarrollador en solitario es lo
-correcto, pero conviene no confundir las dos cosas.
+It came late: hours earlier, F0-14 had entered `develop` through a direct push,
+because the local branch was created tracking `origin/develop`. With this rule
+a direct push is no longer possible. **A PR without review still is**: with 0
+approvals, review depends on someone asking for it. For a solo developer that
+is right, but the two things should not be confused.
 
-Lo aprendido al configurarla a mano es la base de la versión automática, en
-F3-5.
+What was learned configuring it by hand is the basis of the automatic version,
+in F3-5.
 
 ---
 
-### [x] F0-14 — La detección de ramas protegidas no puede estar cableada
+### [x] F0-14 — Protected branch detection cannot be hardwired
 **Branch:** `fix/f0-protected-branches` (the version being closed, in
 `fix/f0-protected-branches-rework`, PR #7) · **Depends on:** nothing · **Priority: high**
 
-**Origen:** al renombrar la rama de releases de este repositorio a `Prod`,
-quedó a la vista que el CLI no la reconoce.
+**Origin:** when the release branch of this repository was renamed to `Prod`, it
+became visible that the CLI does not recognise it.
 
-**El fallo, y es grave:**
+**The failure, and it is serious:**
 
 ```ts
 const PROTECTED_BRANCHES = new Set(['main', 'master', 'production', 'prod'])
-if (!PROTECTED_BRANCHES.has(currentBranch)) { /* trabaja sobre la rama actual */ }
+if (!PROTECTED_BRANCHES.has(currentBranch)) { /* works on the current branch */ }
 ```
 
-1. **Distingue mayúsculas.** `Prod` no coincide con `prod`, así que `apply`
-   escribiría **directamente sobre la rama de producción** en lugar de crear la
-   rama aislada. Es una violación de la garantía principal del producto —
-   *"nunca se trabaja sobre main"*— y ocurre en silencio.
-2. **Es una lista cerrada.** No contempla `trunk`, `produccion`, `desarrollo`
-   ni ninguna convención de equipo. Vendemos adaptarnos a cualquier repositorio
-   y damos por hecho cuatro nombres en inglés.
-3. **`recommendedProfile` adivina mal:** `scan.git.branch === 'master' ? 'master'
-   : 'main'` decide que la rama principal se llama `main` en cuanto no se llama
-   `master`. Con `Prod`, el perfil generado miente.
+1. **It is case-sensitive.** `Prod` does not match `prod`, so `apply` would
+   write **directly on the production branch** instead of creating the isolated
+   branch. It is a violation of the product's main guarantee —*"work never
+   happens on main"*— and it happens silently.
+2. **It is a closed list.** It does not consider `trunk`, `produccion`,
+   `desarrollo` or any team convention. We sell adapting to any repository and
+   take four English names for granted.
+3. **`recommendedProfile` guesses wrong:** `scan.git.branch === 'master' ? 'master'
+   : 'main'` decides that the main branch is called `main` as soon as it is not
+   called `master`. With `Prod`, the generated profile lies.
 
-**Trabajo:**
-1. ~~Detectar la rama por defecto **real** del repositorio
-   (`git symbolic-ref refs/remotes/origin/HEAD`, con `init.defaultBranch` y la
-   rama actual como respaldo) en lugar de deducirla de una lista.~~
-   Sustituido: `origin/HEAD` sólo propone `integration` al generar el
-   `config.yml`, y `init.defaultBranch` no se usa. La protección ya no depende
-   de la rama por defecto.
-2. ~~`prepareBranch` decide a partir de `profile.branches`, que es la fuente de
-   verdad configurada, más la rama por defecto detectada. La lista cableada pasa
-   a ser sólo un respaldo, y **sin distinguir mayúsculas**.~~
-   Sustituido por la protección invertida: no queda lista de ramas protegidas,
-   ni siquiera como respaldo. Las ramas del perfil se aíslan siempre, sin
-   distinguir mayúsculas.
-3. ~~`recommendedProfile` rellena `branches.main` con la rama detectada.~~
-   Descartado: ver la tercera versión más abajo y la ADR 0005.
-4. ~~Tests con `Prod`, `PROD`, `trunk`, `produccion` y un repositorio sin remoto.~~
-   Sustituido: con la protección invertida, cualquier nombre sin prefijo de
-   trabajo se aísla. Los tests prueban `Prod`, una etiqueta homónima, HEAD
-   desacoplado, un repositorio sin commits y otro sin remoto, y nombres fuera de
-   toda lista (`pro`, `pre`, `live`, `release/prod`…).
+**Work:**
+1. ~~Detect the **real** default branch of the repository
+   (`git symbolic-ref refs/remotes/origin/HEAD`, with `init.defaultBranch` and
+   the current branch as fallback) instead of deducing it from a list.~~
+   Replaced: `origin/HEAD` only proposes `integration` when generating
+   `config.yml`, and `init.defaultBranch` is not used. Protection no longer
+   depends on the default branch.
+2. ~~`prepareBranch` decides from `profile.branches`, which is the configured
+   source of truth, plus the detected default branch. The hardwired list becomes
+   only a fallback, and **case-insensitive**.~~
+   Replaced by inverted protection: no list of protected branches remains, not
+   even as a fallback. The profile's branches are always isolated,
+   case-insensitively.
+3. ~~`recommendedProfile` fills `branches.main` with the detected branch.~~
+   Discarded: see the third version below and ADR 0005.
+4. ~~Tests with `Prod`, `PROD`, `trunk`, `produccion` and a repository with no
+   remote.~~
+   Replaced: with inverted protection, any name without a work prefix is
+   isolated. The tests try `Prod`, a tag with the same name, detached HEAD, a
+   repository with no commits and another with no remote, and names outside any
+   list (`pro`, `pre`, `live`, `release/prod`…).
 
-**Criterios de aceptación:**
-- [x] `apply` no escribe directamente en ninguna rama que no sea claramente de
-      trabajo: tampoco con una etiqueta homónima, con HEAD desacoplado, en un
-      repositorio sin commits ni con nombres fuera de toda lista (`pro`, `pre`,
+**Acceptance criteria:**
+- [x] `apply` does not write directly on any branch that is not clearly a work
+      branch: not with a tag of the same name, not with detached HEAD, not in a
+      repository with no commits, nor with names outside any list (`pro`, `pre`,
       `live`, `release/prod`).
-- [x] La decisión no depende de una lista de ramas de larga duración. La única
-      lista que decide es la de prefijos de trabajo, que es cerrada.
+- [x] The decision does not depend on a list of long-lived branches. The only
+      list that decides is the one of work prefixes, which is closed.
 
-**Cerrada a la tercera.** Queda escrito entero para no repetirlo.
+**Closed on the third attempt.** It is written down in full so it is not repeated.
 
-**Primera versión** (entró en `develop` sin PR el 2026-09-11; la desmontó la
-revisión posterior al merge):
+**First version** (entered `develop` without a PR on 2026-09-11; the review after
+the merge took it apart):
 
-1. Leía la rama con `git rev-parse --abbrev-ref HEAD`, que devuelve `heads/Prod`
-   si existe una etiqueta `Prod`. `symbolic-ref --short` tiene el mismo defecto;
-   se comprobó antes de elegir la solución.
-2. Tomaba la rama por defecto de GitHub como rama de releases. En git-flow es
-   `develop`, y la CI generada desplegaba a producción desde `develop`.
-3. **Su verificación no demostraba nada**: "el commit de `Prod` no se mueve" se
-   cumplía también con el fallo, porque `apply` nunca hace commit.
-4. Los tests repetían la lista: quitar una fuente entera no rompía ninguno.
+1. It read the branch with `git rev-parse --abbrev-ref HEAD`, which returns
+   `heads/Prod` if a `Prod` tag exists. `symbolic-ref --short` has the same
+   defect; this was checked before choosing the solution.
+2. It took GitHub's default branch as the release branch. In git-flow that is
+   `develop`, and the generated CI deployed to production from `develop`.
+3. **Its verification proved nothing**: "the `Prod` commit does not move" also
+   held with the failure, because `apply` never commits.
+4. The tests repeated the list: removing a whole source broke none of them.
 
-**Segunda versión** (PR #7, bloqueada por la revisión previa al merge): arregló
-la lectura de la rama, pero deducía la rama de releases del primer nombre de una
-lista de prioridad. Con `main` (donde van las PRs) y `Prod` (despliegue), la CI
-generada sólo revisaba `Prod` y **las PRs a `main` quedaban sin revisar**. Y
-cualquier nombre fuera de la lista seguía desprotegido.
+**Second version** (PR #7, blocked by the review before the merge): it fixed
+reading the branch, but deduced the release branch from the first name of a
+priority list. With `main` (where PRs go) and `Prod` (deployment), the generated
+CI only checked `Prod` and **PRs to `main` went unchecked**. And any name outside
+the list was still unprotected.
 
-**La lección de las tres:** cada heurística para deducir "cuál es la rama de
-releases" arreglaba unos repositorios y rompía otros. No se puede deducir. De ahí
-el principio de la **[ADR 0005](adr/0005-inference-fails-safe.md)**: cuando una
-deducción falla, debe fallar hacia más protección, nunca hacia una acción.
+**The lesson of the three:** every heuristic to deduce "which one is the release
+branch" fixed some repositories and broke others. It cannot be deduced. Hence
+the principle of **[ADR 0005](adr/0005-inference-fails-safe.md)**: when an
+inference fails, it must fail towards more protection, never towards an action.
 
-**Tercera versión, la que se cierra:**
+**Third version, the one being closed:**
 
-- **Protección invertida.** Se aísla el trabajo siempre, salvo en ramas de
-  trabajo reconocibles por su prefijo (`feat/`, `fix/`, `chore/`…). Un nombre
-  desconocido cae del lado seguro.
-- **El perfil separa los dos papeles** que antes mezclaba `branches.main`:
-  `integration` (a qué rama van las PRs, deducida de `origin/HEAD`) y `release`
-  (desde cuál se despliega, **nunca deducida**). Sin `release`, no se genera el
-  workflow de despliegue y `doctor` lo avisa.
-- **La CI generada revisa todas las Pull Requests**, sin filtrar por rama.
-- La rama actual se lee con `git symbolic-ref -q HEAD` sin abreviar; con HEAD
-  desacoplado se aísla igualmente.
-- Un `config.yml` antiguo sigue funcionando: `dev` pasa a `integration`, pero
-  `main` **no** pasa a `release`, porque era un valor adivinado.
-- Todos los tests aíslan git de la configuración global de la máquina.
+- **Inverted protection.** Work is always isolated, except on work branches
+  recognisable by their prefix (`feat/`, `fix/`, `chore/`…). An unknown name
+  falls on the safe side.
+- **The profile separates the two roles** that `branches.main` used to mix:
+  `integration` (which branch PRs go to, deduced from `origin/HEAD`) and
+  `release` (which one is deployed from, **never deduced**). Without `release`,
+  the deployment workflow is not generated and `doctor` warns about it.
+- **The generated CI checks every Pull Request**, without filtering by branch.
+- The current branch is read with `git symbolic-ref -q HEAD` unabbreviated;
+  with detached HEAD it is isolated all the same.
+- An old `config.yml` keeps working: `dev` becomes `integration`, but `main`
+  does **not** become `release`, because it was a guessed value.
+- Every test isolates git from the machine's global configuration.
 
-**Cuarta ronda** (segunda revisión previa al merge de la PR #7): el núcleo
-aguantó —no encontró forma de escribir en una rama de larga duración—, pero
-bloqueó por otras cuatro cosas, ya corregidas:
+**Fourth round** (second review before the merge of PR #7): the core held —it
+found no way to write on a long-lived branch—, but it blocked for four other
+things, already fixed:
 
-- Las ramas de push de la CI salían de las referencias locales: dos copias con
-  el mismo `config.yml` generaban workflows distintos. **Rompía el invariante 2.**
-  Ahora salen sólo del perfil, con un test que lo comprueba.
-- Se afirmaba que los tests estaban aislados de la configuración global de git,
-  y sólo lo estaba uno. Ahora lo están todos desde la configuración de vitest: con una
-  configuración que firma commits con un `gpg` que siempre falla, pasan los 75.
-- `claude/add-lint` se aislaba, y si la rama aislada ya existía, `apply`
-  escribía en ella aunque estuviera desfasada. Ahora los prefijos de asistentes
-  de IA son ramas de trabajo, y con la rama aislada existente `apply` se detiene
-  sin escribir.
-- `doctor` decía que no había workflow de despliegue cuando uno antiguo seguía
-  en el repositorio. Ahora mira el fichero.
+- The CI push branches came from local references: two copies with the same
+  `config.yml` generated different workflows. **It broke invariant 2.** Now they
+  come only from the profile, with a test that checks it.
+- The tests were claimed to be isolated from the global git configuration, and
+  only one was. Now all of them are, from the vitest configuration: with a
+  configuration that signs commits with a `gpg` that always fails, all 75 pass.
+- `claude/add-lint` was isolated, and if the isolated branch already existed,
+  `apply` wrote on it even if it was out of date. Now the AI assistant prefixes
+  are work branches, and with the isolated branch already existing `apply` stops
+  without writing.
+- `doctor` said there was no deployment workflow when an old one was still in
+  the repository. Now it looks at the file.
 
-**Quinta ronda** (tercera revisión previa al merge de la PR #7): tampoco
-encontró forma de escribir en una rama de larga duración. Bloqueó por cuatro
-cosas, ya corregidas:
+**Fifth round** (third review before the merge of PR #7): it did not find a way
+to write on a long-lived branch either. It blocked for four things, already
+fixed:
 
-- `doctor` daba por bueno un `ci-prod.yml` antiguo sin mirar desde qué rama
-  desplegaba. Ahora lee sus disparadores y los compara con `branches.release`.
-  También avisa si `ci-dev.yml` filtra las Pull Requests por rama.
-- Con un `config.yml` que no definía ramas, se rellenaban con el estado local:
-  el invariante 2 seguía roto por otra puerta. Ahora salen sólo del fichero.
-- En un `git init` sin remoto, la CI generada no se ejecutaba en ningún push.
-  Ahora se propone como integración la rama actual, si no es de trabajo, o
-  `main`/`master` si existen.
-- El principio estaba mal enunciado en el título de la ADR, en el nombre del
-  fichero y en este plan. Ahora dice lo mismo en todas partes, y el fichero se
-  llama `0005-inference-fails-safe.md`.
+- `doctor` accepted an old `ci-prod.yml` without looking at which branch it
+  deployed from. Now it reads its triggers and compares them with
+  `branches.release`. It also warns if `ci-dev.yml` filters Pull Requests by
+  branch.
+- With a `config.yml` that did not define branches, they were filled from the
+  local state: invariant 2 was still broken through another door. Now they come
+  only from the file.
+- In a `git init` with no remote, the generated CI did not run on any push. Now
+  the current branch is proposed as integration, if it is not a work branch, or
+  `main`/`master` if they exist.
+- The principle was badly stated in the ADR title, in the file name and in this
+  plan. Now it says the same everywhere, and the file is called
+  `0005-inference-fails-safe.md`.
 
-De los seguimientos, corregidos aquí:
+Of the follow-ups, fixed here:
 
-- Si la rama aislada ya existe, `apply` se detiene **antes** de pedir
-  confirmación y propone lo seguro: aplicar desde esa rama, o borrarla con
-  `git branch -d`, que no borra trabajo sin integrar.
-- La rama aislada se crea con `--no-track`. Con `branch.autoSetupMerge=inherit`
-  heredaba el upstream de `Prod`, y un `git push` enviaba el commit a
-  producción. Es el mismo patrón que el push directo a `develop` de F0-13.
-- Los tests borran `GIT_DIR`, `GIT_WORK_TREE` y el resto de variables de git
-  antes de empezar: heredadas de un hook, reescribían la configuración del
-  repositorio real.
-- `release: ""` y `dev: null` cuentan como "sin configurar".
-- `GitState.branches` ya no dice servir para deducir el papel de cada rama:
-  sólo alimenta la propuesta inicial de `integration`.
+- If the isolated branch already exists, `apply` stops **before** asking for
+  confirmation and proposes the safe options: apply from that branch, or delete
+  it with `git branch -d`, which does not delete unintegrated work.
+- The isolated branch is created with `--no-track`. With
+  `branch.autoSetupMerge=inherit` it inherited the upstream of `Prod`, and a
+  `git push` sent the commit to production. It is the same pattern as the direct
+  push to `develop` in F0-13.
+- The tests delete `GIT_DIR`, `GIT_WORK_TREE` and the rest of the git variables
+  before starting: inherited from a hook, they rewrote the configuration of the
+  real repository.
+- `release: ""` and `dev: null` count as "not configured".
+- `GitState.branches` no longer claims to serve for deducing the role of each
+  branch: it only feeds the initial `integration` proposal.
 
-Pasan a otras tareas: el mensaje de "repositorio intacto" tras un fallo con HEAD
-en la rama aislada y las mutaciones en CI (F0-15), y los filtros de PR de un
-`ci-dev.yml` antiguo (F4-2).
+Moved to other tasks: the "repository intact" message after a failure with HEAD
+on the isolated branch and the mutations in CI (F0-15), and the PR filters of an
+old `ci-dev.yml` (F4-2).
 
-**No mecanizable:** esta rama también cierra F0-13 y anota F0-16, F3-5, F4-1 y
-F4-2, contra "una rama, una tarea". Son anotaciones derivadas de F0-14, pero
-ningún control distingue una anotación legítima de un cambio de ámbito. La
-defensa es la revisión.
+**Not mechanisable:** this branch also closes F0-13 and annotates F0-16, F3-5,
+F4-1 and F4-2, against "one branch, one task". They are annotations derived from
+F0-14, but no control tells a legitimate annotation apart from a change of
+scope. The defence is the review.
 
-**Sexta ronda** (cuarta revisión previa al merge): bloqueó por dos cosas, ya
-corregidas:
+**Sixth round** (fourth review before the merge): it blocked for two things,
+already fixed:
 
-- Si alguien cambiaba de rama mientras `apply` esperaba la confirmación —otro
-  terminal, el IDE, un agente en paralelo—, el plan calculado para `feat/x` se
-  aplicaba sobre `Prod`. Existía también en `develop`. Ahora, tras confirmar, se
-  relee HEAD y, si la rama o el commit han cambiado, se aborta sin escribir. El
-  test sustituye la confirmación por una que cambia de rama: reproduce la
-  carrera sin temporizadores.
-- El plan decía que los tests borraban "el resto de variables de git", y sólo
-  borraban cinco: `GIT_CONFIG_COUNT`, que `git -c` exporta a los hooks, seguía
-  entrando. Ahora `vitest.setup.ts` borra todas las `GIT_*` y fija después las
-  dos que aíslan.
+- If someone switched branch while `apply` waited for confirmation —another
+  terminal, the IDE, a parallel agent—, the plan computed for `feat/x` was
+  applied on `Prod`. It also existed in `develop`. Now, after confirming, HEAD
+  is read again and, if the branch or the commit have changed, it aborts without
+  writing. The test replaces the confirmation with one that switches branch: it
+  reproduces the race without timers.
+- The plan said the tests deleted "the rest of the git variables", and they only
+  deleted five: `GIT_CONFIG_COUNT`, which `git -c` exports to hooks, still got
+  in. Now `vitest.setup.ts` deletes every `GIT_*` and then sets the two that
+  isolate.
 
-Sus seguimientos pasan a F0-15 sin tocar más código en esta PR: es la primera
-aplicación del protocolo de conservación de tokens (una PR sólo corrige
-bloqueantes).
+Its follow-ups move to F0-15 without touching more code in this PR: it is the
+first application of the token conservation protocol (a PR only fixes
+blockers).
 
-**Cómo se verificó:** tests en rojo antes de cada cambio, y **30 mutaciones**
-deliberadas de la lógica, registradas en `scripts/check-mutations.mjs`
-(`pnpm check:mutations`) y ejecutadas bajo una configuración de git hostil,
-global e inyectada por el entorno. La ejecución completa detectó 28 de 28; las
-tres añadidas en la sexta ronda se ejecutaron por separado
-(`pnpm check:mutations <nombre>`) y también se detectan. Las rondas anteriores usaban mutaciones que
-no quedaban en el repositorio, y la revisión no pudo reproducirlas; por eso son
-ahora un script. Varias resultaron ser mutantes equivalentes —`??` también salta
-`null`, o un test que ya configuraba el nombre en minúsculas— y se sustituyeron
-por mutaciones o tests fieles.
+**How it was verified:** tests red before each change, and **30 deliberate
+mutations** of the logic, recorded in `scripts/check-mutations.mjs`
+(`pnpm check:mutations`) and run under a hostile git configuration, global and
+injected by the environment. The full run detected 28 of 28; the three added in
+the sixth round were run separately (`pnpm check:mutations <name>`) and are
+detected too. Earlier rounds used mutations that did not stay in the repository,
+and the review could not reproduce them; that is why they are now a script.
+Several turned out to be equivalent mutants —`??` also skips `null`, or a test
+that already configured the name in lower case— and were replaced by faithful
+mutations or tests.
 
-**La CI no comprobaba los tipos**, descubierto de paso: los pasos de typecheck y
-coherencia tenían `if: matrix.node == '22'` y la matriz era `'22.13'`. Son ahora
-un job propio, `Tipos y coherencia`.
+**CI was not checking types**, discovered along the way: the typecheck and
+coherence steps had `if: matrix.node == '22'` and the matrix was `'22.13'`. They
+are now a job of their own, `Tipos y coherencia`.
 
-**Pendiente, anotado para `doctor` (F4-3):** avisar cuando `origin/HEAD` pueda
-estar desfasado y sugerir `git remote set-head origin --auto`. La herramienta no
-debe ejecutarlo sola: modifica el estado de git y necesita red.
+**Pending, noted for `doctor` (F4-3):** warn when `origin/HEAD` may be out of
+date and suggest `git remote set-head origin --auto`. The tool must not run it
+by itself: it modifies git state and needs the network.
 
 ---
 
-### [x] F0-15 — Corregir el control de nombres de rama tras la revisión de la PR #6
+### [x] F0-15 — Fix the branch name control after the review of PR #6
 **Branch:** `fix/f0-branch-control-review` · **Depends on:** F0-14
 
-**Origen:** la PR #6 se mergeó sin revisión y se revisó después, en contexto
-nuevo. El hallazgo más grave —la CI nunca ejecutaba el control— se corrigió en
-F0-14. Quedan estos, y su conclusión general es incómoda: **el control de
-nombres de rama, tal como está, es más frágil de lo que parece.**
+**Origin:** PR #6 was merged without review and reviewed afterwards, in a fresh
+context. The most serious finding —CI never ran the control— was fixed in
+F0-14. These remain, and their general conclusion is uncomfortable: **the branch
+name control, as it stands, is more fragile than it looks.**
 
-La revisión dejó catorce puntos, y sólo cinco son el control de nombres de rama.
-Los demás —la plantilla de cliente, la decisión de estrategia de merge, los
-restos del plan y los seguimientos de las revisiones de F0-14 y de la PR #7— se
-han repartido en F0-19 a F0-24 y F0-26 a F0-28: una rama implementa exactamente
-una tarea (§3 de `CLAUDE.md`).
+The review left fourteen points, and only five are the branch name control. The
+rest —the client template, the merge strategy decision, the leftovers of the
+plan and the follow-ups of the F0-14 and PR #7 reviews— have been spread over
+F0-19 to F0-24 and F0-26 to F0-28: a branch implements exactly one task (§3 of
+`CLAUDE.md`).
 
-**Trabajo:**
+**Work:**
 
-1. **No bloquear las ramas legítimas.** En cuanto el control corre en CI, una PR
-   de `develop` a `Prod` —una release— falla, porque `develop` no sigue el
-   formato de rama de tarea. También fallarían `revert-*` (el botón *Revert* de
-   GitHub) y `<usuario>-patch-*` (el editor web, que usarán colaboradores
-   externos al ser el repositorio público). Además, el prefijo `dependabot/` es
-   una puerta trasera: `dependabot/../fix/f0-ramas` lo supera. Exención por
-   **autor** (`github.actor`), no por nombre, y lista explícita de ramas
-   permanentes.
+1. **Do not block legitimate branches.** As soon as the control runs in CI, a PR
+   from `develop` to `Prod` —a release— fails, because `develop` does not follow
+   the task branch format. `revert-*` (GitHub's *Revert* button) and
+   `<user>-patch-*` (the web editor, which outside contributors will use now that
+   the repository is public) would fail too. On top of that, the `dependabot/`
+   prefix is a back door: `dependabot/../fix/f0-ramas` passes it. Exemption by
+   **author** (`github.actor`), not by name, and an explicit list of permanent
+   branches.
 
-2. **La heurística de idioma falla en los dos sentidos.** Deja pasar 15 de los 33
-   nombres españoles que la propia PR renombró (`version-unica`,
-   `cobertura-umbral`, `trinquete-metricas`, `suscripcion-anual`…) y rechaza
-   nombres ingleses válidos (`access-control`, `de-duplicate`, `y-axis`).
-   `control` era especialmente mala señal: rechazó el nombre de rama de **esta
-   misma tarea** en cuanto se escribió en el plan. Se retiró de la lista en
-   F0-14 para poder mergearla; el resto se rehace aquí.
-   El formato acepta `f00` y `f999`. Rehacerla con un **corpus de prueba**: los
-   33 nombres renombrados como positivos y una lista de nombres ingleses reales
-   como negativos. Si no alcanza una precisión aceptable, **quitarla** y dejar
-   sólo el formato: una heurística que falla la mitad de las veces es peor que
-   ninguna, porque da una falsa sensación de control.
+2. **The language heuristic fails both ways.** It lets through 15 of the 33
+   Spanish names that the PR itself renamed (`version-unica`,
+   `cobertura-umbral`, `trinquete-metricas`, `suscripcion-anual`…) and rejects
+   valid English names (`access-control`, `de-duplicate`, `y-axis`). `control`
+   was an especially bad signal: it rejected the branch name of **this very
+   task** as soon as it was written in the plan. It was removed from the list in
+   F0-14 so it could be merged; the rest is redone here.
+   The format accepts `f00` and `f999`. Redo it with a **test corpus**: the 33
+   renamed names as positives and a list of real English names as negatives. If
+   it does not reach an acceptable precision, **remove it** and keep only the
+   format: a heuristic that fails half the time is worse than none, because it
+   gives a false sense of control.
 
-3. **El analizador del plan falla en silencio.** Se salta líneas de rama con
-   formatos ligeramente distintos, acepta un plan vacío, no reconoce `### [X]`
-   con mayúscula y no reinicia el estado en cabeceras que no son tareas. Añadir
-   una aserción de mínimo: si encuentra menos ramas de las que hay tareas, falla.
+3. **The plan parser fails silently.** It skips branch lines with slightly
+   different formats, accepts an empty plan, does not recognise `### [X]` with a
+   capital letter and does not reset its state on headers that are not tasks.
+   Add a minimum assertion: if it finds fewer branches than there are tasks, it
+   fails.
 
-4. **El control no tiene tests.** Los cinco casos de la PR se probaron a mano.
-   Además el script no se puede testear tal como está: todo se ejecuta al cargar
-   y termina con `process.exit`. Separar la lógica en funciones exportadas y
-   cubrirla con tests unitarios.
+4. **The control has no tests.** The five cases of the PR were tested by hand.
+   Besides, the script cannot be tested as it is: everything runs on load and
+   ends with `process.exit`. Split the logic into exported functions and cover
+   it with unit tests.
 
-5. **La sección 0 de `CLAUDE.md` no funciona literalmente en un clon limpio.**
-   Le falta `pnpm install`, usa `git branch --show-current` que no está en la
-   lista de comandos de sólo lectura permitidos del §1 y dice "primera sesión en
-   esta conversación".
+5. **Section 0 of `CLAUDE.md` does not work literally on a clean clone.** It is
+   missing `pnpm install`, it uses `git branch --show-current`, which is not in
+   the list of read-only commands allowed by §1, and it says "first session in
+   this conversation".
 
-**Qué se convierte en control mecánico:** los puntos 1, 2, 3 y 4 —las
-exenciones del 1 se cubren con tests igual que el corpus y el analizador—. Del
-5, que los comandos `git` de la §0 estén permitidos por la §1: es un choque
-entre dos secciones del mismo fichero, y sólo se ve leyendo las dos a la vez.
+**What becomes a mechanical control:** points 1, 2, 3 and 4 —the exemptions of
+1 are covered with tests just like the corpus and the parser—. Of 5, that the
+`git` commands of §0 are allowed by §1: it is a clash between two sections of
+the same file, and it is only seen by reading both at once.
 
-**Cómo ha quedado:**
-- La lógica vive en `scripts/branch-names.mjs`: funciones puras, sin
-  `process.exit`. `scripts/check-coherence.mjs` sólo conecta las entradas.
-- El corpus está en `scripts/branch-names-corpus.json`: 33 nombres españoles, 43
-  ingleses. La heurística nueva detecta 32 de 33 y no rechaza ninguno de los 43;
-  la anterior dejaba pasar 15 y rechazaba 2. El único no detectado,
-  `feat/f3-ci-solo-diff`, está declarado en el propio corpus con su test: todos
-  sus componentes son también palabras inglesas.
-- La señal de idioma ya no es sólo una lista de palabras: son terminaciones que
-  no existen en inglés (`-cion`, `-dad`, `-miento`, `-cia`, `-ido`), y las
-  palabras funcionales (`de`, `y`, `al`…) sólo cuentan **entre** otros dos
-  componentes, que es lo que separa `gobierno-de-ramas` de `de-duplicate`.
-- Exención por autor: `[bot]` en el login, `<login>-patch-<n>` sólo si el login
-  es el del autor, y `revert-<pr>-<rama>` sólo si la rama revertida era válida.
-  `Prod` y `develop` son una lista explícita, no un patrón.
-- La aserción de mínimo cuenta **por tarea**, no totales: una línea `**Rama:**`
-  bajo una cabecera que no es tarea compensaba a la que faltaba, y la tarea sin
-  rama seguía sin juzgarse. Lo encontró la revisión de esta PR.
-- El control 8 recorre la §0 entera, no sólo sus bloques ```bash: un comando
-  escrito en prosa entre acentos graves se colaba, y la afirmación de la §1
-  —"todo comando `git` de la §0"— era falsa. También lo encontró la revisión.
-  La segunda pasada añadió las opciones globales: `git -C ruta push` y
-  `git -c k=v commit` no casaban con el patrón y desaparecían enteros. Nueve
-  mutantes probados a mano; automatizarlos es el punto 4 de F0-25.
+**How it turned out:**
+- The logic lives in `scripts/branch-names.mjs`: pure functions, without
+  `process.exit`. `scripts/check-coherence.mjs` only wires the inputs.
+- The corpus is in `scripts/branch-names-corpus.json`: 33 Spanish names, 43
+  English ones. The new heuristic detects 32 of 33 and rejects none of the 43;
+  the previous one let 15 through and rejected 2. The only one not detected,
+  `feat/f3-ci-solo-diff`, is declared in the corpus itself with its test: all
+  its components are also English words.
+- The language signal is no longer just a list of words: it is endings that do
+  not exist in English (`-cion`, `-dad`, `-miento`, `-cia`, `-ido`), and function
+  words (`de`, `y`, `al`…) only count **between** two other components, which is
+  what separates `gobierno-de-ramas` from `de-duplicate`.
+- Exemption by author: `[bot]` in the login, `<login>-patch-<n>` only if the
+  login is the author's, and `revert-<pr>-<branch>` only if the reverted branch
+  was valid. `Prod` and `develop` are an explicit list, not a pattern.
+- The minimum assertion counts **per task**, not totals: a branch line under a
+  header that is not a task made up for the missing one, and the task with no
+  branch was still not judged. The review of this PR found it.
+- Control 8 walks the whole of §0, not only its ```bash blocks: a command written
+  in prose between backticks slipped through, and the claim in §1 —"every `git`
+  command in §0"— was false. The review found that too. The second pass added
+  the global options: `git -C path push` and `git -c k=v commit` did not match
+  the pattern and disappeared entirely. Nine mutants tested by hand; automating
+  them is point 4 of F0-25.
 
-**No mecanizable:** un commit `docs:` de la PR #6 metió un cambio de producto
-(las reglas de IA generadas) y un control nuevo de CI, y la descripción de la PR
-se saltó los apartados de criterios y Definition of Done de la plantilla. No hay
-control que vea el ámbito de un commit ni que lea una descripción; la defensa es
-la revisión en contexto nuevo. Queda registrado para no repetirlo.
+**Not mechanisable:** a `docs:` commit of PR #6 brought in a product change (the
+generated AI rules) and a new CI control, and the PR description skipped the
+criteria and Definition of Done sections of the template. No control sees the
+scope of a commit or reads a description; the defence is the fresh-context
+review. It is recorded so it is not repeated.
 
-**Criterios de aceptación:**
-- [x] Una PR de `develop` a `Prod` pasa el control. Verificado simulando
-  `GITHUB_HEAD_REF=develop`, junto con las ramas de bot, del editor web y del
-  botón *Revert*.
-- [x] El corpus de nombres está en el repositorio y el control lo pasa.
-- [x] El script de coherencia tiene tests que se ejecutan en `test:unit`
-  (`scripts/branch-names.test.mjs`, 97 casos).
-- [x] La sección 0 de `CLAUDE.md` funciona copiando y pegando en un clon limpio,
-  y un control lo vigila: `check:coherence` falla si la §0 propone un comando
-  `git` que la §1 no permite. Probado con el mutante.
+**Acceptance criteria:**
+- [x] A PR from `develop` to `Prod` passes the control. Verified by simulating
+  `GITHUB_HEAD_REF=develop`, together with the bot, web editor and *Revert*
+  button branches.
+- [x] The name corpus is in the repository and the control passes it.
+- [x] The coherence script has tests that run in `test:unit`
+  (`scripts/branch-names.test.mjs`, 97 cases).
+- [x] Section 0 of `CLAUDE.md` works by copying and pasting on a clean clone,
+  and a control watches it: `check:coherence` fails if §0 proposes a `git`
+  command that §1 does not allow. Tested with the mutant.
 
 ---
 
-### [x] F0-16 — Nombres de ficheros e identificadores en inglés
+### [x] F0-16 — File names and identifiers in English
 **Branch:** `refactor/f0-english-names` · **Depends on:** F0-41
 
-**Origen:** decisión del 2026-09-11, ampliada el 2026-09-13: el inglés pasa a
-ser el idioma principal de todo el repositorio (ver F0-41). Los nombres van
-antes que las traducciones de F0-42, F0-18, F0-43 y F0-44, para que caigan ya en
-su ruta definitiva: traducir y renombrar a la vez duplica el churn y rompe la
-detección de renombrados en el diff.
+**Origin:** decision of 2026-09-11, widened on 2026-09-13: English becomes the
+main language of the whole repository (see F0-41). The names go before the
+translations of F0-42, F0-18, F0-43 and F0-44, so that those land directly on
+their final path: translating and renaming at the same time doubles the churn
+and breaks rename detection in the diff.
 
-**Trabajo:**
-1. Renombrar a inglés los ficheros con nombre en español —`scripts/verificar-coherencia.mjs`,
+**Work:**
+1. Rename to English the files with Spanish names —`scripts/verificar-coherencia.mjs`,
    `docs/PLAN_DE_EJECUCION.md`, `docs/ARQUITECTURA.md`, `docs/MODELO_DE_NEGOCIO.md`,
-   las ADR 0001 a 0004 y el `GOBERNANZA.md` que genera el pack de Node— y
-   **actualizar en el mismo cambio todos los enlaces y referencias**, incluidas
-   las rutas que leen los scripts de `check:coherence` y la lista de pendientes
-   del control de F0-41.
-2. Pasar a inglés las variables y funciones con nombre en español.
-3. **El control, no sólo la regla.** En la misma sesión en que se acordó, se creó
-   un fichero nuevo con nombre en español (`0005-lo-inferido-solo-amplia.md`,
-   corregido antes de commitear). Una regla recién escrita se incumple con
-   facilidad: `check:coherence` debe fallar ante un fichero nuevo cuyo nombre
-   parezca español, y ante enlaces rotos tras el renombrado.
+   ADRs 0001 to 0004 and the `GOBERNANZA.md` generated by the Node pack— and
+   **update every link and reference in the same change**, including the paths
+   read by the `check:coherence` scripts and the pending list of the F0-41
+   control.
+2. Move to English the variables and functions with Spanish names.
+3. **The control, not only the rule.** In the same session in which it was
+   agreed, a new file with a Spanish name was created
+   (`0005-lo-inferido-solo-amplia.md`, fixed before committing). A freshly written
+   rule is easily broken: `check:coherence` must fail on a new file whose name
+   looks Spanish, and on broken links after the rename.
 
-El idioma de lo que el producto genera para el cliente, que antes estaba aquí,
-es F0-45.
+The language of what the product generates for the client, which used to be
+here, is F0-45.
 
 **Result (2026-09-13):**
 - Renamed: `scripts/check-coherence.mjs`, `docs/EXECUTION_PLAN.md`,
@@ -994,139 +1002,140 @@ es F0-45.
   for the client (`calidad`, `secretos`, `gobernanza`).
 - Limits of the new controls found in the fresh-context review: F0-46.
 
-**Criterios de aceptación:**
-- Ningún fichero ni identificador en español.
-- Ningún enlace roto en la documentación.
-- El control falla al añadir un fichero con nombre en español.
+**Acceptance criteria:**
+- No file or identifier in Spanish.
+- No broken link in the documentation.
+- The control fails when a file with a Spanish name is added.
 
 ---
 
-### [x] F0-17 — Protocolo de conservación de tokens y herramientas de agente
+### [x] F0-17 — Token conservation protocol and agent tools
 **Branch:** `chore/f0-agent-tooling` · **Depends on:** F0-14
 
-**Origen:** la sesión de la PR #7 (F0-14) gastó más del 80 % de la ventana de
-uso de cinco horas. Cada paso reenviaba la conversación entera (~130k tokens),
-hubo cinco rondas de revisión en contexto nuevo, y cada seguimiento corregido
-dentro de la PR provocaba otra ronda. Caveman sólo recorta la salida, menos del
-1 % del gasto: la palanca es abrir sesiones nuevas.
+**Origin:** the session of PR #7 (F0-14) used more than 80 % of the five-hour
+usage window. Every step resent the whole conversation (~130k tokens), there
+were five fresh-context review rounds, and every follow-up fixed inside the PR
+triggered another round. Caveman only trims the output, less than 1 % of the
+spend: the lever is opening new sessions.
 
-**Trabajo:**
-1. Sección 6 de `CLAUDE.md`: una tarea, una sesión; lo pesado a la CI; lecturas
-   dirigidas; en una PR abierta sólo bloqueantes. La sección 0 deja de pedir la
-   batería completa en local y consulta la CI.
-2. Integrar napkin (`blader/napkin`): skill en `.agents/skills/napkin/` fijada en
-   `skills-lock.json`, enlace simbólico `.claude/skills/napkin` —Claude Code no
-   lee `.agents/`— y runbook versionado en `.claude/napkin.md`.
-3. Documentar caveman como plugin opcional de cada desarrollador, y prohibir su
-   gateway en la nube (`caveman-setup`) por la ADR 0002.
-4. **El control, no sólo la regla.** `check:coherence` falla si una skill no
-   coincide con el hash del lock, si falta en el lock, si falta su enlace en
-   `.claude/skills/`, o si el runbook incumple sus reglas de curación.
-5. Llevar el protocolo al producto: ampliar F2-9 y F2-12.
+**Work:**
+1. Section 6 of `CLAUDE.md`: one task, one session; heavy work to CI; targeted
+   reads; on an open PR only blockers. Section 0 stops asking for the full
+   battery locally and queries CI.
+2. Integrate napkin (`blader/napkin`): skill in `.agents/skills/napkin/` pinned
+   in `skills-lock.json`, symbolic link `.claude/skills/napkin` —Claude Code does
+   not read `.agents/`— and versioned runbook in `.claude/napkin.md`.
+3. Document caveman as an optional plugin of each developer, and forbid its
+   cloud gateway (`caveman-setup`) because of ADR 0002.
+4. **The control, not only the rule.** `check:coherence` fails if a skill does
+   not match the lock hash, if it is missing from the lock, if its link in
+   `.claude/skills/` is missing, or if the runbook breaks its curation rules.
+5. Carry the protocol into the product: widen F2-9 and F2-12.
 
-**Criterios de aceptación:**
-- [x] `CLAUDE.md` recoge el protocolo y cómo se usan napkin y caveman.
-- [x] Claude Code carga la skill napkin desde `.claude/skills/`. Verificado en
-  una sesión nueva: las skills se descubren al arrancar.
-- [x] `check:coherence` falla al editar la skill, meter un enlace simbólico en
-  ella, borrar el enlace de `.claude/skills/`, añadir una skill sin lock, quitar
-  un "Do instead", quitar una fecha o pasar de 10 entradas en una categoría.
-  Probado con los mutantes.
-- [x] F2-9 y F2-12 incluyen el protocolo y las herramientas de agente.
+**Acceptance criteria:**
+- [x] `CLAUDE.md` sets out the protocol and how napkin and caveman are used.
+- [x] Claude Code loads the napkin skill from `.claude/skills/`. Verified in a
+  new session: skills are discovered at startup.
+- [x] `check:coherence` fails when editing the skill, putting a symbolic link in
+  it, deleting the link from `.claude/skills/`, adding a skill without a lock,
+  removing a "Do instead", removing a date or going over 10 entries in a
+  category. Tested with the mutants.
+- [x] F2-9 and F2-12 include the protocol and the agent tools.
 
-**No mecanizable:** la duración de una sesión y lo que se lee en ella. Ningún
-control del repositorio lo observa; la defensa es la sección 6 de `CLAUDE.md`.
-Tampoco lo es cuándo se cura el runbook: la skill pide curarlo en cada lectura y
-nuestra regla, sólo al añadir una entrada. Ningún control ve cuántas veces se
-reescribe; prevalece `CLAUDE.md`, que lo dice expresamente.
+**Not mechanisable:** how long a session lasts and what is read in it. No
+control in the repository observes it; the defence is section 6 of `CLAUDE.md`.
+Nor is when the runbook is curated: the skill asks for it on every read and our
+rule, only when adding an entry. No control sees how many times it is
+rewritten; `CLAUDE.md` prevails, and says so explicitly.
 
-**Limitación conocida:** el enlace simbólico no funciona en Windows con
-`core.symlinks=false`, donde git lo deja como un fichero de texto. Hoy nadie del
-equipo desarrolla en Windows; el control lo detectaría.
+**Known limitation:** the symbolic link does not work on Windows with
+`core.symlinks=false`, where git leaves it as a text file. Nobody on the team
+develops on Windows today; the control would detect it.
 
 ---
 
-### [ ] F0-18 — Documentación del repositorio en inglés
+### [ ] F0-18 — Repository documentation in English
 **Branch:** `docs/f0-english-documentation` · **Depends on:** F0-16
 
-**Origen:** decisión del 2026-09-11, ampliada el 2026-09-13 (ver F0-41). La
-industria y el propio asistente trabajan en inglés, y cada documento en español
-que el asistente lee se paga en tokens en cada sesión. Es distinto de la Fase 1:
-aquella traduce lo que el producto **genera** para el cliente según su perfil;
-esto traduce **nuestra propia** documentación.
+**Origin:** decision of 2026-09-11, widened on 2026-09-13 (see F0-41). The
+industry and the assistant itself work in English, and every Spanish document
+the assistant reads is paid for in tokens in every session. It is different from
+Phase 1: that one translates what the product **generates** for the client
+according to their profile; this one translates **our own** documentation.
 
-**Es retroactivo, sin reescribir hechos.** Se traducen también las ADR cerradas:
-la traducción cambia el idioma, no el contenido. Fechas, alternativas
-descartadas, nombres propios y citas literales se conservan tal cual.
+**It is retroactive, without rewriting facts.** Closed ADRs are translated too:
+translation changes the language, not the content. Dates, discarded
+alternatives, proper names and literal quotes are kept as they are.
 
-**Trabajo:**
-1. Traducir a inglés, conservando estructura y enlaces: `README.md`,
-   `CONTRIBUTING.md`, `SECURITY.md`, la arquitectura, el modelo de negocio y
-   todas las ADR de `docs/adr/`. `CLAUDE.md`, el runbook y la plantilla de PR
-   son de F0-41; el plan, de F0-42.
-2. Sacar cada fichero traducido de la lista de pendientes del control de F0-41.
-3. Si no cabe en una sesión: una tanda por fichero, cada una con su commit en la
-   misma rama y `pnpm check:coherence` en verde. Sigue siendo una tarea y una PR.
+**Work:**
+1. Translate to English, keeping structure and links: `README.md`,
+   `CONTRIBUTING.md`, `SECURITY.md`, the architecture, the business model and
+   every ADR in `docs/adr/`. `CLAUDE.md`, the runbook and the PR template belong
+   to F0-41; the plan, to F0-42.
+2. Remove each translated file from the pending list of the F0-41 control.
+3. If it does not fit in one session: one batch per file, each with its own
+   commit on the same branch and `pnpm check:coherence` green. It is still one
+   task and one PR.
 
-**Qué se convierte en control mecánico:** el de F0-41, con estos ficheros fuera
-de su lista de pendientes.
+**What becomes a mechanical control:** the F0-41 one, with these files out of
+its pending list.
 
-**Criterios de aceptación:**
-- Ningún documento de los listados contiene español fuera de las excepciones
-  declaradas en el control de F0-41.
-- Fechas, alternativas descartadas y nombres propios no cambian de contenido.
-- Ningún enlace interno queda roto tras la traducción.
+**Acceptance criteria:**
+- No listed document contains Spanish outside the exceptions declared in the
+  F0-41 control.
+- Dates, discarded alternatives and proper names do not change content.
+- No internal link is broken after the translation.
 
 ---
 
-### [ ] F0-19 — La plantilla de ramas para clientes se contradice en español
+### [ ] F0-19 — The branch template for clients contradicts itself in Spanish
 **Branch:** `docs/f0-branch-naming-templates` · **Depends on:** F0-15
 
-**Origen:** revisión de la PR #6, puntos 5 y 6. Salieron de F0-15 para no
-mezclar el control del repositorio con lo que se le genera al cliente.
+**Origin:** review of PR #6, points 5 and 6. They came out of F0-15 so as not to
+mix the repository's control with what is generated for the client.
 
-**Trabajo:**
-1. Con `commitLanguage: 'es'` la plantilla dice que las ramas van en español y
-   pone como ejemplo `fix/protected-branch-detection`, en inglés fijo. El test
-   sólo cubre `en`, y dos aserciones incluyen un salto de línea literal que se
-   romperá al reajustar el párrafo. Con `git: false` sigue diciendo "la persona
-   que ejecuta git".
-2. La cabecera que se escribe en el `config.yml` del cliente y el JSDoc de
-   `commitLanguage` siguen diciendo que sólo afecta a commits y PRs; ahora
-   también a ramas y títulos.
+**Work:**
+1. With `commitLanguage: 'es'` the template says branches go in Spanish and
+   gives `fix/protected-branch-detection` as the example, fixed in English. The
+   test only covers `en`, and two assertions include a literal line break that
+   will break when the paragraph is reflowed. With `git: false` it still says
+   "the person who runs git".
+2. The header written in the client's `config.yml` and the JSDoc of
+   `commitLanguage` still say it only affects commits and PRs; now it also
+   affects branches and titles.
 
-**Qué se convierte en control mecánico:** el test de la plantilla se amplía a
-`es` y a `git: false`, y deja de comparar párrafos con saltos de línea
-literales.
+**What becomes a mechanical control:** the template test is widened to `es` and
+to `git: false`, and stops comparing paragraphs with literal line breaks.
 
-**Criterios de aceptación:**
-- La plantilla dice lo mismo en `es` y en `en`, y el test cubre los dos idiomas.
-- Con `git: false` no aparece ninguna mención a quien ejecuta git.
-- La cabecera del `config.yml` y el JSDoc de `commitLanguage` nombran ramas y
-  títulos.
+**Acceptance criteria:**
+- The template says the same in `es` and in `en`, and the test covers both
+  languages.
+- With `git: false` there is no mention of whoever runs git.
+- The `config.yml` header and the JSDoc of `commitLanguage` name branches and
+  titles.
 
 ---
 
-### [ ] F0-20 — Decidir la estrategia de merge y reformular el argumento
+### [ ] F0-20 — Decide the merge strategy and reword the argument
 **Branch:** `docs/f0-merge-strategy` · **Depends on:** F0-15
 
-**Origen:** revisión de la PR #6, punto 7. El argumento de la regla de nombres
-de rama es "el nombre de rama queda en el historial de git". Con *squash merge*
-y borrado de rama, que es lo que dice el §3.2, no queda. Sólo queda porque en la
-práctica se está mergeando con *merge commit*.
+**Origin:** review of PR #6, point 7. The argument of the branch naming rule is
+"the branch name stays in the git history". With *squash merge* and branch
+deletion, which is what §3.2 says, it does not. It only stays because in
+practice merges are being done with a *merge commit*.
 
-**Trabajo:** decidir cuál de las dos es la regla y dejarla escrita en un sitio.
-Reformular el argumento: el nombre de rama se ve en la PR, en la CI y en el
-mensaje del merge, y lo lee todo el equipo.
+**Work:** decide which of the two is the rule and write it down in one place.
+Reword the argument: the branch name is seen in the PR, in CI and in the merge
+message, and the whole team reads it.
 
-**Qué se convierte en control mecánico:** nada por sí mismo; es una decisión. Si
-se elige *squash merge*, el consejo `git branch -d` de la CLI deja de funcionar
-y eso sí es un control (queda en F0-28, que depende de esta decisión).
+**What becomes a mechanical control:** nothing by itself; it is a decision. If
+*squash merge* is chosen, the CLI's `git branch -d` advice stops working and
+that is a control (it stays in F0-28, which depends on this decision).
 
-**Criterios de aceptación:**
-- El §3.2 y `CLAUDE.md` dicen la misma estrategia de merge.
-- El argumento de la regla de nombres de rama no afirma nada que la estrategia
-  elegida desmienta.
+**Acceptance criteria:**
+- §3.2 and `CLAUDE.md` state the same merge strategy.
+- The argument of the branch naming rule does not claim anything the chosen
+  strategy contradicts.
 
 ---
 
@@ -1793,7 +1802,7 @@ is read the most: every task starts by reading its own.
 - [x] Batch 1: the format read by the two controls, across the whole plan
   (`**Branch:**`, `**Depends on:**`, `**Blocks:**`, `Phase N complete`,
   `<!-- queue:start -->`); header, §1 to §4, this task, and §5 to §7.
-- [ ] Batch 2: Phase 0, first half (F0-1 to F0-20).
+- [x] Batch 2: Phase 0, first half (F0-1 to F0-20).
 - [ ] Batch 3: Phase 0, second half (F0-21 to F0-46).
 - [ ] Batch 4: Phases 1 to 6, and the plan out of the pending list.
 
@@ -2766,7 +2775,6 @@ anterior de Plumbward desde una rama deducida sigue ahí tras actualizar, porque
 `upgrade` debe poder regenerarlo o retirarlo. Lo mismo con un `ci-dev.yml`
 antiguo que filtre `pull_request` por rama: las Pull Requests a otras ramas no
 se revisan. `doctor` lo avisa desde F0-14; `upgrade` debe quitar el filtro.
-
 **Criterios de aceptación:**
 - Un fichero generado y luego editado a mano **nunca** se pisa.
 - Un fichero generado e intacto se actualiza a la versión nueva.
