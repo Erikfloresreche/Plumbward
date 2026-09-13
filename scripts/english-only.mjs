@@ -12,6 +12,22 @@
  * - `exceptions`: files that must stay in Spanish, each with its reason. The
  *   same staleness rule applies.
  *
+ * An exception may declare `fragments` (F0-48): the exact Spanish literals the
+ * file keeps on purpose, like a closed branch name quoted in the plan. The file
+ * is scanned with those literals removed, so any other Spanish still fails.
+ * Without `fragments`, the exception excuses the whole file.
+ *
+ *     { "path": "docs/EXECUTION_PLAN.md", "reason": "...",
+ *       "fragments": ["fix/f0-<spanish-slug>", "Old check name that wraps"] }
+ *
+ * - A space in a fragment matches any run of whitespace, line breaks included:
+ *   a literal the text wraps across two lines, with its indentation, is
+ *   declared once, on one line.
+ * - Everything else matches literally and with its case.
+ * - A fragment fails if it no longer appears in its file, if it has no Spanish,
+ *   or if it is shorter than ten characters without its outer whitespace: a
+ *   short one would excuse a word everywhere in the file, not one literal.
+ *
  * Pure functions, like `branch-names.mjs`: `check-coherence.mjs` only
  * wires them to the files on disk.
  *
@@ -108,10 +124,58 @@ export function spanishNameEvidence(path) {
 /**
  * @typedef {object} LanguageLists
  * @property {string[]} pending
- * @property {{ path: string, reason: string }[]} exceptions
+ * @property {{ path: string, reason: string, fragments?: string[] }[]} exceptions
  */
 
 const isStringArray = (value) => Array.isArray(value) && value.every((v) => typeof v === 'string')
+
+/** Shortest fragment accepted, without its outer whitespace. */
+export const MIN_FRAGMENT_LENGTH = 10
+
+/**
+ * Pattern of a fragment in its file: literal, except that a space matches any
+ * run of whitespace, so a literal wrapped across lines still matches.
+ *
+ * @param {string} fragment
+ * @returns {RegExp}
+ */
+function fragmentPattern(fragment) {
+  const literal = fragment.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  return new RegExp(literal.replace(/ /g, '\\s+'), 'g')
+}
+
+/**
+ * Problems of the fragments of one file, and its text with them blanked out.
+ * Every character of a match but the line breaks becomes a space: line numbers
+ * of the Spanish left stay right, and no two words are glued into a new one.
+ *
+ * @param {string} path
+ * @param {string} text
+ * @param {string[]} fragments
+ * @returns {{ problems: string[], rest: string }}
+ */
+function removeFragments(path, text, fragments) {
+  /** @type {string[]} */
+  const problems = []
+  let rest = text
+  for (const fragment of fragments) {
+    if (fragment.trim().length < MIN_FRAGMENT_LENGTH) {
+      problems.push(
+        `${path}: fragment "${fragment}" is shorter than ${MIN_FRAGMENT_LENGTH} characters; ` +
+          'it would excuse a word everywhere in the file, not one literal',
+      )
+    }
+    if (!findSpanish(fragment)) {
+      problems.push(`${path}: fragment "${fragment}" has no Spanish: remove it from scripts/english-only.json`)
+    }
+    const pattern = fragmentPattern(fragment)
+    if (!pattern.test(text)) {
+      problems.push(`${path}: fragment "${fragment}" no longer appears in the file: remove it from scripts/english-only.json`)
+    }
+    rest = rest.replace(pattern, (match) => match.replace(/[^\n]/g, ' '))
+  }
+  return { problems, rest }
+}
 
 /**
  * Problems with the language of the tracked files. Empty = all good.
@@ -134,6 +198,8 @@ export function checkEnglishOnly(files, lists) {
 
   /** @type {Map<string, string>} path -> list name */
   const listed = new Map()
+  /** @type {Map<string, string[]>} path -> fragments of its exception */
+  const fragmentsOf = new Map()
   const add = (path, list) => {
     if (listed.has(path)) problems.push(`${path} is listed more than once`)
     else listed.set(path, list)
@@ -147,6 +213,13 @@ export function checkEnglishOnly(files, lists) {
     }
     if (typeof exception.reason !== 'string' || exception.reason.trim() === '') {
       problems.push(`exception ${path} has no reason`)
+    }
+    if (exception.fragments !== undefined) {
+      if (isStringArray(exception.fragments) && exception.fragments.length > 0) {
+        fragmentsOf.set(path, exception.fragments)
+      } else {
+        problems.push(`exception ${path} must declare "fragments" as a non-empty array of strings`)
+      }
     }
     add(path, 'exceptions')
   }
@@ -164,6 +237,19 @@ export function checkEnglishOnly(files, lists) {
     const nameEvidence = spanishNameEvidence(path)
     if (nameEvidence.length > 0) {
       problems.push(`${path} looks named in Spanish (${nameEvidence.join(', ')}): rename it in English`)
+    }
+    const fragments = fragmentsOf.get(path)
+    if (fragments) {
+      const { problems: fragmentProblems, rest } = removeFragments(path, text, fragments)
+      problems.push(...fragmentProblems)
+      const outside = findSpanish(rest)
+      if (outside) {
+        problems.push(
+          `${path}:${outside.line} contains Spanish ("${outside.match}") outside its declared fragments; ` +
+            'translate it, or declare the literal as a fragment in scripts/english-only.json',
+        )
+      }
+      continue
     }
     const evidence = findSpanish(text)
     const list = listed.get(path)

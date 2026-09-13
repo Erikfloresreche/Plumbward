@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest'
 
 import { SPANISH_WORDS } from './branch-names.mjs'
-import { ALWAYS_ENGLISH, checkEnglishOnly, findSpanish, spanishNameEvidence } from './english-only.mjs'
+import {
+  ALWAYS_ENGLISH,
+  MIN_FRAGMENT_LENGTH,
+  checkEnglishOnly,
+  findSpanish,
+  spanishNameEvidence,
+} from './english-only.mjs'
 
 /**
  * F0-41. Spanish samples are written with `\u` escapes, and the Spanish word
@@ -173,4 +179,105 @@ describe('file names (F0-16)', () => {
     const problems = checkEnglishOnly(files, { pending: ['GOBERNANZA.md'], exceptions: [] })
     expect(problems).toEqual([expect.stringContaining('GOBERNANZA.md looks named in Spanish')])
   })
+})
+
+describe('fragment exceptions (F0-48)', () => {
+  const FRAGMENT = `fix/f0-${WORD}-kept`
+  const withFragments = (path, fragments) => ({ pending: [], exceptions: [{ path, reason: 'kept literals', fragments }] })
+
+  it('fails for Spanish outside the declared fragments of the file', () => {
+    const files = [{ path: 'plan.md', text: `Keep \`${FRAGMENT}\`.\n${SPANISH_LINE}\n` }]
+    expect(checkEnglishOnly(files, withFragments('plan.md', [FRAGMENT]))).toEqual([
+      expect.stringContaining('plan.md:2 contains Spanish'),
+    ])
+  })
+
+  it('accepts a file whose only Spanish is in its declared fragments', () => {
+    const files = [{ path: 'plan.md', text: `Keep \`${FRAGMENT}\`, twice: ${FRAGMENT}.\n` }]
+    expect(checkEnglishOnly(files, withFragments('plan.md', [FRAGMENT]))).toEqual([])
+  })
+
+  it('matches a space of a fragment with a line break and its indentation, keeping line numbers', () => {
+    const text = `one\nKeep \`fix/f0\n   ${WORD}-kept\`.\nthree ${SPANISH_LINE}\n`
+    expect(checkEnglishOnly([{ path: 'plan.md', text }], withFragments('plan.md', [`fix/f0 ${WORD}-kept`]))).toEqual([
+      expect.stringContaining('plan.md:4 contains Spanish'),
+    ])
+  })
+
+  it('matches a space only with whitespace', () => {
+    const files = [{ path: 'plan.md', text: `Keep ${FRAGMENT}.` }]
+    expect(checkEnglishOnly(files, withFragments('plan.md', [`fix/f0 ${WORD}-kept`]))).toContainEqual(
+      expect.stringContaining('no longer appears'),
+    )
+  })
+
+  // The real case of the plan: the former e2e check name of F0-13, wrapped by
+  // the text. Its Spanish word is escaped so this file passes its own control.
+  const PLAN_LINES =
+    '3. The required check names are `Node 22.13`, `Node 24`, `Node 26`,\n' +
+    '   `Tipos y coherencia`, `Escaneo de secretos` and `Ciclo completo sobre\n' +
+    '   repositorios r\u0065ales`.\n'
+  const E2E_CHECK = 'Ciclo completo sobre repositorios r\u0065ales'
+
+  it('declares the wrapped e2e check name of F0-13 once', () => {
+    expect(findSpanish(PLAN_LINES)).toBeDefined()
+    expect(checkEnglishOnly([{ path: 'plan.md', text: PLAN_LINES }], withFragments('plan.md', [E2E_CHECK]))).toEqual([])
+  })
+
+  it('does not excuse the prose around the wrapped e2e check name', () => {
+    const text = PLAN_LINES.replace('`.\n', `\`, the ${WORD}.\n`)
+    expect(checkEnglishOnly([{ path: 'plan.md', text }], withFragments('plan.md', [E2E_CHECK]))).toEqual([
+      expect.stringContaining('plan.md:3 contains Spanish'),
+    ])
+  })
+
+  it('matches the other characters of a fragment literally', () => {
+    const fragment = `/f0-${WORD}.x(y)/`
+    const exact = [{ path: 'plan.md', text: `Pattern ${fragment} here.` }]
+    expect(checkEnglishOnly(exact, withFragments('plan.md', [fragment]))).toEqual([])
+    const lookalike = [{ path: 'plan.md', text: `Pattern /f0-${WORD}Zxy/ here.` }]
+    expect(checkEnglishOnly(lookalike, withFragments('plan.md', [fragment]))).toContainEqual(
+      expect.stringContaining('no longer appears'),
+    )
+  })
+
+  it('fails for a fragment that no longer appears in its file', () => {
+    const gone = `fix/f0-${WORD}-gone`
+    const files = [{ path: 'plan.md', text: `${FRAGMENT}\n` }]
+    expect(checkEnglishOnly(files, withFragments('plan.md', [FRAGMENT, gone]))).toEqual([
+      expect.stringContaining(`"${gone}" no longer appears`),
+    ])
+  })
+
+  it('fails for a fragment that has no Spanish', () => {
+    const english = 'plain English words'
+    const files = [{ path: 'plan.md', text: `${FRAGMENT}\n${english}\n` }]
+    expect(checkEnglishOnly(files, withFragments('plan.md', [FRAGMENT, english]))).toEqual([
+      expect.stringContaining(`"${english}" has no Spanish`),
+    ])
+  })
+
+  it.each([`${WORD} y`, `   ${WORD}   `, `a ${WORD} b`])('fails for the short fragment "%s"', (fragment) => {
+    const files = [{ path: 'plan.md', text: `x ${fragment} z\n` }]
+    expect(checkEnglishOnly(files, withFragments('plan.md', [fragment]))).toEqual([
+      expect.stringContaining('shorter than'),
+    ])
+  })
+
+  it(`accepts a fragment of exactly ${MIN_FRAGMENT_LENGTH} characters`, () => {
+    const fragment = `a ${WORD} bc`.padEnd(MIN_FRAGMENT_LENGTH, 'd')
+    expect(fragment).toHaveLength(MIN_FRAGMENT_LENGTH)
+    const files = [{ path: 'plan.md', text: `x ${fragment} z\n` }]
+    expect(checkEnglishOnly(files, withFragments('plan.md', [fragment]))).toEqual([])
+  })
+
+  it.each([['a string', FRAGMENT], ['an empty array', []], ['a non-string', [1]]])(
+    'fails for fragments declared as %s',
+    (_, fragments) => {
+      const files = [{ path: 'plan.md', text: `${FRAGMENT}\n` }]
+      expect(checkEnglishOnly(files, withFragments('plan.md', fragments))).toContainEqual(
+        expect.stringContaining('non-empty array of strings'),
+      )
+    },
+  )
 })
