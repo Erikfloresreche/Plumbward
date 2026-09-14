@@ -11,7 +11,7 @@ async function git(cwd: string, ...args: string[]): Promise<void> {
   await execa('git', args, { cwd })
 }
 
-/** Repositorio con un commit, sin remoto. */
+/** Repository with one commit, without a remote. */
 async function createRepo(branch = 'main', options: { commit?: boolean } = {}): Promise<string> {
   const root = await mkdtemp(join(tmpdir(), 'plumbward-git-state-'))
   created.push(root)
@@ -27,8 +27,8 @@ async function createRepo(branch = 'main', options: { commit?: boolean } = {}): 
 }
 
 /**
- * Simula lo que deja `git clone`: una referencia remota y `origin/HEAD`
- * apuntando a ella. Sin red: se escriben las referencias directamente.
+ * Simulates what `git clone` leaves behind: a remote ref and `origin/HEAD`
+ * pointing to it. Without network: the refs are written directly.
  */
 async function simulateClone(root: string, defaultBranch: string, createTarget = true): Promise<void> {
   if (createTarget) await git(root, 'update-ref', `refs/remotes/origin/${defaultBranch}`, 'HEAD')
@@ -39,10 +39,10 @@ afterEach(async () => {
   await Promise.all(created.splice(0).map((dir) => rm(dir, { recursive: true, force: true })))
 })
 
-describe('rama actual', () => {
-  it('devuelve el nombre limpio aunque exista una etiqueta con el mismo nombre', async () => {
-    // Con `rev-parse --abbrev-ref HEAD` o `symbolic-ref --short`, esto daba
-    // `heads/Prod`, que no coincidía con ninguna rama protegida.
+describe('current branch', () => {
+  it('returns the clean name even if a tag with the same name exists', async () => {
+    // With `rev-parse --abbrev-ref HEAD` or `symbolic-ref --short`, this gave
+    // `heads/Prod`, which matched no protected branch.
     const root = await createRepo('Prod')
     await git(root, 'tag', 'Prod')
     const state = await readGitState(root)
@@ -50,7 +50,7 @@ describe('rama actual', () => {
     expect(state.detachedHead).toBe(false)
   })
 
-  it('con HEAD desacoplado no inventa una rama llamada "HEAD"', async () => {
+  it('with a detached HEAD does not make up a branch called "HEAD"', async () => {
     const root = await createRepo('Prod')
     await git(root, 'checkout', '--detach')
     const state = await readGitState(root)
@@ -58,15 +58,15 @@ describe('rama actual', () => {
     expect(state.detachedHead).toBe(true)
   })
 
-  it('en un repositorio sin commits conoce igualmente la rama', async () => {
+  it('knows the branch even in a repository without commits', async () => {
     const state = await readGitState(await createRepo('Prod', { commit: false }))
     expect(state.branch).toBe('Prod')
     expect(state.detachedHead).toBe(false)
   })
 })
 
-describe('ramas conocidas', () => {
-  it('reúne las locales y las remotas, sin prefijos, sin duplicados y sin HEAD', async () => {
+describe('known branches', () => {
+  it('gathers local and remote ones, without prefixes, duplicates or HEAD', async () => {
     const root = await createRepo('Prod')
     await git(root, 'branch', 'develop')
     await simulateClone(root, 'Prod')
@@ -75,18 +75,18 @@ describe('ramas conocidas', () => {
   })
 })
 
-describe('rama por defecto del remoto', () => {
-  it('es null en un repositorio sin remoto', async () => {
+describe('default branch of the remote', () => {
+  it('is null in a repository without a remote', async () => {
     expect(await readDefaultBranch(await createRepo())).toBeNull()
   })
 
-  it('detecta una rama por defecto que no se llama main', async () => {
+  it('detects a default branch not called main', async () => {
     const root = await createRepo('Prod')
     await simulateClone(root, 'Prod')
     expect(await readDefaultBranch(root)).toBe('Prod')
   })
 
-  it('ignora un origin/HEAD que apunta a una referencia inexistente', async () => {
+  it('ignores an origin/HEAD that points to a ref that does not exist', async () => {
     const root = await createRepo()
     await simulateClone(root, 'deleted-branch', false)
     expect(await readDefaultBranch(root)).toBeNull()

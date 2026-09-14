@@ -8,11 +8,11 @@ export interface SelectedPack {
 }
 
 /**
- * Registro de packs. Selecciona los aplicables, los ordena por confianza y
- * agrega sus contribuciones en un único `ChangePlan`.
+ * Pack registry. It selects the applicable packs, sorts them by confidence and
+ * gathers their contributions into a single `ChangePlan`.
  *
- * Los packs no se conocen entre sí: si dos quieren configurar lo mismo de forma
- * distinta, el `PlanBuilder` lo detecta y lo reporta como conflicto.
+ * Packs do not know each other: if two want to configure the same thing in
+ * different ways, the `PlanBuilder` detects it and reports it as a conflict.
  */
 export class PackRegistry {
   readonly #packs: readonly StackPack[]
@@ -32,7 +32,7 @@ export class PackRegistry {
     return this.#packs
   }
 
-  /** Packs aplicables al repositorio, de mayor a menor confianza. */
+  /** Packs applicable to the repository, from highest to lowest confidence. */
   async select(context: RepoContext): Promise<SelectedPack[]> {
     const results = await Promise.all(
       this.#packs.map(async (pack) => ({ pack, detection: await pack.detect(context) })),
@@ -43,7 +43,7 @@ export class PackRegistry {
       .sort((a, b) => b.detection.confidence - a.detection.confidence)
   }
 
-  /** Construye el plan completo a partir de los packs seleccionados. */
+  /** Builds the complete plan from the selected packs. */
   async buildPlan(context: RepoContext): Promise<ChangePlan> {
     const selected = await this.select(context)
     const builder = new PlanBuilder()
@@ -66,7 +66,7 @@ export class PackRegistry {
     return builder.build()
   }
 
-  /** Ejecuta las comprobaciones de salud de todos los packs aplicables. */
+  /** Runs the health checks of every applicable pack. */
   async runHealthChecks(context: RepoContext): Promise<HealthCheck[]> {
     const selected = await this.select(context)
     const checks = await Promise.all(selected.map(({ pack }) => pack.validate(context)))

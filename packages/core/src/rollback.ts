@@ -9,7 +9,7 @@ export interface RollbackResult {
   readonly journal: Journal
 }
 
-/** Error específico de rollback, para distinguirlo de fallos de apply. */
+/** Rollback-specific error, to tell it apart from apply failures. */
 export class RollbackError extends Error {
   constructor(message: string) {
     super(message)
@@ -18,11 +18,11 @@ export class RollbackError extends Error {
 }
 
 /**
- * Journal escrito por una versión anterior, que no identifica el sitio en el
- * que se aplicó: la v1 guardaba la rama de partida en lugar de la escrita, y la
- * v2 guardaba el nombre de la rama pero no el commit. No se puede comprobar que
- * se sigue en el mismo sitio, así que no se revierte: restaurar a ciegas es
- * justamente la pérdida de datos que se corrigió.
+ * Journal written by an earlier version, which does not identify the site it
+ * was applied on: v1 stored the starting branch instead of the written one,
+ * and v2 stored the branch name but not the commit. There is no way to check
+ * that we are still on the same site, so nothing is reverted: restoring blindly
+ * is exactly the data loss that was fixed.
  */
 export class OutdatedJournalError extends RollbackError {
   constructor() {
@@ -35,7 +35,7 @@ export class OutdatedJournalError extends RollbackError {
   }
 }
 
-/** Lee el journal de la última ejecución, si existe. */
+/** Reads the journal of the last run, if it exists. */
 export async function readJournal(repoRoot: string): Promise<Journal | undefined> {
   const raw = await readFileIfExists(resolveInRepo(repoRoot, JOURNAL_FILE))
   if (raw === undefined) return undefined
@@ -61,21 +61,22 @@ export async function readJournal(repoRoot: string): Promise<Journal | undefined
 }
 
 /**
- * Comprueba que se está revirtiendo donde se escribió: misma rama **y** mismo
- * commit. Ante la duda, se niega: el coste de negarse es volver al sitio
- * correcto; el de equivocarse, trabajo perdido (misma dirección que la ADR 0005).
+ * Checks that the revert happens where the write happened: same branch **and**
+ * same commit. When in doubt, it refuses: the cost of refusing is going back to
+ * the right site; the cost of getting it wrong, lost work (same direction as
+ * ADR 0005).
  *
- * El nombre solo no basta. Una rama borrada y recreada sobre otro commit lleva
- * el mismo nombre y tiene otro contenido, y un commit hecho en la rama aislada
- * después del `apply` deja los snapshots viejos. En los dos casos restaurar
- * escribe encima de trabajo que no estaba cuando se fotografió el árbol.
+ * The name alone is not enough. A branch deleted and recreated on another
+ * commit carries the same name and has other content, and a commit made on the
+ * isolated branch after the `apply` leaves the snapshots stale. In both cases
+ * restoring writes over work that was not there when the tree was photographed.
  */
 function assertSameSite(journal: Journal, current: RollbackOptions): void {
   assertSameBranch(journal, current.currentBranch)
   assertSameCommit(journal, current.currentCommit)
 }
 
-/** Cómo nombran los mensajes el sitio del journal: su rama, o ninguna. */
+/** How the messages name the site of the journal: its branch, or none. */
 function writtenWhere(journal: Journal): string {
   return journal.writtenOnBranch === null
     ? 'con HEAD desacoplado'
@@ -83,25 +84,26 @@ function writtenWhere(journal: Journal): string {
 }
 
 /**
- * La etiqueta del sitio: en qué rama se escribió, o `null` con HEAD desacoplado.
+ * The label of the site: which branch it was written on, or `null` with a
+ * detached HEAD.
  *
- * `null` se compara como cualquier otro nombre (F0-29): un journal escrito con
- * HEAD desacoplado se revierte con HEAD desacoplado, y `assertSameCommit` exige
- * además el mismo commit, que es lo que identifica el sitio desde F0-30.
- * Negarse siempre, como hacía F0-24, dejaba ese journal irreversible sin
- * proteger nada que el commit no proteja ya.
+ * `null` is compared like any other name (F0-29): a journal written with a
+ * detached HEAD is reverted with a detached HEAD, and `assertSameCommit` also
+ * requires the same commit, which is what identifies the site since F0-30.
+ * Always refusing, as F0-24 did, left that journal irreversible without
+ * protecting anything the commit does not already protect.
  *
- * Desde una rama que apunta al mismo commit también se niega, por simetría con
- * el caso contrario —journal con rama, HEAD ahora desacoplado—, que ya se
- * negaba. **Esa negativa no protege el trabajo sin commitear:** el
- * `git checkout` que aconseja el mensaje arrastra los cambios del árbol, y el
- * `rollback` de después los sobrescribe. Pasa igual con journals de rama: ni la
- * rama ni el commit dicen si los ficheros siguen siendo los que dejó `apply`.
- * Comprobarlo es F0-38.
+ * From a branch that points to the same commit it also refuses, for symmetry
+ * with the opposite case —journal with a branch, HEAD now detached—, which
+ * already refused. **That refusal does not protect uncommitted work:** the
+ * `git checkout` the message advises carries the changes of the tree along,
+ * and the `rollback` afterwards overwrites them. The same happens with branch
+ * journals: neither the branch nor the commit says whether the files are still
+ * the ones `apply` left. Checking that is F0-38.
  *
- * Sin rama y sin commit no queda nada que comparar. `apply` no escribe ese
- * journal —un HEAD desacoplado siempre apunta a un commit—, pero uno editado a
- * mano sí puede traerlo, y ahí se niega.
+ * With no branch and no commit there is nothing left to compare. `apply` does
+ * not write that journal —a detached HEAD always points to a commit—, but a
+ * hand-edited one can carry it, and there it refuses.
  */
 function assertSameBranch(journal: Journal, currentBranch: string | null): void {
   if (journal.writtenOnBranch === null && journal.writtenOnCommit === null) {
@@ -129,12 +131,12 @@ function assertSameBranch(journal: Journal, currentBranch: string | null): void 
 }
 
 /**
- * Misma etiqueta, otro commit: la rama se borró y se recreó, o se ha commiteado
- * después del `apply` (también sobre un HEAD desacoplado). Los snapshots son
- * del árbol de aquel commit.
+ * Same label, another commit: the branch was deleted and recreated, or there
+ * were commits after the `apply` (on a detached HEAD too). The snapshots are of
+ * the tree of that commit.
  *
- * Dos `null` sí coinciden: un repositorio sin ningún commit sigue sin tenerlo,
- * y no hay historia que se haya podido rehacer por debajo.
+ * Two `null`s do match: a repository with no commit still has none, and there
+ * is no history that could have been rewritten underneath.
  */
 function assertSameCommit(journal: Journal, currentCommit: string | null): void {
   if (currentCommit === journal.writtenOnCommit) return
@@ -157,29 +159,30 @@ function assertSameCommit(journal: Journal, currentCommit: string | null): void 
 
 export interface RollbackOptions {
   /**
-   * Rama actual del repositorio, que lee la CLI. `null` con HEAD desacoplado.
-   * El núcleo no habla con git: quien llama le dice dónde está.
+   * Current branch of the repository, read by the CLI. `null` with a detached
+   * HEAD. The core does not talk to git: the caller tells it where it is.
    */
   readonly currentBranch: string | null
   /**
-   * Commit al que apunta HEAD ahora, de la misma lectura que `currentBranch`.
-   * `null` en un repositorio sin ningún commit.
+   * Commit HEAD points to now, from the same read as `currentBranch`. `null` in
+   * a repository with no commit.
    */
   readonly currentCommit: string | null
 }
 
 /**
- * Revierte la última ejecución dejando el árbol de trabajo exactamente como
- * estaba. Verificación esperada: `git status --porcelain` vacío después.
+ * Reverts the last run, leaving the working tree exactly as it was. Expected
+ * check: an empty `git status --porcelain` afterwards.
  *
- * **Sólo en el sitio en el que `apply` escribió:** misma rama —o HEAD desacoplado
- * en los dos casos— y mismo commit.
- * Los snapshots del journal son fotos de los ficheros de ese árbol; escribirlos
- * en otro no revierte nada, borra lo que ese otro tuviera. Si no coincide, no se
- * toca nada y el journal se conserva, para poder revertir después desde el sitio
- * correcto.
+ * **Only on the site `apply` wrote on:** same branch —or a detached HEAD in
+ * both cases— and same commit.
+ * The snapshots of the journal are photos of the files of that tree; writing
+ * them on another one reverts nothing, it erases whatever that other one had.
+ * If it does not match, nothing is touched and the journal is kept, so the
+ * revert can be done later from the right site.
  *
- * El journal se elimina al revertir para que no se pueda revertir dos veces.
+ * The journal is removed when reverting, so the same run cannot be reverted
+ * twice.
  */
 export async function rollbackLastApply(
   repoRoot: string,

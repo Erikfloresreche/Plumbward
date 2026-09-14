@@ -1,57 +1,57 @@
 import type { PackageManager } from '@plumbward/core'
 
-/** Clasificación por tamaño según la especificación (SLOC). */
+/** Size classification according to the specification (SLOC). */
 export type SizeClass = 'small' | 'medium' | 'large'
 
 /**
- * Modo de gobernanza derivado del tamaño. Es la decisión más importante del
- * escáner: determina si se puede exigir todo desde el minuto uno o si hay que
- * aplicar el trinquete sólo sobre código nuevo.
+ * Governance mode derived from the size. It is the most important decision of
+ * the scanner: it sets whether everything can be required from minute one or
+ * whether the ratchet has to be applied only to new code.
  */
 export type GovernanceMode =
-  /** < 2.000 SLOC: configuración estricta total e inmediata. */
+  /** < 2,000 SLOC: full, immediate strict configuration. */
   | 'greenfield'
-  /** 2.000 - 50.000 SLOC: reglas estrictas sólo sobre lo que cambia. */
+  /** 2,000 - 50,000 SLOC: strict rules only on what changes. */
   | 'ratchet'
-  /** > 50.000 SLOC o monorepo: baseline y auditoría sólo de PRs nuevas. */
+  /** > 50,000 SLOC or monorepo: baseline, and auditing of new PRs only. */
   | 'non-disruptive'
 
 export interface GitState {
   readonly isRepo: boolean
   /**
-   * Rama actual, leída con `git symbolic-ref HEAD` y sin abreviar.
+   * Current branch, read with `git symbolic-ref HEAD` and without abbreviating.
    *
-   * No se usa `git rev-parse --abbrev-ref HEAD` ni `symbolic-ref --short`: ambos
-   * devuelven `heads/Prod` si existe una etiqueta o un remoto llamado `Prod`, y
-   * ese nombre no coincide con nada. Es `null` con HEAD desacoplado.
+   * Neither `git rev-parse --abbrev-ref HEAD` nor `symbolic-ref --short` is
+   * used: both return `heads/Prod` if a tag or a remote called `Prod` exists,
+   * and that name matches nothing. It is `null` with a detached HEAD.
    */
   readonly branch: string | null
-  /** `true` si HEAD no apunta a ninguna rama (checkout de un commit o etiqueta). */
+  /** `true` if HEAD points to no branch (checkout of a commit or a tag). */
   readonly detachedHead: boolean
   /**
-   * Nombres de todas las ramas conocidas, locales y de seguimiento remoto, sin
-   * prefijo y sin duplicados. Sólo sirven para **proponer** el `config.yml`
-   * inicial; nada generado depende de ellas una vez existe el fichero
-   * (ADR 0005). Pueden incluir referencias huérfanas.
+   * Names of every known branch, local and remote-tracking, without prefix and
+   * without duplicates. They only serve to **propose** the initial
+   * `config.yml`; nothing generated depends on them once the file exists
+   * (ADR 0005). They may include orphaned refs.
    */
   readonly branches: readonly string[]
   /**
-   * Rama por defecto del remoto, según `refs/remotes/origin/HEAD`.
+   * Default branch of the remote, according to `refs/remotes/origin/HEAD`.
    *
-   * Se lee sin red, y por eso **puede estar desfasada**: si la rama se renombró
-   * en el remoto después de clonar o de hacer el primer push, la referencia
-   * local sigue apuntando al nombre viejo hasta que alguien ejecuta
-   * `git remote set-head origin --auto`. Nunca debe usarse como única fuente
-   * para decidir qué ramas proteger.
+   * It is read without network, and that is why it **can be stale**: if the
+   * branch was renamed on the remote after cloning or after the first push, the
+   * local ref keeps pointing to the old name until someone runs
+   * `git remote set-head origin --auto`. It must never be used as the only
+   * source to decide which branches to protect.
    */
   readonly defaultBranch: string | null
   readonly isDirty: boolean
-  /** Hash del primer commit: identificador estable del proyecto. */
+  /** Hash of the first commit: stable identifier of the project. */
   readonly rootCommit: string | null
   readonly remoteUrl: string | null
   /**
-   * Huella del repositorio para vincular la licencia. Deriva del primer commit
-   * y, en su defecto, de la URL remota normalizada.
+   * Fingerprint of the repository to bind the licence to. It derives from the
+   * first commit and, failing that, from the normalised remote URL.
    */
   readonly fingerprint: string | null
 }
@@ -71,10 +71,10 @@ export interface SlocReport {
 }
 
 export interface StackDetection {
-  /** Identificador del pack que debe encargarse de este stack. */
+  /** Identifier of the pack that must handle this stack. */
   readonly id: string
   readonly name: string
-  /** Confianza 0-1. El pack con mayor confianza se considera principal. */
+  /** Confidence 0-1. The pack with the highest confidence is the primary one. */
   readonly confidence: number
   readonly evidence: readonly string[]
   readonly packageManager?: PackageManager
@@ -87,12 +87,12 @@ export interface MaturitySignal {
   readonly label: string
   readonly present: boolean
   readonly weight: number
-  /** Qué aporta activarlo. Es el texto que vende la herramienta al cliente. */
+  /** What turning it on brings. It is the text that sells the tool to the client. */
   readonly hint: string
 }
 
 export interface MaturityReport {
-  /** Puntuación 0-100 ponderada. */
+  /** Weighted score 0-100. */
   readonly score: number
   readonly signals: readonly MaturitySignal[]
   readonly missing: readonly MaturitySignal[]
@@ -106,6 +106,6 @@ export interface RepoScan {
   readonly primaryStack: StackDetection | null
   readonly maturity: MaturityReport
   readonly isMonorepo: boolean
-  /** Rutas relativas de todos los ficheros considerados (respeta .gitignore). */
+  /** Relative paths of every file considered (respects .gitignore). */
   readonly files: readonly string[]
 }

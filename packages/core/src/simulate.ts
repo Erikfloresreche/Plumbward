@@ -3,10 +3,10 @@ import type { AddDependencyOp, ChangePlan, ExecCommandOp, Operation } from './ty
 import { readFileIfExists, resolveInRepo } from './fs.js'
 import { withManagedHeader } from './apply.js'
 
-/** Resultado de la simulación para un fichero concreto. */
+/** Result of the simulation for one file. */
 export interface SimulatedChange {
   readonly path: string
-  /** Contenido actual, o `null` si el fichero no existe todavía. */
+  /** Current content, or `null` if the file does not exist yet. */
   readonly before: string | null
   readonly after: string
   readonly reasons: readonly string[]
@@ -14,29 +14,28 @@ export interface SimulatedChange {
 
 export interface SimulationResult {
   readonly changes: readonly SimulatedChange[]
-  /** Operaciones que no producen cambio (el repo ya está conforme). */
+  /** Operations that produce no change (the repo already complies). */
   readonly noOps: readonly Operation[]
   /**
-   * Operaciones que no tocan ficheros. El tipo es deliberadamente estrecho: sólo
-   * dependencias y comandos pueden acabar aquí, y quien lo consuma necesita
-   * poder leer `cmd` y `args` sin comprobaciones redundantes.
+   * Operations that do not touch files. The type is deliberately narrow: only
+   * dependencies and commands can end up here, and whoever consumes it needs
+   * to read `cmd` and `args` without redundant checks.
    */
   readonly sideEffects: readonly (AddDependencyOp | ExecCommandOp)[]
 }
 
 /**
- * Ejecuta el plan EN MEMORIA para poder mostrar el diff exacto antes de tocar
- * el disco.
+ * Runs the plan IN MEMORY to show the exact diff before touching the disk.
  *
- * Es la función que sostiene la confianza en la herramienta: reutiliza los
- * mismos parsers que `apply`, así que lo que el usuario ve en `plan` es
- * literalmente lo que va a ocurrir, no una aproximación.
+ * It is the function that holds up the trust in the tool: it reuses the same
+ * parsers as `apply`, so what the user sees in `plan` is literally what is
+ * going to happen, not an approximation.
  */
 export async function simulatePlan(
   plan: ChangePlan,
   options: { repoRoot: string; version: string },
 ): Promise<SimulationResult> {
-  /** Overlay: ruta -> contenido resultante (o `null` si no existe). */
+  /** Overlay: path -> resulting content (or `null` if it does not exist). */
   const overlay = new Map<string, string | null>()
   const original = new Map<string, string | null>()
   const reasons = new Map<string, string[]>()

@@ -40,11 +40,11 @@ export { assessMaturity } from './maturity.js'
 export { walkFiles } from './walk.js'
 
 /**
- * Análisis completo del repositorio. Es la única función que la CLI necesita
- * llamar antes de construir un plan.
+ * Complete analysis of the repository. It is the only function the CLI needs to
+ * call before building a plan.
  *
- * Es de sólo lectura por contrato: nunca escribe nada, para que `scan` se pueda
- * ofrecer gratis y sin licencia como gancho comercial.
+ * It is read-only by contract: it never writes anything, so `scan` can be
+ * offered for free and without a licence as a commercial hook.
  */
 export async function scanRepository(repoRootInput: string): Promise<RepoScan> {
   const repoRoot = resolve(repoRootInput)

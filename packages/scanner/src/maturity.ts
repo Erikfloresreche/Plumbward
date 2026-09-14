@@ -9,11 +9,11 @@ interface SignalDefinition {
 }
 
 /**
- * Señales de madurez DevSecOps.
+ * DevSecOps maturity signals.
  *
- * El peso refleja cuánto dolor evita cada una, no lo difícil que es implantarla.
- * Este informe es la pieza comercial de la herramienta: es lo que se le enseña
- * al cliente antes de comprar y lo que justifica la renovación un año después.
+ * The weight reflects how much pain each one prevents, not how hard it is to
+ * put in place. This report is the commercial piece of the tool: it is what the
+ * client is shown before buying and what justifies the renewal a year later.
  */
 const SIGNALS: readonly SignalDefinition[] = [
   {
@@ -150,9 +150,10 @@ const SIGNALS: readonly SignalDefinition[] = [
 ]
 
 /**
- * Evalúa la madurez del repositorio a partir de su listado de ficheros.
+ * Assesses the maturity of the repository from its file listing.
  *
- * Trabaja sobre el listado ya obtenido por el escáner: no vuelve a tocar disco.
+ * It works on the listing the scanner already obtained: it does not touch the
+ * disk again.
  */
 export function assessMaturity(files: readonly string[]): MaturityReport {
   const fileSet = new Set(files)

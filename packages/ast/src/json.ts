@@ -7,11 +7,11 @@ import {
 } from './pointer.js'
 
 /**
- * Parcheo idempotente de ficheros JSON preservando comentarios y estilo.
+ * Idempotent patching of JSON files, preserving comments and style.
  *
- * Se usa `comment-json` en lugar de `JSON.parse` porque ficheros muy habituales
- * en el ecosistema (`tsconfig.json`, `.eslintrc.json`, `devcontainer.json`)
- * llevan comentarios y `JSON.parse` los rechaza.
+ * `comment-json` is used instead of `JSON.parse` because very common files in
+ * the ecosystem (`tsconfig.json`, `.eslintrc.json`, `devcontainer.json`) carry
+ * comments and `JSON.parse` rejects them.
  */
 
 export type JsonPatchStrategy = 'set' | 'merge' | 'appendUnique'
@@ -27,7 +27,7 @@ export interface PatchResult {
   readonly changed: boolean
 }
 
-/** Detecta la indentación dominante del fichero para no reformatearlo entero. */
+/** Detects the dominant indentation of the file, so as not to reformat all of it. */
 export function detectIndent(text: string): number | string {
   for (const line of text.split('\n')) {
     const match = /^([ \t]+)\S/.exec(line)
@@ -38,7 +38,7 @@ export function detectIndent(text: string): number | string {
   return 2
 }
 
-/** Detecta si el fichero terminaba en salto de línea, para respetarlo al escribir. */
+/** Detects whether the file ended with a line break, to keep it when writing. */
 function endsWithNewline(text: string): boolean {
   return text.endsWith('\n')
 }
@@ -53,8 +53,9 @@ function parseJson(text: string, filePath: string): unknown {
 }
 
 /**
- * Navega hasta el contenedor del último segmento, creando objetos intermedios
- * cuando falten. Devuelve `null` si la ruta atraviesa un valor no contenedor.
+ * Walks to the container of the last segment, creating intermediate objects
+ * when they are missing. Returns `null` if the path crosses a non-container
+ * value.
  */
 function resolveParent(
   root: unknown,
@@ -95,10 +96,10 @@ function writeSlot(
 }
 
 /**
- * Aplica una lista de parches a un documento JSON.
+ * Applies a list of patches to a JSON document.
  *
- * Propiedad clave: aplicar el mismo lote dos veces devuelve `changed: false` en
- * la segunda pasada y un texto idéntico byte a byte.
+ * Key property: applying the same batch twice returns `changed: false` on the
+ * second pass and a text identical byte for byte.
  */
 export function patchJson(
   text: string,
@@ -126,7 +127,7 @@ export function patchJson(
 
     switch (patch.strategy) {
       case 'set': {
-        // No destructivo: si ya hay un valor, se respeta.
+        // Non-destructive: if there is already a value, it is respected.
         if (existing === undefined) {
           writeSlot(parent, key, patch.value)
           changed = true
@@ -173,7 +174,7 @@ export function patchJson(
   return { text: next, changed: next !== text }
 }
 
-/** Lee un valor por puntero. Devuelve `undefined` si la ruta no existe. */
+/** Reads a value by pointer. Returns `undefined` if the path does not exist. */
 export function getJsonValue(text: string, pointer: string, filePath = '(json)'): unknown {
   const root = parseJson(text, filePath)
   let current: unknown = root

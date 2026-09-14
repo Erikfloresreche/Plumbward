@@ -3,11 +3,11 @@ import type { Operation } from '@plumbward/core'
 import type { RepoContext, StackPack } from './contract.js'
 
 /**
- * Tests de conformidad que todo pack debe pasar para publicarse.
+ * Conformance tests every pack must pass to be published.
  *
- * Existen porque el catálogo de packs es el eje de escalado del producto: en
- * cuanto haya packs de terceros, esta suite es lo único que garantiza que uno
- * mal escrito no rompa el repositorio de un cliente.
+ * They exist because the pack catalogue is the scaling axis of the product: as
+ * soon as there are third-party packs, this suite is the only thing that
+ * guarantees a badly written one does not break a client's repository.
  */
 
 export interface ConformanceViolation {
@@ -55,11 +55,11 @@ function checkOperationSafety(operations: readonly Operation[]): ConformanceViol
 }
 
 /**
- * Comprueba un pack contra el contrato.
+ * Checks a pack against the contract.
  *
- * La regla más importante es el determinismo: `contribute` debe devolver
- * exactamente lo mismo para el mismo contexto. Sin eso, `plan` mentiría sobre lo
- * que `apply` va a hacer, y todo el modelo de confianza se cae.
+ * The most important rule is determinism: `contribute` must return exactly the
+ * same for the same context. Without it, `plan` would lie about what `apply` is
+ * going to do, and the whole trust model falls apart.
  */
 export async function checkPackConformance(
   pack: StackPack,

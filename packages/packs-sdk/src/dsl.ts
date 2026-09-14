@@ -11,19 +11,20 @@ import type {
 } from '@plumbward/core'
 
 /**
- * Azúcar sintáctico para escribir packs.
+ * Syntactic sugar to write packs.
  *
- * Sin esto, un pack es un muro de literales de objeto y nadie de fuera querría
- * escribir uno. Con esto, un pack se lee casi como una lista de requisitos.
+ * Without this, a pack is a wall of object literals and nobody from outside
+ * would want to write one. With this, a pack reads almost like a list of
+ * requirements.
  */
 
 export interface FileOptions {
-  /** Marca el fichero como gestionado (cabecera + regenerable por `upgrade`). */
+  /** Marks the file as managed (header + regenerable by `upgrade`). */
   readonly managed?: boolean
   readonly onExists?: 'skip' | 'overwrite' | 'conflict'
 }
 
-/** Crea un fichero nuevo. Por defecto gestionado y sin pisar lo existente. */
+/** Creates a new file. Managed by default, and without overwriting what exists. */
 export function file(
   path: string,
   content: string,
@@ -40,7 +41,7 @@ export function file(
   }
 }
 
-/** Parchea un JSON existente. Por defecto fusiona sin pisar valores del cliente. */
+/** Patches an existing JSON file. By default it merges without overwriting client values. */
 export function json(
   path: string,
   pointer: string,
@@ -51,7 +52,7 @@ export function json(
   return { kind: 'patchJson', path, pointer, value, strategy, reason }
 }
 
-/** Parchea un YAML existente preservando comentarios. */
+/** Patches an existing YAML file, preserving comments. */
 export function yaml(
   path: string,
   pointer: string,
@@ -62,7 +63,7 @@ export function yaml(
   return { kind: 'patchYaml', path, pointer, value, strategy, reason }
 }
 
-/** Inserta un bloque delimitado dentro de un fichero del cliente. */
+/** Inserts a delimited block inside a client file. */
 export function block(
   path: string,
   blockId: string,
@@ -81,7 +82,7 @@ export function block(
   }
 }
 
-/** Declara una dependencia. Se agrupará con las demás en un solo comando. */
+/** Declares a dependency. It is grouped with the others into a single command. */
 export function dep(
   manager: PackageManager,
   name: string,
@@ -98,7 +99,7 @@ export function dep(
   }
 }
 
-/** Declara un comando a ejecutar. Siempre visible en el plan antes de correr. */
+/** Declares a command to run. Always visible in the plan before it runs. */
 export function cmd(
   command: string,
   args: readonly string[],

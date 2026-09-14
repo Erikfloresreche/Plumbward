@@ -2,7 +2,7 @@ import { execa } from 'execa'
 import { createHash } from 'node:crypto'
 import type { GitState } from './types.js'
 
-/** Ejecuta git devolviendo `undefined` si el comando falla (repo sin commits, etc.). */
+/** Runs git, returning `undefined` if the command fails (repo without commits, etc.). */
 async function git(repoRoot: string, args: readonly string[]): Promise<string | undefined> {
   try {
     const { stdout } = await execa('git', [...args], { cwd: repoRoot, reject: true })
@@ -13,8 +13,8 @@ async function git(repoRoot: string, args: readonly string[]): Promise<string | 
 }
 
 /**
- * Normaliza una URL remota para que `git@github.com:org/repo.git` y
- * `https://github.com/org/repo` produzcan la misma huella.
+ * Normalises a remote URL so that `git@github.com:org/repo.git` and
+ * `https://github.com/org/repo` produce the same fingerprint.
  */
 export function normaliseRemote(url: string): string {
   return url
@@ -28,11 +28,11 @@ export function normaliseRemote(url: string): string {
 }
 
 /**
- * Rama por defecto del remoto `origin`, sin conectarse a la red.
+ * Default branch of the `origin` remote, without connecting to the network.
  *
- * Devuelve `null` si no hay remoto, si `origin/HEAD` no está definido o si
- * apunta a una referencia que no existe. Ver la advertencia sobre desfases en
- * `GitState.defaultBranch`: este valor informa, pero no decide por sí solo.
+ * Returns `null` if there is no remote, if `origin/HEAD` is not defined or if
+ * it points to a ref that does not exist. See the warning about staleness in
+ * `GitState.defaultBranch`: this value informs, but does not decide on its own.
  */
 export async function readDefaultBranch(repoRoot: string): Promise<string | null> {
   const symbolic = await git(repoRoot, ['symbolic-ref', '--quiet', 'refs/remotes/origin/HEAD'])
@@ -46,10 +46,10 @@ export async function readDefaultBranch(repoRoot: string): Promise<string | null
 }
 
 /**
- * Nombres de todas las ramas locales y de seguimiento remoto, sin prefijo.
+ * Names of every local and remote-tracking branch, without prefix.
  *
- * Funciona sin red: lee las referencias que ya hay en disco. Excluye `HEAD`,
- * que en `refs/remotes/<remoto>/HEAD` es un puntero y no una rama.
+ * Works without network: it reads the refs already on disk. It excludes `HEAD`,
+ * which in `refs/remotes/<remote>/HEAD` is a pointer and not a branch.
  */
 export async function listBranchNames(repoRoot: string): Promise<string[]> {
   const output = await git(repoRoot, ['for-each-ref', '--format=%(refname)', 'refs/heads', 'refs/remotes'])
@@ -82,10 +82,10 @@ export async function readGitState(repoRoot: string): Promise<GitState> {
   }
 
   const [headRef, status, rootCommits, remoteUrl, defaultBranch, branches] = await Promise.all([
-    // Sin `--short`: ver el comentario de `GitState.branch`.
+    // Without `--short`: see the comment of `GitState.branch`.
     git(repoRoot, ['symbolic-ref', '-q', 'HEAD']),
     git(repoRoot, ['status', '--porcelain']),
-    // Huella del repositorio: hash del primer commit (especificación, módulo 1).
+    // Fingerprint of the repository: hash of the first commit (specification, module 1).
     git(repoRoot, ['rev-list', '--max-parents=0', 'HEAD']),
     git(repoRoot, ['config', '--get', 'remote.origin.url']),
     readDefaultBranch(repoRoot),
@@ -94,8 +94,8 @@ export async function readGitState(repoRoot: string): Promise<GitState> {
 
   const branch = headRef?.startsWith('refs/heads/') ? headRef.slice('refs/heads/'.length) : null
 
-  // Un repo puede tener varias raíces (historiales fusionados): se toma la última,
-  // que es la más antigua en el orden de `rev-list`.
+  // A repo can have several roots (merged histories): the last one is taken,
+  // which is the oldest in the order of `rev-list`.
   const rootCommit = rootCommits ? (rootCommits.split('\n').at(-1)?.trim() ?? null) : null
 
   const fingerprintSource = rootCommit ?? (remoteUrl ? normaliseRemote(remoteUrl) : null)
@@ -117,9 +117,9 @@ export async function readGitState(repoRoot: string): Promise<GitState> {
 }
 
 /**
- * Enumera los ficheros del repositorio usando `git ls-files`, que respeta
- * `.gitignore` gratis y es órdenes de magnitud más rápido que recorrer el disco
- * en repos con `node_modules` o `vendor`.
+ * Lists the files of the repository with `git ls-files`, which respects
+ * `.gitignore` for free and is orders of magnitude faster than walking the disk
+ * in repos with `node_modules` or `vendor`.
  */
 export async function listTrackedFiles(repoRoot: string): Promise<string[] | undefined> {
   try {
@@ -134,7 +134,7 @@ export async function listTrackedFiles(repoRoot: string): Promise<string[] | und
   }
 }
 
-/** Comprueba si una rama existe en local. */
+/** Checks whether a branch exists locally. */
 export async function branchExists(repoRoot: string, branch: string): Promise<boolean> {
   const result = await git(repoRoot, ['rev-parse', '--verify', `refs/heads/${branch}`])
   return result !== undefined

@@ -1,26 +1,26 @@
 import type { Profile } from './contract.js'
 
 /**
- * Decisiones sobre ramas.
+ * Decisions about branches.
  *
- * Todo este fichero sigue un principio (ADR 0005): **cuando una deducción
- * falla, debe fallar hacia más protección, nunca hacia una acción.** Tres
- * versiones anteriores intentaron deducir cuál es la rama de releases, y cada
- * una arreglaba unos repositorios y rompía otros. Aquí la única deducción que
- * decide es "¿es esto una rama de trabajo?", y su fallo cae del lado seguro: un
- * nombre que no se reconoce se aísla.
+ * This whole file follows one principle (ADR 0005): **when an inference fails,
+ * it must fail towards more protection, never towards an action.** Three
+ * earlier versions tried to infer which branch is the release branch, and each
+ * one fixed some repositories and broke others. Here the only inference that
+ * decides is "is this a work branch?", and its failure falls on the safe side:
+ * a name that is not recognised is isolated.
  */
 
 /**
- * Prefijos de las ramas de trabajo.
+ * Prefixes of work branches.
  *
- * Es la lista que se puede cerrar: los prefijos de trabajo son una convención
- * extendida y estable (Conventional Commits, git-flow, bots de dependencias). Los
- * nombres de ramas de larga duración, en cambio, no se pueden enumerar —`Prod`,
- * `pro`, `pre`, `live`, `release/prod`…—, y por eso la decisión se apoya en esta
- * lista y no en aquélla.
+ * It is the list that can be closed: work prefixes are a widespread and stable
+ * convention (Conventional Commits, git-flow, dependency bots). The names of
+ * long-lived branches, on the other hand, cannot be enumerated —`Prod`, `pro`,
+ * `pre`, `live`, `release/prod`…—, and that is why the decision rests on this
+ * list and not on that one.
  *
- * `release/` no está a propósito: en muchos equipos es de larga duración.
+ * `release/` is left out on purpose: in many teams it is long-lived.
  */
 export const WORK_BRANCH_PREFIXES: readonly string[] = [
   'feat',
@@ -40,22 +40,22 @@ export const WORK_BRANCH_PREFIXES: readonly string[] = [
   'revert',
   'dependabot',
   'renovate',
-  // Ramas que crean los propios asistentes de IA. Son usuarios directos de
-  // este producto, y aislar su trabajo en otra rama lo desordenaría.
+  // Branches created by the AI assistants themselves. They are direct users of
+  // this product, and isolating their work on another branch would scramble it.
   'claude',
   'copilot',
   'codex',
   'cursor',
 ]
 
-/** ¿Es una rama de trabajo, de las que se crean para una tarea y se borran? */
+/** Is it a work branch, of the kind created for a task and then deleted? */
 export function isWorkBranch(branch: string): boolean {
   const slash = branch.indexOf('/')
   if (slash <= 0 || slash === branch.length - 1) return false
   return WORK_BRANCH_PREFIXES.includes(branch.slice(0, slash).toLowerCase())
 }
 
-/** Ramas que el perfil o el remoto señalan explícitamente como de larga duración. */
+/** Branches the profile or the remote explicitly mark as long-lived. */
 export function configuredBranches(
   profile: Pick<Profile, 'branches'>,
   defaultBranch: string | null,
@@ -80,12 +80,12 @@ export interface HeadState {
 }
 
 /**
- * ¿Hay que aislar el trabajo en una rama propia antes de escribir?
+ * Must the work be isolated on its own branch before writing?
  *
- * Sí, salvo que se esté en una rama de trabajo reconocible que además no figure
- * como rama de larga duración en el perfil ni sea la rama por defecto. Un nombre
- * desconocido cae del lado seguro: el peor caso es una rama aislada innecesaria,
- * frente a escribir directamente sobre producción.
+ * Yes, unless we are on a recognisable work branch that is also not listed as
+ * a long-lived branch in the profile and is not the default branch. An unknown
+ * name falls on the safe side: the worst case is an unnecessary isolated
+ * branch, against writing straight onto production.
  */
 export function requiresIsolation(head: HeadState, profile: Pick<Profile, 'branches'>): boolean {
   if (head.detachedHead) return true
@@ -95,16 +95,16 @@ export function requiresIsolation(head: HeadState, profile: Pick<Profile, 'branc
 }
 
 /**
- * Ramas en las que la CI generada se ejecuta al hacer push.
+ * Branches the generated CI runs on when pushing.
  *
- * Salen **sólo del perfil**, y con `config.yml` el perfil de ramas sale sólo del
- * fichero: el estado local del repositorio únicamente se usa para proponer el
- * fichero inicial, nunca al regenerar. Una versión
- * anterior añadía las ramas remotas existentes, y dos copias del mismo
- * repositorio con el mismo `config.yml` generaban workflows distintos según las
- * referencias huérfanas que tuviera cada una: rompía el invariante de que la CLI
- * es una función determinista de su configuración. Las Pull Requests no
- * dependen de esto: la CI generada las revisa todas.
+ * They come **only from the profile**, and with `config.yml` the branch profile
+ * comes only from that file: the local state of the repository is only used to
+ * propose the initial file, never when regenerating. An earlier version added
+ * the existing remote branches, and two copies of the same repository with the
+ * same `config.yml` generated different workflows depending on the orphaned
+ * refs each one had: it broke the invariant that the CLI is a deterministic
+ * function of its configuration. Pull Requests do not depend on this: the
+ * generated CI checks all of them.
  */
 export function ciPushBranches(profile: Pick<Profile, 'branches'>): string[] {
   const names: string[] = []

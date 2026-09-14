@@ -3,11 +3,11 @@ import type { GovernanceMode, RepoScan } from '@plumbward/scanner'
 import { isWorkBranch } from './branches.js'
 
 /**
- * Contrato público de un StackPack.
+ * Public contract of a StackPack.
  *
- * Es la pieza que hace escalable el producto: añadir soporte para un stack nuevo
- * (Rails, .NET, Spring...) es publicar un paquete que implemente esta interfaz y
- * pase los tests de conformidad. El núcleo no se modifica nunca.
+ * It is the piece that makes the product scale: adding support for a new stack
+ * (Rails, .NET, Spring...) is publishing a package that implements this
+ * interface and passes the conformance tests. The core is never modified.
  */
 
 export type StrictnessLevel = 'moderate' | 'strict'
@@ -19,70 +19,70 @@ export type DeployTarget = 'vercel' | 'aws' | 'docker' | 'render' | 'none'
 export type OutputLanguage = 'es' | 'en'
 
 /**
- * Límites operativos que se imponen a los asistentes de IA que trabajen en el
- * repositorio.
+ * Operating limits imposed on the AI assistants that work in the repository.
  *
- * Existen porque hay acciones cuyo coste de equivocarse no lo paga el fichero,
- * lo paga el equipo: un push mete código sin revisar en un repositorio
- * compartido, y una migración no tiene botón de deshacer. La decisión de quién
- * ejecuta esas acciones es del equipo, así que es configurable y queda
- * auditada en `.governance/config.yml`.
+ * They exist because there are actions whose cost of a mistake is not paid by
+ * the file but by the team: a push puts unreviewed code into a shared
+ * repository, and a migration has no undo button. Who runs those actions is
+ * the team's decision, so it is configurable and audited in
+ * `.governance/config.yml`.
  */
 export interface AgentBoundaries {
   /**
-   * Prohíbe al asistente ejecutar comandos git que modifiquen el estado
-   * (commit, push, merge, rebase, reset...). Los de sólo lectura se permiten.
+   * Forbids the assistant from running git commands that change state
+   * (commit, push, merge, rebase, reset...). Read-only ones are allowed.
    */
   readonly git: boolean
   /**
-   * Prohíbe al asistente ejecutar migraciones, seeds o cualquier sentencia que
-   * escriba en la base de datos o altere su esquema. Los SELECT se permiten.
+   * Forbids the assistant from running migrations, seeds or any statement that
+   * writes to the database or alters its schema. SELECTs are allowed.
    */
   readonly database: boolean
   /**
-   * Idioma en el que el asistente debe redactar los mensajes de commit y las
-   * descripciones de Pull Request, con independencia del idioma del proyecto.
+   * Language the assistant must write commit messages and Pull Request
+   * descriptions in, regardless of the language of the project.
    */
   readonly commitLanguage: OutputLanguage
 }
 
 /**
- * Perfil de gobernanza. Es el contenido de `.governance/config.yml`: la fuente
- * de verdad, versionada en el repo del cliente y revisable en la PR.
+ * Governance profile. It is the content of `.governance/config.yml`: the source
+ * of truth, versioned in the client's repo and reviewable in the PR.
  *
- * El wizard no ejecuta acciones; sólo produce este objeto. El resto de la CLI es
- * una función determinista de él, lo que hace las ejecuciones reproducibles.
+ * The wizard runs no actions; it only produces this object. The rest of the CLI
+ * is a deterministic function of it, which makes runs reproducible.
  */
 export interface Profile {
   readonly strictness: StrictnessLevel
   readonly mode: GovernanceMode
   /**
-   * Papel de cada rama. Son dos preguntas distintas que una versión anterior
-   * mezclaba en un solo campo, y por eso se equivocaba (ADR 0005).
+   * Role of each branch. They are two different questions that an earlier
+   * version mixed into a single field, and that is why it got them wrong
+   * (ADR 0005).
    */
   readonly branches: {
     /**
-     * Rama a la que van las Pull Requests. Se deduce de `origin/HEAD` porque en
-     * GitHub eso es exactamente lo que significa la rama por defecto.
+     * Branch Pull Requests go to. It is inferred from `origin/HEAD` because on
+     * GitHub that is exactly what the default branch means.
      */
     readonly integration: string | null
     /**
-     * Rama desde la que se despliega a producción. **Nunca se deduce**: queda en
-     * `null` hasta que el equipo la configure. Sin ella no se genera el
-     * workflow de despliegue, porque desplegar desde una rama adivinada es la
-     * clase de error que no se puede deshacer.
+     * Branch deployed to production from. **It is never inferred**: it stays
+     * `null` until the team configures it. Without it the deploy workflow is not
+     * generated, because deploying from a guessed branch is the kind of mistake
+     * that cannot be undone.
      */
     readonly release: string | null
-    /** Rama de preproducción, si el equipo la usa. */
+    /** Pre-production branch, if the team uses one. */
     readonly staging: string | null
   }
   readonly deployTarget: DeployTarget
   readonly devcontainer: boolean
   readonly dockerCompose: boolean
   readonly aiAssistants: readonly AiAssistant[]
-  /** Idioma de los comentarios y textos generados. */
+  /** Language of the generated comments and texts. */
   readonly language: OutputLanguage
-  /** Qué se le prohíbe ejecutar a un asistente de IA en este repositorio. */
+  /** What an AI assistant is forbidden to run in this repository. */
   readonly agentBoundaries: AgentBoundaries
 }
 
@@ -94,7 +94,7 @@ export interface RepoContext {
 
 export interface DetectionResult {
   readonly applies: boolean
-  /** 0-1. Determina el orden de contribución y cuál es el pack principal. */
+  /** 0-1. Sets the contribution order and which pack is the primary one. */
   readonly confidence: number
   readonly reason: string
 }
@@ -104,7 +104,7 @@ export interface HealthCheck {
   readonly label: string
   readonly ok: boolean
   readonly detail: string
-  /** Qué hacer para arreglarlo. Alimenta `plumbward doctor`. */
+  /** What to do to fix it. Feeds `plumbward doctor`. */
   readonly fixHint?: string
 }
 
@@ -113,25 +113,26 @@ export interface StackPack {
   readonly name: string
   readonly version: string
 
-  /** ¿Este pack aplica al repositorio analizado? */
+  /** Does this pack apply to the analysed repository? */
   detect(context: RepoContext): Promise<DetectionResult> | DetectionResult
 
-  /** Operaciones que el pack quiere aportar al plan. NUNCA escribe en disco. */
+  /** Operations the pack wants to add to the plan. It NEVER writes to disk. */
   contribute(context: RepoContext): Promise<Operation[]> | Operation[]
 
-  /** Comprobaciones de salud para `plumbward doctor`. */
+  /** Health checks for `plumbward doctor`. */
   validate(context: RepoContext): Promise<HealthCheck[]> | HealthCheck[]
 }
 
-/** Perfil por defecto derivado del escaneo, para el modo no interactivo. */
+/** Default profile derived from the scan, for the non-interactive mode. */
 /**
- * Rama de integración que se propone para el primer `config.yml`.
+ * Integration branch proposed for the first `config.yml`.
  *
- * Por orden: la rama por defecto del remoto; la rama actual si no es de
- * trabajo; y una `main` o `master` existente. El respaldo existe porque un
- * repositorio creado con `git init` + `push` no tiene `origin/HEAD`, y sin él la
- * CI generada se quedaba sin ejecutarse al hacer push en la rama principal.
- * Si falla, el daño es ejecutar la CI en una rama de más, no de menos.
+ * In order: the default branch of the remote; the current branch if it is not
+ * a work branch; and an existing `main` or `master`. The fallback exists
+ * because a repository created with `git init` + `push` has no `origin/HEAD`,
+ * and without it the generated CI did not run when pushing to the main branch.
+ * If it fails, the damage is running the CI on one branch too many, not one too
+ * few.
  */
 function proposeIntegrationBranch(scan: RepoScan): string | null {
   if (scan.git.defaultBranch) return scan.git.defaultBranch
@@ -146,8 +147,8 @@ export function recommendedProfile(scan: RepoScan): Profile {
     strictness,
     mode: scan.sloc.mode,
     branches: {
-      // Propuesta para el config.yml inicial. Una vez escrito, manda el
-      // fichero. La rama de despliegue no se propone nunca (ADR 0005).
+      // Proposal for the initial config.yml. Once written, the file rules.
+      // The deploy branch is never proposed (ADR 0005).
       integration: proposeIntegrationBranch(scan),
       release: null,
       staging: null,
@@ -157,9 +158,9 @@ export function recommendedProfile(scan: RepoScan): Profile {
     dockerCompose: false,
     aiAssistants: ['cursor', 'claude', 'copilot'],
     language: 'es',
-    // Por defecto el asistente no ejecuta nada irreversible, y escribe los
-    // mensajes de commit en inglés: es la convención dominante en los
-    // historiales de git, incluso en equipos que documentan en otro idioma.
+    // By default the assistant runs nothing irreversible, and writes commit
+    // messages in English: it is the dominant convention in git histories,
+    // even in teams that document in another language.
     agentBoundaries: { git: true, database: true, commitLanguage: 'en' },
   }
 }
