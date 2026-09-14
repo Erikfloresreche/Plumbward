@@ -1,13 +1,14 @@
 /**
- * Contratos de datos del núcleo transaccional.
+ * Data contracts of the transactional core.
  *
- * Regla de oro de la arquitectura: NINGÚN módulo escribe en disco por su cuenta.
- * Todos declaran su intención emitiendo `Operation[]`, que se agregan en un
- * `ChangePlan`. El plan se puede renderizar (`plan`) sin tocar nada, y sólo el
- * motor de `apply` materializa los cambios dejando rastro en el journal.
+ * Golden rule of the architecture: NO module writes to disk on its own. They
+ * all declare their intent by emitting `Operation[]`, which are gathered into a
+ * `ChangePlan`. The plan can be rendered (`plan`) without touching anything,
+ * and only the `apply` engine materialises the changes, leaving a trail in the
+ * journal.
  */
 
-/** Gestores de paquetes soportados para la operación `addDependency`. */
+/** Package managers supported by the `addDependency` operation. */
 export type PackageManager =
   | 'npm'
   | 'pnpm'
@@ -19,40 +20,40 @@ export type PackageManager =
   | 'uv'
   | 'go'
 
-/** Estilo de comentario del fichero destino, para inyectar bloques gestionados. */
+/** Comment style of the target file, to inject managed blocks. */
 export type CommentStyle = 'hash' | 'slash' | 'html' | 'semicolon'
 
-/** Estrategia de fusión al parchear un documento estructurado. */
+/** Merge strategy when patching a structured document. */
 export type PatchStrategy = 'set' | 'merge' | 'appendUnique'
 
-/** Crea un fichero nuevo. Por defecto NO pisa ficheros existentes. */
+/** Creates a new file. By default it does NOT overwrite existing files. */
 export interface CreateFileOp {
   readonly kind: 'createFile'
-  /** Ruta relativa a la raíz del repositorio, siempre en formato POSIX. */
+  /** Path relative to the repository root, always in POSIX format. */
   readonly path: string
   readonly content: string
   /**
-   * `true` marca el fichero como gestionado por la herramienta: se le añade
-   * cabecera de control y `upgrade` podrá regenerarlo si el cliente no lo tocó.
+   * `true` marks the file as managed by the tool: it gets a control header,
+   * and `upgrade` can regenerate it if the client did not touch it.
    */
   readonly managed: boolean
-  /** Si el fichero ya existe: `skip` (defecto), `overwrite` o `conflict`. */
+  /** If the file already exists: `skip` (default), `overwrite` or `conflict`. */
   readonly onExists?: 'skip' | 'overwrite' | 'conflict'
   readonly reason: string
 }
 
-/** Modifica un JSON existente (package.json, tsconfig.json, composer.json...). */
+/** Modifies an existing JSON file (package.json, tsconfig.json, composer.json...). */
 export interface PatchJsonOp {
   readonly kind: 'patchJson'
   readonly path: string
-  /** Puntero RFC-6901, p. ej. `/scripts/lint`. */
+  /** RFC-6901 pointer, e.g. `/scripts/lint`. */
   readonly pointer: string
   readonly value: unknown
   readonly strategy: PatchStrategy
   readonly reason: string
 }
 
-/** Modifica un YAML existente preservando comentarios y formato. */
+/** Modifies an existing YAML file, preserving comments and format. */
 export interface PatchYamlOp {
   readonly kind: 'patchYaml'
   readonly path: string
@@ -63,23 +64,23 @@ export interface PatchYamlOp {
 }
 
 /**
- * Inserta o actualiza un bloque delimitado dentro de un fichero del cliente.
- * Es el mecanismo que hace posible `upgrade` sin destruir ediciones manuales:
- * fuera de los marcadores nunca se toca nada.
+ * Inserts or updates a delimited block inside a client file.
+ * It is the mechanism that makes `upgrade` possible without destroying manual
+ * edits: nothing outside the markers is ever touched.
  */
 export interface EnsureBlockOp {
   readonly kind: 'ensureBlock'
   readonly path: string
-  /** Identificador estable del bloque, p. ej. `gitignore-artifacts`. */
+  /** Stable identifier of the block, e.g. `gitignore-artifacts`. */
   readonly blockId: string
   readonly content: string
   readonly commentStyle: CommentStyle
-  /** Crea el fichero si no existe. */
+  /** Creates the file if it does not exist. */
   readonly createIfMissing: boolean
   readonly reason: string
 }
 
-/** Declara una dependencia a instalar. La instalación real es un `execCommand`. */
+/** Declares a dependency to install. The actual installation is an `execCommand`. */
 export interface AddDependencyOp {
   readonly kind: 'addDependency'
   readonly manager: PackageManager
@@ -89,15 +90,15 @@ export interface AddDependencyOp {
   readonly reason: string
 }
 
-/** Ejecuta un comando. Siempre requiere justificación visible en el plan. */
+/** Runs a command. It always requires a reason visible in the plan. */
 export interface ExecCommandOp {
   readonly kind: 'execCommand'
   readonly cmd: string
   readonly args: readonly string[]
   readonly reason: string
-  /** Relativo a la raíz del repo. Por defecto la propia raíz. */
+  /** Relative to the repo root. The root itself by default. */
   readonly cwd?: string
-  /** Si `true`, un fallo no aborta el apply (p. ej. formateadores opcionales). */
+  /** If `true`, a failure does not abort the apply (e.g. optional formatters). */
   readonly optional?: boolean
 }
 
@@ -111,11 +112,11 @@ export type Operation =
 
 export type OperationKind = Operation['kind']
 
-/** Motivo por el que una operación no puede aplicarse limpiamente. */
+/** Reason why an operation cannot be applied cleanly. */
 export interface Conflict {
   readonly path: string
   readonly reason: string
-  /** `block` impide el apply; `warn` sólo informa. */
+  /** `block` prevents the apply; `warn` only informs. */
   readonly severity: 'block' | 'warn'
 }
 
@@ -128,20 +129,20 @@ export interface PlanSummary {
 }
 
 export interface ChangePlan {
-  /** Versión del formato de plan, para compatibilidad futura. */
+  /** Version of the plan format, for future compatibility. */
   readonly version: 1
   readonly operations: readonly Operation[]
   readonly conflicts: readonly Conflict[]
   readonly summary: PlanSummary
-  /** Packs que han contribuido operaciones, para trazabilidad. */
+  /** Packs that contributed operations, for traceability. */
   readonly contributors: readonly string[]
 }
 
-/** Estado previo de un fichero, para poder revertir con exactitud. */
+/** Previous state of a file, to be able to revert it exactly. */
 export interface FileSnapshot {
   readonly path: string
   readonly existed: boolean
-  /** Contenido original en base64. Ausente si el fichero no existía. */
+  /** Original content in base64. Absent if the file did not exist. */
   readonly contentBase64?: string
   readonly mode?: number
 }
@@ -149,7 +150,7 @@ export interface FileSnapshot {
 export interface JournalEntry {
   readonly index: number
   readonly operation: Operation
-  /** Ficheros tocados por la operación, con su contenido anterior. */
+  /** Files touched by the operation, with their previous content. */
   readonly snapshots: readonly FileSnapshot[]
   readonly appliedAt: string
   readonly status: 'applied' | 'skipped'
@@ -161,42 +162,43 @@ export interface Journal {
   readonly startedAt: string
   readonly repoRoot: string
   /**
-   * Rama sobre la que `apply` escribió de verdad, no la de partida.
+   * Branch `apply` actually wrote on, not the one it started from.
    *
-   * La distinción es la que separa revertir de perder trabajo: `apply` aísla
-   * los cambios en `chore/setup-ai-governance`, y el journal está en el
-   * `.gitignore` que instala el pack, así que sobrevive a los checkouts. Un
-   * journal que recuerde la rama de partida hace que `rollback` en `Prod`
-   * restaure en `Prod` ficheros fotografiados en la rama aislada.
+   * The distinction is what separates reverting from losing work: `apply`
+   * isolates the changes in `chore/setup-ai-governance`, and the journal is in
+   * the `.gitignore` the pack installs, so it survives checkouts. A journal
+   * that remembers the starting branch makes `rollback` on `Prod` restore on
+   * `Prod` files photographed on the isolated branch.
    *
-   * `null` con HEAD desacoplado: ahí no hay rama que nombrar. `rollback` compara
-   * ese `null` como cualquier otro nombre y deja que el commit identifique el
-   * sitio (F0-29).
+   * `null` with a detached HEAD: there is no branch to name there. `rollback`
+   * compares that `null` like any other name and lets the commit identify the
+   * site (F0-29).
    */
   readonly writtenOnBranch: string | null
   /**
-   * Commit al que apuntaba HEAD cuando `apply` escribió. `null` en un
-   * repositorio sin ningún commit todavía.
+   * Commit HEAD pointed to when `apply` wrote. `null` in a repository with no
+   * commit yet.
    *
-   * El nombre de la rama dice dónde estás, no si es el mismo sitio: una rama
-   * borrada y recreada con el mismo nombre sobre otro commit, o un commit hecho
-   * en la rama aislada después del `apply`, pasan una comprobación por nombre y
-   * pierden datos igual. Los snapshots son del árbol que había en este commit.
+   * The branch name says where you are, not whether it is the same site: a
+   * branch deleted and recreated with the same name on another commit, or a
+   * commit made on the isolated branch after the `apply`, pass a check by name
+   * and lose data all the same. The snapshots are of the tree at this commit.
    *
-   * Es también el commit de partida, y por eso no hay un segundo campo:
-   * `headMoved` aborta si HEAD se mueve entre el plan y la confirmación, y
-   * `prepareBranch` crea la rama aislada desde HEAD sin commitear. El aviso de
-   * vuelta lo usa para nombrar adónde volver cuando se empezó con HEAD
-   * desacoplado.
+   * It is also the starting commit, and that is why there is no second field:
+   * `headMoved` aborts if HEAD moves between the plan and the confirmation, and
+   * `prepareBranch` creates the isolated branch from HEAD without committing.
+   * The return notice uses it to name where to go back to when the run started
+   * with a detached HEAD.
    */
   readonly writtenOnCommit: string | null
   /**
-   * Rama desde la que se lanzó `apply`, antes de aislar. `null` si ya estaba
-   * con HEAD desacoplado.
+   * Branch `apply` was launched from, before isolating. `null` if HEAD was
+   * already detached.
    *
-   * No decide nada: es la que `rollback` nombra al decir cómo volver. Sin ella
-   * el consejo tenía que ser `git checkout -`, que depende de cuál fuera el ref
-   * anterior y acierta sólo si nadie ha cambiado de rama por el camino.
+   * It decides nothing: it is the one `rollback` names when saying how to go
+   * back. Without it the advice had to be `git checkout -`, which depends on
+   * what the previous ref was and is only right if nobody switched branches in
+   * between.
    */
   readonly startedOnBranch: string | null
   readonly entries: readonly JournalEntry[]
@@ -209,7 +211,7 @@ export interface ApplyResult {
   readonly journal: Journal
 }
 
-/** Directorio de estado de la herramienta dentro del repo del cliente. */
+/** State directory of the tool inside the client's repo. */
 export const GOVERNANCE_DIR = '.governance'
 export const JOURNAL_FILE = `${GOVERNANCE_DIR}/journal.json`
 export const CONFIG_FILE = `${GOVERNANCE_DIR}/config.yml`

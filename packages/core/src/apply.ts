@@ -25,7 +25,7 @@ import {
 import { shortHash } from './hash.js'
 import { isBlocked } from './plan.js'
 
-/** Ejecutor de comandos inyectado por la capa CLI (para no atar el núcleo a execa). */
+/** Command runner injected by the CLI layer (so the core is not tied to execa). */
 export type CommandRunner = (
   cmd: string,
   args: readonly string[],
@@ -40,23 +40,23 @@ export interface ProgressEvent {
 
 export interface ApplyOptions {
   readonly repoRoot: string
-  /** Versión de la CLI, sellada en las cabeceras de los ficheros gestionados. */
+  /** CLI version, stamped in the headers of the managed files. */
   readonly version: string
   /**
-   * Rama sobre la que se va a escribir, leída **después** de cambiar de rama.
-   * Pasar aquí la rama de partida es el fallo que hacía que `rollback`
-   * sobrescribiera `Prod` con los snapshots de la rama aislada.
+   * Branch that is about to be written on, read **after** switching branches.
+   * Passing the starting branch here is the bug that made `rollback` overwrite
+   * `Prod` with the snapshots of the isolated branch.
    */
   readonly writtenOnBranch: string | null
   /**
-   * Commit al que apunta HEAD al escribir, leído en la misma llamada que
-   * `writtenOnBranch`. Identifica el sitio; el nombre de la rama sólo lo
-   * etiqueta (ver `Journal.writtenOnCommit`).
+   * Commit HEAD points to when writing, read in the same call as
+   * `writtenOnBranch`. It identifies the site; the branch name only labels it
+   * (see `Journal.writtenOnCommit`).
    */
   readonly writtenOnCommit: string | null
-  /** Rama desde la que se lanzó `apply`, para poder decir cómo volver a ella. */
+  /** Branch `apply` was launched from, to be able to say how to go back to it. */
   readonly startedOnBranch: string | null
-  /** Si es `false`, los `execCommand` se registran pero no se ejecutan. */
+  /** If `false`, the `execCommand`s are recorded but not run. */
   readonly runCommands: boolean
   readonly runner?: CommandRunner
   readonly onProgress?: (event: ProgressEvent) => void
@@ -68,7 +68,7 @@ interface ExecutionOutcome {
   readonly note?: string
 }
 
-/** Error que indica que el apply falló y el repositorio ya fue revertido. */
+/** Error that signals the apply failed and the repository was already reverted. */
 export class ApplyFailedError extends Error {
   readonly rolledBack: boolean
   readonly operation: Operation | undefined
@@ -82,14 +82,14 @@ export class ApplyFailedError extends Error {
 }
 
 /**
- * Materializa un `ChangePlan` sobre el repositorio.
+ * Materialises a `ChangePlan` on the repository.
  *
- * Garantías:
- *  - Antes de tocar cualquier fichero se guarda su contenido previo en el journal.
- *  - El journal se persiste tras CADA operación, así que un corte de luz deja un
- *    estado recuperable con `plumbward rollback`.
- *  - Si algo falla a mitad, se revierte automáticamente (requisito de
- *    "resiliencia operativa" de la especificación).
+ * Guarantees:
+ *  - Before touching any file, its previous content is saved in the journal.
+ *  - The journal is persisted after EVERY operation, so a power cut leaves a
+ *    state recoverable with `plumbward rollback`.
+ *  - If something fails halfway, it is reverted automatically (the
+ *    "operational resilience" requirement of the specification).
  */
 export async function applyPlan(
   plan: ChangePlan,
@@ -143,15 +143,15 @@ export async function applyPlan(
         ...(outcome.note === undefined ? {} : { note: outcome.note }),
       })
 
-      // Persistencia inmediata: el journal debe sobrevivir a un corte a mitad.
+      // Immediate persistence: the journal must survive a cut halfway.
       await writeFileEnsuringDir(journalPath, `${JSON.stringify(journal(), null, 2)}\n`)
     } catch (error) {
       const detail = error instanceof Error ? error.message : String(error)
       let rolledBack = true
       try {
         await revertEntries(entries, options.repoRoot)
-        // Ya no queda nada que revertir: el journal se elimina para dejar el
-        // árbol de trabajo exactamente como estaba antes de empezar.
+        // Nothing is left to revert: the journal is removed to leave the
+        // working tree exactly as it was before starting.
         await removeFile(journalPath)
       } catch {
         rolledBack = false
@@ -265,10 +265,10 @@ async function executeOperation(
     }
 
     case 'addDependency': {
-      // No modifica nada por sí misma: el plan compila todas las dependencias en
-      // un único comando de instalación por gestor, que es lo que se ejecuta.
-      // Por eso se contabiliza como omitida: así "aplicadas" significa siempre
-      // "algo cambió de verdad" y la idempotencia es observable en el recuento.
+      // It modifies nothing by itself: the plan compiles every dependency into
+      // a single install command per manager, which is what runs. That is why
+      // it counts as skipped: "applied" then always means "something really
+      // changed", and idempotency is observable in the count.
       return { snapshots: [], status: 'skipped', note: 'agrupada en el comando de instalación' }
     }
 
@@ -298,7 +298,7 @@ async function executeOperation(
   }
 }
 
-/** Añade la cabecera de fichero gestionado cuando el formato admite comentarios. */
+/** Adds the managed-file header when the format takes comments. */
 export function withManagedHeader(
   filePath: string,
   content: string,
@@ -310,7 +310,7 @@ export function withManagedHeader(
   return `${header}\n\n${content}`
 }
 
-/** Captura el estado previo de un fichero para poder revertirlo con exactitud. */
+/** Captures the previous state of a file, to be able to revert it exactly. */
 async function snapshotFile(repoRoot: string, relativePath: string): Promise<FileSnapshot> {
   const absolute = resolveInRepo(repoRoot, relativePath)
   const existing = await readFileIfExists(absolute)
@@ -324,7 +324,7 @@ async function snapshotFile(repoRoot: string, relativePath: string): Promise<Fil
   }
 }
 
-/** Deshace las entradas de un journal en orden inverso. */
+/** Undoes the entries of a journal in reverse order. */
 export async function revertEntries(
   entries: readonly JournalEntry[],
   repoRoot: string,
@@ -350,8 +350,8 @@ export async function revertEntries(
 }
 
 /**
- * Compila las dependencias declaradas en un único comando de instalación por
- * gestor. Agrupar evita N invocaciones lentas y deja el plan legible.
+ * Compiles the declared dependencies into a single install command per
+ * manager. Grouping avoids N slow invocations and keeps the plan readable.
  */
 export function synthesiseInstallCommands(
   operations: readonly Operation[],
@@ -409,7 +409,7 @@ function installInvocation(
   }
 }
 
-/** Descripción corta y legible de una operación, para logs y errores. */
+/** Short, readable description of an operation, for logs and errors. */
 export function describeOperation(operation: Operation): string {
   switch (operation.kind) {
     case 'createFile':

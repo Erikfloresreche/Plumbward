@@ -2,10 +2,10 @@ import { readFile, stat } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { GovernanceMode, LanguageStat, SizeClass, SlocReport } from './types.js'
 
-/** Umbrales de la especificación, en líneas de código efectivas. */
+/** Thresholds of the specification, in effective lines of code. */
 export const SIZE_THRESHOLDS = { small: 2_000, medium: 50_000 } as const
 
-/** Ficheros mayores que esto se ignoran: son datos o artefactos, no código. */
+/** Files larger than this are ignored: they are data or artifacts, not code. */
 const MAX_FILE_BYTES = 2 * 1024 * 1024
 
 const LANGUAGE_BY_EXTENSION: Readonly<Record<string, string>> = {
@@ -40,7 +40,7 @@ const LANGUAGE_BY_EXTENSION: Readonly<Record<string, string>> = {
   '.bash': 'Shell',
 }
 
-/** Directorios que nunca cuentan como código propio del proyecto. */
+/** Directories that never count as the project's own code. */
 const IGNORED_SEGMENTS = new Set([
   'node_modules',
   'vendor',
@@ -63,7 +63,7 @@ const IGNORED_SEGMENTS = new Set([
   'generated',
 ])
 
-/** Prefijos que indican línea de comentario en la mayoría de lenguajes. */
+/** Prefixes that mark a comment line in most languages. */
 const COMMENT_PREFIXES = ['//', '#', '*', '/*', '*/', '--', '<!--']
 
 export function languageFor(relativePath: string): string | undefined {
@@ -78,10 +78,10 @@ export function isIgnoredPath(relativePath: string): boolean {
 }
 
 /**
- * Cuenta líneas efectivas: descarta vacías y comentarios de línea.
+ * Counts effective lines: discards empty lines and line comments.
  *
- * No es un analizador sintáctico y no pretende serlo: para clasificar un repo
- * en tres cubos de tamaño, una heurística estable vale más que la exactitud.
+ * It is not a parser and does not try to be one: to sort a repo into three
+ * size buckets, a stable heuristic is worth more than accuracy.
  */
 export function countSloc(content: string): number {
   let count = 0
@@ -141,7 +141,7 @@ export async function measureSloc(
       total += sloc
       filesScanned += 1
     } catch {
-      // Enlaces rotos, permisos, binarios mal etiquetados: se ignoran sin ruido.
+      // Broken links, permissions, mislabelled binaries: ignored silently.
     }
   }
 

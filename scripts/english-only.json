@@ -6,13 +6,6 @@
     ".github/workflows/e2e.yml",
     ".github/workflows/mutations.yml",
     ".gitignore",
-    "packages/ast/src/blocks.test.ts",
-    "packages/ast/src/blocks.ts",
-    "packages/ast/src/json.test.ts",
-    "packages/ast/src/json.ts",
-    "packages/ast/src/pointer.ts",
-    "packages/ast/src/yaml.test.ts",
-    "packages/ast/src/yaml.ts",
     "packages/cli/src/branch-notice.ts",
     "packages/cli/src/commands.ts",
     "packages/cli/src/context.ts",
@@ -27,19 +20,6 @@
     "packages/cli/test/protected-branches.test.ts",
     "packages/cli/test/rollback-branch.test.ts",
     "packages/cli/tsup.config.ts",
-    "packages/core/src/apply.ts",
-    "packages/core/src/fs.ts",
-    "packages/core/src/plan.ts",
-    "packages/core/src/rollback.test.ts",
-    "packages/core/src/rollback.ts",
-    "packages/core/src/simulate.ts",
-    "packages/core/src/types.ts",
-    "packages/packs-sdk/src/branches.test.ts",
-    "packages/packs-sdk/src/branches.ts",
-    "packages/packs-sdk/src/conformance.ts",
-    "packages/packs-sdk/src/contract.ts",
-    "packages/packs-sdk/src/dsl.ts",
-    "packages/packs-sdk/src/registry.ts",
     "packages/packs/node-ts/src/index.ts",
     "packages/packs/node-ts/src/templates/ai-rules.test.ts",
     "packages/packs/node-ts/src/templates/ai-rules.ts",
@@ -48,13 +28,6 @@
     "packages/packs/node-ts/src/templates/tooling.ts",
     "packages/packs/node-ts/src/validate.test.ts",
     "packages/packs/node-ts/src/workflow-checks.ts",
-    "packages/scanner/src/git.ts",
-    "packages/scanner/src/index.ts",
-    "packages/scanner/src/maturity.ts",
-    "packages/scanner/src/sloc.ts",
-    "packages/scanner/src/stack.ts",
-    "packages/scanner/src/types.ts",
-    "packages/scanner/test/default-branch.test.ts",
     "pnpm-workspace.yaml",
     "scripts/branch-names.mjs",
     "scripts/branch-names.test.mjs",
@@ -99,6 +72,124 @@
         "Comparar s\u00f3lo la \u0072ama, no el commit",
         "Spanish (`\u00f1`, `\u00bf`, `\u00a1`, accented"
       ]
+    },
+    {
+      "path": "packages/ast/src/blocks.ts",
+      "reason": "Text the CLI writes into client files (managed-block warning and managed-file header), left in Spanish for F0-45, which moves it behind language: es.",
+      "fragments": [
+        "Bloque gestionado autom\u00e1ticamente. No edites dentro de los marcadores:",
+        "`plumbward upgrade` regenerar\u00e1 su contenido.",
+        "Si lo editas a mano, `plumbward upgrade` dejar\u00e1 de actualizarlo",
+        "y te avisar\u00e1 del conflicto en lugar de sobrescribir tus cambios."
+      ]
+    },
+    {
+      "path": "packages/ast/src/json.ts",
+      "reason": "Error messages that reach the user, left in Spanish for F0-45.",
+      "fragments": [
+        "El puntero ra\u00edz no es parcheable en \"${filePath}\".",
+        "No se puede a\u00f1adir a un valor que no es array en \"${patch.pointer}\" de \"${filePath}\"."
+      ]
+    },
+    {
+      "path": "packages/ast/src/pointer.ts",
+      "reason": "Error message that reaches the user, left in Spanish for F0-45.",
+      "fragments": [
+        "Puntero inv\u00e1lido \"${pointer}\": debe empezar por \"/\"."
+      ]
+    },
+    {
+      "path": "packages/ast/src/yaml.ts",
+      "reason": "Error messages that reach the user, left in Spanish for F0-45.",
+      "fragments": [
+        "No se puede a\u00f1adir a \"${path.join('.')}\": el nodo no es una lista.",
+        "El puntero ra\u00edz no es parcheable en \"${filePath}\".",
+        "YAML inv\u00e1lido: ${first?.message ?? 'error'}"
+      ]
+    },
+    {
+      "path": "packages/core/src/apply.ts",
+      "reason": "Errors, progress notes and install reasons shown to the user, left in Spanish for F0-45.",
+      "fragments": [
+        "El plan tiene conflictos bloqueantes. Resu\u00e9lvelos antes de aplicar.",
+        "ya est\u00e1 al d\u00eda",
+        "no existe el fichero \"${operation.path}\" que se quer\u00eda parchear",
+        "agrupada en el comando de instalaci\u00f3n",
+        "omitido (ejecuci\u00f3n de comandos desactivada)",
+        "opcional, fall\u00f3: ${detail}",
+        "Instala ${names.length} dependencia(s) ${dev ? 'de desarrollo' : 'de producci\u00f3n'}."
+      ]
+    },
+    {
+      "path": "packages/core/src/fs.ts",
+      "reason": "Error messages that reach the user, left in Spanish for F0-45.",
+      "fragments": [
+        "Ruta absoluta no permitida en una operaci\u00f3n: \"${relativePath}\".",
+        "La ruta \"${relativePath}\" escapa de la ra\u00edz del repositorio."
+      ]
+    },
+    {
+      "path": "packages/core/src/rollback.ts",
+      "reason": "RollbackError messages shown to the user, left in Spanish for F0-45.",
+      "fragments": [
+        "El journal \"${JOURNAL_FILE}\" lo escribi\u00f3 una versi\u00f3n anterior que no anota el sitio (\u0072ama y commit) en el que se aplic\u00f3.",
+        "No se revierte nada: restaurarlo en la \u0072ama equivocada sobrescribir\u00eda trabajo.",
+        "El journal \"${JOURNAL_FILE}\" est\u00e1 corrupto: ${detail}",
+        "en la \u0072ama \"${journal.writtenOnBranch}\"",
+        "El journal no anota ni la \u0072ama ni el commit en los que se escribi\u00f3.",
+        "HEAD est\u00e1 desacoplado",
+        "est\u00e1s en la \u0072ama \"${currentBranch}\"",
+        "El \u00faltimo \\`apply\\` escribi\u00f3 ${writtenWhere(journal)}, pero ${where}.",
+        "No se revierte nada: los ficheros guardados son los de aquel sitio, y restaurarlos aqu\u00ed",
+        "sobrescribir\u00eda lo que tengas en este.",
+        "Vuelve con \\`${back}\\` y ejecuta \\`plumbward rollback\\` all\u00ed.",
+        "despu\u00e9s del `apply`.",
+        "La \u0072ama lleva el mismo nombre y no es el mismo sitio: se ha borrado y recreado, o se ha",
+        "El \u00faltimo \\`apply\\` escribi\u00f3 ${writtenWhere(journal)} sobre el commit",
+        "aquel commit, y restaurarlos aqu\u00ed sobrescribir\u00eda lo que haya llegado despu\u00e9s.",
+        "No hay nada que revertir: no se encontr\u00f3 el journal de una ejecuci\u00f3n previa."
+      ]
+    },
+    {
+      "path": "packages/packs-sdk/src/conformance.ts",
+      "reason": "Violation details shown to pack authors, left in Spanish for F0-45.",
+      "fragments": [
+        "La operaci\u00f3n \"${operation.kind}\" no explica por qu\u00e9 se aplica; el usuario debe poder leerlo en el plan.",
+        "El id \"${pack.id}\" debe ser kebab-case en min\u00fasculas.",
+        "La versi\u00f3n \"${pack.version}\" no sigue semver.",
+        "La confianza debe estar entre 0 y 1, se recibi\u00f3 ${detection.confidence}.",
+        "Dos llamadas a contribute() con el mismo contexto han devuelto operaciones distintas. El plan dejar\u00eda de ser fiable.",
+        "Una comprobaci\u00f3n de salud no declara id."
+      ]
+    },
+    {
+      "path": "packages/packs-sdk/src/registry.ts",
+      "reason": "Plan conflict reason shown to the user, left in Spanish for F0-45.",
+      "fragments": [
+        "No se ha reconocido ning\u00fan stack soportado. Ejecuta `plumbward scan` para ver qu\u00e9 se detect\u00f3."
+      ]
+    },
+    {
+      "path": "packages/scanner/src/maturity.ts",
+      "reason": "Labels and hints of the maturity report shown to the client, left in Spanish for F0-45.",
+      "fragments": [
+        "Integraci\u00f3n continua",
+        "Sin CI, cada PR se valida a ojo. Es la base de todo lo dem\u00e1s.",
+        "Suite de \u0070ruebas",
+        "Sin tests, el c\u00f3digo generado por IA entra sin red de seguridad.",
+        "Detiene los problemas antes del push, no en la revisi\u00f3n.",
+        "Un token filtrado por un asistente de IA es la brecha m\u00e1s com\u00fan y m\u00e1s cara.",
+        "\u0052eglas de contexto para asistentes de IA",
+        "Acaba con el \"en mi m\u00e1quina funciona\" y acelera el alta de nuevos perfiles.",
+        "Un clon y a trabajar: entorno id\u00e9ntico para todo el equipo.",
+        "Enruta cada PR a quien de verdad conoce esa parte del c\u00f3digo.",
+        "Actualizaci\u00f3n autom\u00e1tica de dependencias",
+        "README y documentaci\u00f3n de arranque",
+        "Pol\u00edtica de seguridad",
+        "Requisito habitual en auditor\u00edas y en ventas a empresa.",
+        "Documenta qu\u00e9 secretos hacen falta sin publicar ninguno."
+      ]
     }
+
   ]
 }

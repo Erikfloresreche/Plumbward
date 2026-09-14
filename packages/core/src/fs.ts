@@ -3,11 +3,11 @@ import { dirname, isAbsolute, relative, resolve, sep } from 'node:path'
 import type { CommentStyle } from '@plumbward/ast'
 
 /**
- * Resuelve una ruta relativa dentro del repositorio impidiendo escapar de él.
+ * Resolves a relative path inside the repository, preventing it from escaping.
  *
- * Es una barrera de seguridad real, no defensiva: los packs son extensibles y
- * en el futuro podrán venir de terceros. Ninguno debe poder escribir en
- * `~/.ssh/authorized_keys` mediante una ruta con `../`.
+ * It is a real security boundary, not a defensive one: packs are extensible and
+ * may come from third parties in the future. None of them must be able to
+ * write to `~/.ssh/authorized_keys` through a path with `../`.
  */
 export function resolveInRepo(repoRoot: string, relativePath: string): string {
   if (isAbsolute(relativePath)) {
@@ -31,7 +31,7 @@ export async function pathExists(absolutePath: string): Promise<boolean> {
   }
 }
 
-/** Lee un fichero o devuelve `undefined` si no existe. */
+/** Reads a file, or returns `undefined` if it does not exist. */
 export async function readFileIfExists(absolutePath: string): Promise<string | undefined> {
   try {
     return await readFile(absolutePath, 'utf8')
@@ -41,7 +41,7 @@ export async function readFileIfExists(absolutePath: string): Promise<string | u
   }
 }
 
-/** Escribe creando los directorios intermedios que falten. */
+/** Writes, creating the missing intermediate directories. */
 export async function writeFileEnsuringDir(
   absolutePath: string,
   content: string,
@@ -55,10 +55,10 @@ export async function removeFile(absolutePath: string): Promise<void> {
 }
 
 /**
- * Estilo de comentario adecuado para un fichero según su extensión o nombre.
+ * Comment style suited to a file, from its extension or name.
  *
- * Devuelve `undefined` cuando el formato no admite comentarios de forma segura
- * (JSON estricto como `package.json`, que otras herramientas reescriben).
+ * Returns `undefined` when the format does not take comments safely (strict
+ * JSON such as `package.json`, which other tools rewrite).
  */
 export function commentStyleForPath(filePath: string): CommentStyle | undefined {
   const name = filePath.split('/').pop() ?? filePath
@@ -94,7 +94,7 @@ export function commentStyleForPath(filePath: string): CommentStyle | undefined 
     case '.xml':
       return 'html'
     case '.json':
-      // JSON estricto: no se inyecta cabecera para no romper otras herramientas.
+      // Strict JSON: no header is injected, so as not to break other tools.
       return undefined
     default:
       return undefined

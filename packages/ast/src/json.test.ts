@@ -10,11 +10,11 @@ describe('patchJson', () => {
 }
 `
 
-  it('añade las claves que faltan sin tocar las existentes', () => {
+  it('adds the missing keys without touching the existing ones', () => {
     const result = patchJson(packageJson, [
       {
         pointer: '/scripts',
-        value: { dev: 'NO DEBE PISAR', lint: 'eslint .' },
+        value: { dev: 'MUST NOT OVERWRITE', lint: 'eslint .' },
         strategy: 'merge',
       },
     ])
@@ -24,7 +24,7 @@ describe('patchJson', () => {
     expect(getJsonValue(result.text, '/scripts/lint')).toBe('eslint .')
   })
 
-  it('es idempotente: la segunda pasada no cambia nada', () => {
+  it('is idempotent: the second pass changes nothing', () => {
     const patches = [
       { pointer: '/scripts', value: { lint: 'eslint .' }, strategy: 'merge' as const },
       { pointer: '/lint-staged', value: { '*.ts': ['eslint --fix'] }, strategy: 'merge' as const },
@@ -38,9 +38,9 @@ describe('patchJson', () => {
     expect(second.text).toBe(first.text)
   })
 
-  it('preserva los comentarios de un tsconfig con JSONC', () => {
+  it('preserves the comments of a JSONC tsconfig', () => {
     const tsconfig = `{
-  // No permitimos any en ningún caso.
+  // We never allow any.
   "compilerOptions": {
     "strict": true
   }
@@ -50,11 +50,11 @@ describe('patchJson', () => {
       { pointer: '/compilerOptions', value: { noImplicitAny: true }, strategy: 'merge' },
     ])
 
-    expect(result.text).toContain('No permitimos any en ningún caso')
+    expect(result.text).toContain('We never allow any')
     expect(getJsonValue(result.text, '/compilerOptions/noImplicitAny')).toBe(true)
   })
 
-  it('respeta la indentación original del fichero', () => {
+  it('keeps the original indentation of the file', () => {
     const fourSpaces = `{\n    "name": "demo"\n}\n`
     expect(detectIndent(fourSpaces)).toBe(4)
 
@@ -64,14 +64,14 @@ describe('patchJson', () => {
     expect(result.text).toContain('\n    "version"')
   })
 
-  it('crea rutas intermedias que no existen', () => {
+  it('creates intermediate paths that do not exist', () => {
     const result = patchJson('{}\n', [
       { pointer: '/a/b/c', value: 42, strategy: 'set' },
     ])
     expect(getJsonValue(result.text, '/a/b/c')).toBe(42)
   })
 
-  it('appendUnique no duplica elementos ya presentes', () => {
+  it('appendUnique does not duplicate elements already present', () => {
     const source = `{ "files": ["dist"] }`
     const patch = { pointer: '/files', value: ['dist', 'README.md'], strategy: 'appendUnique' as const }
 
@@ -82,8 +82,8 @@ describe('patchJson', () => {
     expect(second.changed).toBe(false)
   })
 
-  it('falla con un mensaje claro si el JSON está roto', () => {
-    expect(() => patchJson('{ roto', [{ pointer: '/a', value: 1, strategy: 'set' }], 'x.json'))
+  it('fails with a clear message if the JSON is broken', () => {
+    expect(() => patchJson('{ broken', [{ pointer: '/a', value: 1, strategy: 'set' }], 'x.json'))
       .toThrow(/No se pudo parsear "x.json"/)
   })
 })

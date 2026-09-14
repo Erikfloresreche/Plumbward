@@ -3,11 +3,11 @@ import { isPlainObject, parsePointer } from './pointer.js'
 import type { PatchResult } from './json.js'
 
 /**
- * Parcheo idempotente de ficheros YAML preservando comentarios, anclas y orden.
+ * Idempotent patching of YAML files, preserving comments, anchors and order.
  *
- * Se trabaja sobre el `Document` de la librería `yaml` (no sobre el objeto JS
- * plano) porque `parse` + `stringify` destruiría todos los comentarios, y la
- * especificación exige comentarios instructivos en español en los YAML generados.
+ * The work is done on the `Document` of the `yaml` library (not on the plain JS
+ * object) because `parse` + `stringify` would destroy every comment, and the
+ * specification requires explanatory comments in Spanish in the generated YAML.
  */
 
 export type YamlPatchStrategy = 'set' | 'merge' | 'appendUnique'
@@ -21,8 +21,8 @@ export interface YamlPatch {
 type YamlDocument = ReturnType<typeof parseDocument>
 
 /**
- * Fusión no destructiva sobre el documento: recorre el objeto fuente y sólo
- * escribe las rutas que aún no existen en el YAML del cliente.
+ * Non-destructive merge on the document: walks the source object and only
+ * writes the paths that do not exist yet in the client's YAML.
  */
 function mergeIntoDocument(
   doc: YamlDocument,
@@ -44,7 +44,7 @@ function mergeIntoDocument(
     if (isPlainObject(value)) {
       if (mergeIntoDocument(doc, path, value)) changed = true
     }
-    // Escalares y secuencias ya presentes: se respetan.
+    // Scalars and sequences already present: they are respected.
   }
 
   return changed
@@ -83,9 +83,9 @@ function appendUniqueIntoDocument(
 }
 
 /**
- * Aplica una lista de parches a un documento YAML.
+ * Applies a list of patches to a YAML document.
  *
- * Igual que en JSON, aplicar el mismo lote dos veces devuelve `changed: false`.
+ * As with JSON, applying the same batch twice returns `changed: false`.
  */
 export function patchYaml(
   text: string,
@@ -136,7 +136,7 @@ export function patchYaml(
   return { text: next, changed: next !== text }
 }
 
-/** Parsea un YAML completo a valores JavaScript planos. */
+/** Parses a whole YAML document into plain JavaScript values. */
 export function parseYamlToJson(text: string): unknown {
   const doc = parseDocument(text)
   if (doc.errors.length > 0) {
@@ -146,12 +146,12 @@ export function parseYamlToJson(text: string): unknown {
   return doc.toJSON()
 }
 
-/** Serializa un valor a YAML con líneas sin recortar. */
+/** Serialises a value to YAML without wrapping lines. */
 export function stringifyYaml(value: unknown): string {
   return stringify(value, { lineWidth: 0 })
 }
 
-/** Lee un valor por puntero de un YAML. Devuelve `undefined` si no existe. */
+/** Reads a value by pointer from a YAML document. Returns `undefined` if it does not exist. */
 export function getYamlValue(text: string, pointer: string): unknown {
   const doc = parseDocument(text)
   if (doc.errors.length > 0) return undefined

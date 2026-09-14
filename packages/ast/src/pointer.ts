@@ -1,8 +1,8 @@
-/** Utilidades de puntero RFC-6901 compartidas por los parsers JSON y YAML. */
+/** RFC-6901 pointer utilities shared by the JSON and YAML parsers. */
 
 /**
- * Convierte un puntero RFC-6901 (`/scripts/lint`) en sus segmentos,
- * deshaciendo los escapes `~1` (barra) y `~0` (virgulilla).
+ * Turns an RFC-6901 pointer (`/scripts/lint`) into its segments, undoing the
+ * `~1` (slash) and `~0` (tilde) escapes.
  */
 export function parsePointer(pointer: string): string[] {
   if (pointer === '' || pointer === '/') return []
@@ -15,19 +15,20 @@ export function parsePointer(pointer: string): string[] {
     .map((token) => token.replaceAll('~1', '/').replaceAll('~0', '~'))
 }
 
-/** Indica si un valor es un objeto plano (no array, no null). */
+/** Whether a value is a plain object (not an array, not null). */
 export function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
 /**
- * Fusión NO destructiva y EN SITIO: los valores que ya existen en el destino se
- * conservan; sólo se añaden las claves ausentes.
+ * NON-destructive, IN-PLACE merge: values that already exist in the target are
+ * kept; only the missing keys are added.
  *
- * Se muta el objeto en lugar de crear uno nuevo porque `comment-json` guarda los
- * comentarios en símbolos del propio objeto: un spread los perdería.
+ * The object is mutated instead of creating a new one because `comment-json`
+ * stores the comments in symbols of the object itself: a spread would lose
+ * them.
  *
- * @returns `true` si hubo algún cambio real (base de la idempotencia).
+ * @returns `true` if anything actually changed (the basis of idempotency).
  */
 export function mergePreservingExisting(
   target: Record<string, unknown>,
@@ -45,17 +46,17 @@ export function mergePreservingExisting(
     if (isPlainObject(targetValue) && isPlainObject(sourceValue)) {
       if (mergePreservingExisting(targetValue, sourceValue)) changed = true
     }
-    // Valor escalar ya presente: se respeta la decisión del equipo cliente.
+    // Scalar value already present: the client team's decision is respected.
   }
 
   return changed
 }
 
 /**
- * Añade EN SITIO a un array los elementos que aún no estén presentes
- * (comparación estructural por JSON).
+ * Appends IN PLACE to an array the elements not yet present (structural
+ * comparison through JSON).
  *
- * @returns `true` si se añadió algo.
+ * @returns `true` if anything was added.
  */
 export function appendUnique(target: unknown[], incoming: readonly unknown[]): boolean {
   const seen = new Set(target.map((item) => JSON.stringify(item)))

@@ -3,7 +3,7 @@ import type { PackageManager } from '@plumbward/core'
 import { join } from 'node:path'
 import type { StackDetection } from './types.js'
 
-/** Lee y parsea un JSON del repo, tolerando que no exista o esté roto. */
+/** Reads and parses a JSON file of the repo, tolerating that it is missing or broken. */
 async function readJson(
   repoRoot: string,
   relativePath: string,
@@ -29,7 +29,7 @@ function asRecord(value: unknown): Record<string, string> {
   return result
 }
 
-/** Deduce el gestor de paquetes a partir del lockfile y del campo `packageManager`. */
+/** Infers the package manager from the lockfile and the `packageManager` field. */
 export function detectPackageManager(
   files: ReadonlySet<string>,
   manifest: Record<string, unknown> | undefined,
@@ -191,7 +191,7 @@ async function detectPython(
   }
 }
 
-/** Señales de monorepo. Decide el modo no disruptivo con independencia del SLOC. */
+/** Monorepo signals. They decide the non-disruptive mode regardless of SLOC. */
 export function detectMonorepo(files: ReadonlySet<string>): boolean {
   return (
     files.has('pnpm-workspace.yaml') ||
@@ -204,10 +204,10 @@ export function detectMonorepo(files: ReadonlySet<string>): boolean {
 }
 
 /**
- * Ejecuta todos los detectores y ordena por confianza.
+ * Runs every detector and sorts by confidence.
  *
- * Un repositorio puede tener varios stacks a la vez (un backend Laravel con un
- * frontend Node); devolverlos todos permite que varios packs contribuyan.
+ * A repository can have several stacks at once (a Laravel backend with a Node
+ * frontend); returning all of them lets several packs contribute.
  */
 export async function detectStacks(
   repoRoot: string,

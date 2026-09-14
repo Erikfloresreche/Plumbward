@@ -4,7 +4,7 @@ import { ensureBlock, readBlock, managedHeader, parseManagedHeader } from './blo
 describe('ensureBlock', () => {
   const gitignore = 'node_modules/\ndist/\n'
 
-  it('añade el bloque al final sin tocar lo anterior', () => {
+  it('appends the block at the end without touching what came before', () => {
     const result = ensureBlock(gitignore, 'governance', '.governance/journal.json', 'hash')
 
     expect(result.changed).toBe(true)
@@ -13,15 +13,15 @@ describe('ensureBlock', () => {
     expect(readBlock(result.text, 'governance', 'hash')).toContain('.governance/journal.json')
   })
 
-  it('es idempotente', () => {
-    const first = ensureBlock(gitignore, 'governance', 'contenido', 'hash')
-    const second = ensureBlock(first.text, 'governance', 'contenido', 'hash')
+  it('is idempotent', () => {
+    const first = ensureBlock(gitignore, 'governance', 'content', 'hash')
+    const second = ensureBlock(first.text, 'governance', 'content', 'hash')
 
     expect(second.changed).toBe(false)
     expect(second.text).toBe(first.text)
   })
 
-  it('actualiza el contenido del bloque sin duplicarlo', () => {
+  it('updates the content of the block without duplicating it', () => {
     const first = ensureBlock(gitignore, 'governance', 'version-1', 'hash')
     const second = ensureBlock(first.text, 'governance', 'version-2', 'hash')
 
@@ -31,24 +31,24 @@ describe('ensureBlock', () => {
     expect(second.text.match(/plumbward:begin/g)).toHaveLength(1)
   })
 
-  it('conserva intacto lo que el cliente escriba fuera de los marcadores', () => {
+  it('keeps intact whatever the client writes outside the markers', () => {
     const first = ensureBlock(gitignore, 'governance', 'a', 'hash')
-    const edited = `${first.text}\n# regla propia del equipo\n*.local\n`
+    const edited = `${first.text}\n# the team's own rule\n*.local\n`
     const second = ensureBlock(edited, 'governance', 'b', 'hash')
 
-    expect(second.text).toContain('# regla propia del equipo')
+    expect(second.text).toContain("# the team's own rule")
     expect(second.text).toContain('*.local')
     expect(second.text).toContain('node_modules/')
   })
 })
 
-describe('cabecera gestionada', () => {
-  it('se puede leer de vuelta', () => {
+describe('managed header', () => {
+  it('can be read back', () => {
     const header = managedHeader('hash', '1.2.3', 'abc123def456')
     expect(parseManagedHeader(header)).toEqual({ version: '1.2.3', hash: 'abc123def456' })
   })
 
-  it('devuelve undefined en un fichero sin cabecera', () => {
-    expect(parseManagedHeader('contenido normal')).toBeUndefined()
+  it('returns undefined for a file without a header', () => {
+    expect(parseManagedHeader('plain content')).toBeUndefined()
   })
 })

@@ -1,10 +1,10 @@
 /**
- * Bloques gestionados: el mecanismo que permite `plumbward upgrade` sin
- * destruir el trabajo del cliente.
+ * Managed blocks: the mechanism that makes `plumbward upgrade` possible without
+ * destroying the client's work.
  *
- * Todo lo que la herramienta inyecta dentro de un fichero ajeno queda entre
- * marcadores. Al actualizar sólo se reescribe lo que hay entre marcadores; una
- * sola línea fuera de ellos jamás se toca.
+ * Everything the tool injects into a file it does not own sits between
+ * markers. An update only rewrites what is between the markers; a single line
+ * outside them is never touched.
  */
 
 export type CommentStyle = 'hash' | 'slash' | 'html' | 'semicolon'
@@ -24,7 +24,7 @@ const DELIMITERS: Record<CommentStyle, Delimiters> = {
   html: { prefix: '<!--', suffix: ' -->' },
 }
 
-/** Envuelve un texto como comentario en el estilo del fichero destino. */
+/** Wraps a text as a comment in the style of the target file. */
 export function commentLine(style: CommentStyle, text: string): string {
   const { prefix, suffix } = DELIMITERS[style]
   return `${prefix} ${text}${suffix}`
@@ -41,14 +41,16 @@ function endMarker(style: CommentStyle, blockId: string): string {
 export interface EnsureBlockResult {
   readonly text: string
   readonly changed: boolean
-  /** `true` si el bloque ya existía y sólo se ha actualizado su contenido. */
+  /** `true` if the block already existed and only its content was updated. */
   readonly replaced: boolean
 }
 
 /**
- * Inserta el bloque si no existe, o reemplaza su contenido si ya está presente.
+ * Inserts the block if it does not exist, or replaces its content if it is
+ * already there.
  *
- * Es idempotente: si el contenido coincide con el que ya hay, no toca el fichero.
+ * Idempotent: if the content matches what is already there, the file is not
+ * touched.
  */
 export function ensureBlock(
   original: string,
@@ -81,7 +83,7 @@ export function ensureBlock(
   return { text: next, changed: true, replaced: false }
 }
 
-/** Extrae el contenido actual de un bloque gestionado, si existe. */
+/** Extracts the current content of a managed block, if it exists. */
 export function readBlock(
   original: string,
   blockId: string,
@@ -96,8 +98,8 @@ export function readBlock(
 }
 
 /**
- * Cabecera de fichero completamente gestionado. El hash permite que `upgrade`
- * detecte si el cliente editó el fichero a mano y, en ese caso, no pisarlo.
+ * Header of a fully managed file. The hash lets `upgrade` detect whether the
+ * client edited the file by hand and, in that case, not overwrite it.
  */
 export function managedHeader(
   style: CommentStyle,
@@ -112,7 +114,7 @@ export function managedHeader(
   ].join('\n')
 }
 
-/** Lee la cabecera gestionada de un fichero, si la tiene. */
+/** Reads the managed header of a file, if it has one. */
 export function parseManagedHeader(
   text: string,
 ): { version: string; hash: string } | undefined {

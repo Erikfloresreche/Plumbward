@@ -1,20 +1,21 @@
 import type { ChangePlan, Conflict, Operation, PlanSummary } from './types.js'
 
 /**
- * Acumulador de operaciones. Cada pack contribuye aquí y el builder se encarga
- * de deduplicar, detectar choques entre packs y calcular el resumen.
+ * Accumulator of operations. Every pack contributes here, and the builder takes
+ * care of deduplicating, detecting clashes between packs and computing the
+ * summary.
  *
- * Ningún pack construye un `ChangePlan` por su cuenta: así el orden de las
- * operaciones y la política de conflictos viven en un único sitio.
+ * No pack builds a `ChangePlan` on its own: that way the order of the
+ * operations and the conflict policy live in a single place.
  */
 export class PlanBuilder {
   readonly #operations: Operation[] = []
   readonly #conflicts: Conflict[] = []
   readonly #contributors = new Set<string>()
-  /** Clave de destino -> huella de la operación, para detectar choques. */
+  /** Target key -> fingerprint of the operation, to detect clashes. */
   readonly #targets = new Map<string, { fingerprint: string; contributor: string }>()
 
-  /** Añade operaciones atribuidas a un pack. Las duplicadas exactas se ignoran. */
+  /** Adds operations attributed to a pack. Exact duplicates are ignored. */
   add(contributor: string, operations: readonly Operation[]): this {
     this.#contributors.add(contributor)
 
@@ -24,7 +25,7 @@ export class PlanBuilder {
       const previous = this.#targets.get(key)
 
       if (previous) {
-        if (previous.fingerprint === fingerprint) continue // duplicado exacto
+        if (previous.fingerprint === fingerprint) continue // exact duplicate
         this.#conflicts.push({
           path: operationPath(operation) ?? key,
           reason: `Los packs "${previous.contributor}" y "${contributor}" quieren configurar lo mismo de forma distinta.`,
@@ -40,7 +41,7 @@ export class PlanBuilder {
     return this
   }
 
-  /** Registra un conflicto detectado durante la fase de análisis. */
+  /** Records a conflict detected during the analysis phase. */
   conflict(conflict: Conflict): this {
     this.#conflicts.push(conflict)
     return this
@@ -57,7 +58,7 @@ export class PlanBuilder {
   }
 }
 
-/** Ruta de fichero afectada por la operación, si la tiene. */
+/** File path the operation affects, if it has one. */
 export function operationPath(operation: Operation): string | undefined {
   switch (operation.kind) {
     case 'createFile':
@@ -70,7 +71,7 @@ export function operationPath(operation: Operation): string | undefined {
   }
 }
 
-/** Identidad del destino de una operación, para deduplicar. */
+/** Identity of the target of an operation, to deduplicate. */
 function targetKey(operation: Operation): string {
   switch (operation.kind) {
     case 'createFile':
@@ -89,8 +90,8 @@ function targetKey(operation: Operation): string {
 }
 
 /**
- * Orden de aplicación. Importa: los ficheros deben existir antes de parchearlos
- * y las dependencias deben declararse antes de ejecutar comandos que las usen.
+ * Order of application. It matters: files must exist before they are patched,
+ * and dependencies must be declared before running commands that use them.
  */
 const KIND_ORDER: Record<Operation['kind'], number> = {
   createFile: 0,
@@ -144,12 +145,12 @@ function summarise(
   }
 }
 
-/** `true` si el plan tiene algún conflicto que impide aplicarlo. */
+/** `true` if the plan has any conflict that prevents applying it. */
 export function isBlocked(plan: ChangePlan): boolean {
   return plan.conflicts.some((conflict) => conflict.severity === 'block')
 }
 
-/** `true` si no hay nada que hacer (el repo ya está conforme). */
+/** `true` if there is nothing to do (the repo already complies). */
 export function isEmpty(plan: ChangePlan): boolean {
   return plan.operations.length === 0
 }
