@@ -6,7 +6,7 @@
 > checkbox in this file, inside the same Pull Request that implements it.
 
 **Last updated:** 2026-09-13
-**Global status:** Phase 0 in progress — F0-1, F0-3, F0-5, F0-8, F0-13, F0-14, F0-15, F0-16, F0-17, F0-18, F0-24, F0-27, F0-29, F0-30, F0-40, F0-41, F0-42, F0-47 and F0-48 completed. Remaining: F0-2, F0-4, F0-6, F0-7, F0-9 to F0-12, F0-19 to F0-23, F0-25, F0-26, F0-28, F0-31 to F0-39, F0-43 to F0-46 and F0-49.
+**Global status:** Phase 0 in progress — F0-1, F0-3, F0-5, F0-8, F0-13, F0-14, F0-15, F0-16, F0-17, F0-18, F0-24, F0-27, F0-29, F0-30, F0-40, F0-41, F0-42, F0-43, F0-47 and F0-48 completed. Remaining: F0-2, F0-4, F0-6, F0-7, F0-9 to F0-12, F0-19 to F0-23, F0-25, F0-26, F0-28, F0-31 to F0-39, F0-44 to F0-46 and F0-49.
 **Product:** Plumbward · https://github.com/Erikfloresreche/Plumbward
 **Business model:** annual subscription per repository — see
 [BUSINESS_MODEL.md](BUSINESS_MODEL.md)
@@ -1830,7 +1830,7 @@ did not know read as "no dependencies", and a broken order passed.
 
 ---
 
-### [ ] F0-43 — Core comments and tests in English
+### [x] F0-43 — Core comments and tests in English
 **Branch:** `refactor/f0-english-comments-core` · **Depends on:** F0-16
 
 **Origin:** F0-41. Split from F0-44 so each PR can be reviewed in full.
@@ -3350,7 +3350,6 @@ controls that watch the work of the phase go before that work.
 
 #### Phase 0 · 1. English as the main language
 
-- **F0-43** — comments and tests of the core.
 - **F0-44** — comments and tests of the CLI, the packs and the scripts.
 - **F0-45** — the product speaks English by default; Spanish stays in the profile.
 
