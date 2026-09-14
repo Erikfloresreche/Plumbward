@@ -5,15 +5,15 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
 /**
- * Hallazgo bloqueante de la revisión de la PR #11: el aviso de rama se imprimía
- * sin mirar `cause.rolledBack`. Cuando la reversión automática falla, el consejo
- * lleva a un callejón sin salida (ver `branch-notice.test.ts` para el detalle).
+ * Blocking finding of the review of PR #11: the branch notice was printed
+ * without looking at `cause.rolledBack`. When the automatic revert fails, the
+ * advice leads into a dead end (see `branch-notice.test.ts` for the detail).
  *
- * Esa rama no se puede provocar de verdad desde fuera: haría falta que
- * `revertEntries` reventara a mitad, y para eso hay que cambiar los permisos del
- * árbol entre dos operaciones de un mismo `apply`. Se sustituye `applyPlan` por
- * uno que lanza el error ya construido; lo que se prueba aquí es el cableado
- * —qué se imprime con `rolledBack === false`—, no la reversión.
+ * That path cannot really be triggered from outside: `revertEntries` would have
+ * to blow up halfway, and that needs the tree permissions to change between two
+ * operations of the same `apply`. `applyPlan` is replaced by one that throws the
+ * error already built; what is tested here is the wiring —what is printed with
+ * `rolledBack === false`—, not the revert.
  */
 
 const { applyPlanMock } = vi.hoisted(() => ({ applyPlanMock: vi.fn() }))
@@ -66,10 +66,10 @@ afterEach(async () => {
   await Promise.all(created.splice(0).map((root) => rm(root, { recursive: true, force: true })))
 })
 
-describe('apply que falla y tampoco puede revertir', () => {
-  it('no propone volver a la rama de partida con el árbol a medias', async () => {
+describe('apply that fails and cannot revert either', () => {
+  it('does not propose going back to the starting branch with a half-written tree', async () => {
     const root = await createRepo()
-    applyPlanMock.mockRejectedValue(new ApplyFailedError('EACCES al escribir', undefined, false))
+    applyPlanMock.mockRejectedValue(new ApplyFailedError('EACCES while writing', undefined, false))
     const output = captureOutput()
 
     const exitCode = await runApply(root, { yes: true, install: false, branch: true })
@@ -78,30 +78,30 @@ describe('apply que falla y tampoco puede revertir', () => {
     expect(exitCode).toBe(1)
     expect(printed).toContain('no se pudo revertir del todo')
 
-    // Las dos instrucciones que cerraban la única salida.
+    // The two instructions that closed the only way out.
     expect(printed).not.toContain(`git branch -d ${GOVERNANCE_BRANCH}`)
 
-    // Anclado a la línea del aviso, no a `plumbward rollback` a secas: esa
-    // cadena ya sale en la línea "ATENCIÓN" anterior, y con ella la aserción se
-    // cumpliría aunque el aviso pusiera el `checkout` primero.
+    // Anchored to the notice line, not to a bare `plumbward rollback`: that
+    // string already appears in the warning line before it, and with it the
+    // assertion would hold even if the notice put the `checkout` first.
     const revertHere = printed.indexOf('Ejecuta `plumbward rollback` aquí')
     expect(revertHere).toBeGreaterThan(-1)
     expect(revertHere).toBeLessThan(printed.indexOf('git checkout Prod'))
   })
 
   /**
-   * Hallazgo 2 de la revisión de F0-30. Los dos casos de arriba empiezan en la
-   * rama `Prod`, así que `startedOnBranch` nunca es `null` y el commit de
-   * partida que se le pasa al aviso no se consume: sustituirlo por `null` no
-   * rompía ningún test. Con HEAD desacoplado es justo al revés —no hay rama que
-   * nombrar— y es el camino en el que el usuario queda más atrapado: `apply` ha
-   * fallado y está en la rama aislada.
+   * Finding 2 of the review of F0-30. The two cases above start on the `Prod`
+   * branch, so `startedOnBranch` is never `null` and the starting commit passed
+   * to the notice is not used: replacing it with `null` broke no test. With a
+   * detached HEAD it is just the opposite —there is no branch to name— and it is
+   * the path where the user is most trapped: `apply` has failed and they are on
+   * the isolated branch.
    */
-  it('nombra el commit de partida si se empezó con HEAD desacoplado', async () => {
+  it('names the starting commit if the work started with a detached HEAD', async () => {
     const root = await createRepo()
     await git(root, 'checkout', '--detach')
     const startCommit = await git(root, 'rev-parse', 'HEAD')
-    applyPlanMock.mockRejectedValue(new ApplyFailedError('EACCES al escribir', undefined, true))
+    applyPlanMock.mockRejectedValue(new ApplyFailedError('EACCES while writing', undefined, true))
     const output = captureOutput()
 
     expect(await runApply(root, { yes: true, install: false, branch: true })).toBe(1)
@@ -111,9 +111,9 @@ describe('apply que falla y tampoco puede revertir', () => {
     expect(printed).not.toContain('no tenía ningún commit')
   })
 
-  it('sigue proponiendo volver y borrar cuando sí se revirtió', async () => {
+  it('still proposes going back and deleting when it did revert', async () => {
     const root = await createRepo()
-    applyPlanMock.mockRejectedValue(new ApplyFailedError('EACCES al escribir', undefined, true))
+    applyPlanMock.mockRejectedValue(new ApplyFailedError('EACCES while writing', undefined, true))
     const output = captureOutput()
 
     expect(await runApply(root, { yes: true, install: false, branch: true })).toBe(1)

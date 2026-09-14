@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 /**
- * Control de coherencia entre lo que declaramos y lo que probamos.
+ * Coherence control between what we declare and what we test.
  *
- * Existe porque las revisiones en contexto nuevo han encontrado tres veces la
- * misma clase de fallo: afirmar en la documentación algo que el código no
- * respalda. Una regla escrita en un documento no lo impide; este script sí.
+ * It exists because fresh-context reviews found the same class of failure three
+ * times: claiming in the documentation something the code does not back. A rule
+ * written in a document does not prevent it; this script does.
  *
- * Es el primer control de la tarea F0-12. Cada vez que una revisión encuentre
- * una incoherencia mecanizable, su comprobación se añade aquí.
+ * It is the first control of task F0-12. Every time a review finds a
+ * mechanisable inconsistency, its check is added here.
  */
 import { readFileSync } from 'node:fs'
 import { readdirSync, statSync, lstatSync, readlinkSync, existsSync } from 'node:fs'
@@ -28,70 +28,71 @@ const json = (p) => JSON.parse(read(p))
 const failures = []
 const fail = (control, detail) => failures.push(`${control}: ${detail}`)
 
-// ── 1. El suelo de Node declarado coincide con el que se prueba en CI ──────
+// ── 1. The declared Node floor matches the one tested in CI ───────────────
 const engines = json('package.json').engines.node
 const declaredFloor = engines.replace(/^>=/, '')
 
 const ci = read('.github/workflows/ci.yml')
 const matrix = /node: \[([^\]]+)\]/.exec(ci)
 if (!matrix) {
-  fail('ci-matrix', 'no se encuentra la matriz de versiones de Node en ci.yml')
+  fail('ci-matrix', 'the Node version matrix is not found in ci.yml')
 } else {
   const versions = matrix[1].split(',').map((v) => v.trim().replace(/'/g, ''))
   const testedFloor = versions[0]
   if (!declaredFloor.startsWith(testedFloor)) {
     fail(
       'node-floor',
-      `package.json declara ">=${declaredFloor}" pero la versión más baja que la CI prueba es ${testedFloor}. Se soporta lo que se prueba.`,
+      `package.json declares ">=${declaredFloor}" but the lowest version the CI tests is ${testedFloor}. What is tested is what is supported.`,
     )
   }
 }
 
-// ── 1b. Ninguna condición apunta a una versión que no está en la matriz ────
-// Nació de la revisión de la PR #6: tras cambiar la matriz de '22' a '22.13',
-// dos pasos con `if: matrix.node == '22'` se saltaron en silencio en todas las
-// ejecuciones — entre ellos el typecheck y este mismo script. Un `if` que
-// nunca se cumple no falla: desaparece.
+// ── 1b. No condition points at a version that is not in the matrix ────────
+// Born from the review of PR #6: after changing the matrix from '22' to '22.13',
+// two steps with `if: matrix.node == '22'` were skipped in silence on every run
+// — among them the typecheck and this very script. An `if` that never matches
+// does not fail: it disappears.
 if (matrix) {
   const versions = matrix[1].split(',').map((v) => v.trim().replace(/'/g, ''))
-  // Sólo líneas `if:` reales: un comentario que cite el patrón no cuenta.
+  // Only real `if:` lines: a comment quoting the pattern does not count.
   for (const m of ci.matchAll(/^\s*if:.*matrix\.node\s*==\s*'([^']+)'/gm)) {
     if (!versions.includes(m[1])) {
       fail(
         'matrix-condition',
-        `ci.yml tiene una condición "matrix.node == '${m[1]}'" pero la matriz es [${versions.join(', ')}]. Ese paso no se ejecutaría nunca.`,
+        `ci.yml has a condition "matrix.node == '${m[1]}'" but the matrix is [${versions.join(', ')}]. That step would never run.`,
       )
     }
   }
 }
 
-// ── 1c. El job de tipos y coherencia usa la versión del suelo ─────────────
+// ── 1c. The types and coherence job uses the floor version ────────────────
 {
   const job = /quality:[\s\S]*?node-version:\s*'([^']+)'/.exec(ci)
   if (!job) {
-    fail('quality-job', 'no se encuentra el job `quality` en ci.yml: los tipos y la coherencia no se comprobarían en CI')
+    fail('quality-job', 'the `quality` job is not found in ci.yml: types and coherence would not be checked in CI')
   } else if (job[1] !== declaredFloor) {
-    fail('quality-job', `el job \`quality\` usa Node ${job[1]} y el suelo declarado es ${declaredFloor}`)
+    fail('quality-job', `the \`quality\` job uses Node ${job[1]} and the declared floor is ${declaredFloor}`)
   }
 }
 
-// ── 2. La documentación dice la misma versión que package.json ────────────
+// ── 2. The documentation states the same version as package.json ──────────
 for (const doc of ['README.md', 'CONTRIBUTING.md']) {
   const text = read(doc)
   const m = /Node\.js >= ([\d.]+)/.exec(text)
   if (!m) {
-    fail('documented-version', `${doc} no declara ninguna versión mínima de Node`)
+    fail('documented-version', `${doc} declares no minimum Node version`)
   } else if (m[1] !== declaredFloor) {
     fail(
       'documented-version',
-      `${doc} dice "Node.js >= ${m[1]}" y package.json dice ">=${declaredFloor}"`,
+      `${doc} says "Node.js >= ${m[1]}" and package.json says ">=${declaredFloor}"`,
     )
   }
 }
 
-// ── 3. Los paquetes publicables declaran su propio `engines` ──────────────
-// El `engines` de la raíz no llega al usuario: la raíz es privada. Sin esto,
-// quien instale el CLI no recibe el aviso que README y CONTRIBUTING prometen.
+// ── 3. Publishable packages declare their own `engines` ───────────────────
+// The root `engines` does not reach the user: the root is private. Without
+// this, whoever installs the CLI does not get the warning README and
+// CONTRIBUTING promise.
 const packageDirs = []
 for (const base of ['packages', 'packages/packs']) {
   for (const name of readdirSync(join(root, base))) {
@@ -99,7 +100,7 @@ for (const base of ['packages', 'packages/packs']) {
     try {
       if (statSync(join(root, path, 'package.json')).isFile()) packageDirs.push(path)
     } catch {
-      /* no es un paquete */
+      /* not a package */
     }
   }
 }
@@ -107,19 +108,19 @@ for (const dir of packageDirs) {
   const pkg = json(join(dir, 'package.json'))
   if (pkg.private) continue
   if (!pkg.engines?.node) {
-    fail('package-engines', `${pkg.name} se publica pero no declara "engines.node"`)
+    fail('package-engines', `${pkg.name} is published but does not declare "engines.node"`)
   } else if (pkg.engines.node !== engines) {
     fail(
       'package-engines',
-      `${pkg.name} declara "${pkg.engines.node}" y la raíz declara "${engines}"`,
+      `${pkg.name} declares "${pkg.engines.node}" and the root declares "${engines}"`,
     )
   }
 }
 
-// ── 4. Las ramas de los disparadores de CI existen de verdad ─────────────
-// Nació de una revisión: los workflows disparaban sobre `main`, una rama que
-// no existe en este repositorio — la de releases se llama `Prod`. El resultado
-// era que la rama de releases no tenía ninguna CI, en silencio.
+// ── 4. The branches of the CI triggers really exist ───────────────────────
+// Born from a review: the workflows triggered on `main`, a branch that does
+// not exist in this repository — the release one is called `Prod`. The result
+// was that the release branch had no CI at all, in silence.
 try {
   const { execSync } = await import('node:child_process')
   const remoteBranches = execSync('git ls-remote --heads origin', {
@@ -133,8 +134,8 @@ try {
     .filter(Boolean)
 
   if (remoteBranches.length > 0) {
-    // Todos los workflows, no una lista escrita a mano: un workflow nuevo
-    // con un disparador sobre una rama inexistente no tendría control.
+    // Every workflow, not a hand-written list: a new workflow with a trigger on
+    // a branch that does not exist would have no control.
     const workflows = readdirSync(join(root, '.github/workflows'))
       .filter((f) => f.endsWith('.yml') || f.endsWith('.yaml'))
       .map((f) => `.github/workflows/${f}`)
@@ -144,52 +145,53 @@ try {
         for (const branch of m[1].split(',').map((r) => r.trim())) {
           if (remoteBranches.includes(branch)) continue
 
-          // Los nombres de rama de git SÍ distinguen mayúsculas: `Prod` y
-          // `prod` son ramas distintas. Un desajuste de caja es el error más
-          // probable y el más difícil de ver a simple vista, así que se
-          // diagnostica aparte en lugar de decir "no existe" y dejar al
-          // lector comparando letra por letra.
+          // Git branch names ARE case-sensitive: `Prod` and `prod` are
+          // different branches. A case mismatch is the most likely mistake and
+          // the hardest to see at a glance, so it is diagnosed separately
+          // instead of saying "does not exist" and leaving the reader to
+          // compare letter by letter.
           const caseMatch = remoteBranches.find((r) => r.toLowerCase() === branch.toLowerCase())
           fail(
             'trigger-branches',
             caseMatch
-              ? `${wf} dispara sobre "${branch}", pero la rama del remoto se llama "${caseMatch}". Los nombres de rama distinguen mayúsculas: el disparador nunca se activaría.`
-              : `${wf} dispara sobre la rama "${branch}", que no existe en el remoto. Esa rama no tendría ninguna CI. Ramas disponibles: ${remoteBranches.join(', ')}.`,
+              ? `${wf} triggers on "${branch}", but the remote branch is called "${caseMatch}". Branch names are case-sensitive: the trigger would never fire.`
+              : `${wf} triggers on the branch "${branch}", which does not exist on the remote. That branch would have no CI. Available branches: ${remoteBranches.join(', ')}.`,
           )
         }
       }
     }
   }
 } catch {
-  // Sin red o sin remoto: no se puede comprobar, y no es motivo para fallar.
-  console.warn('  (aviso: no se han podido listar las ramas remotas; control omitido)')
+  // No network or no remote: it cannot be checked, and that is no reason to fail.
+  console.warn('  (warning: the remote branches could not be listed; control skipped)')
 }
 
-// ── 4 bis. El filtro del workflow de mutaciones cubre lo que se muta ────
-// `mutations.yml` sólo corre en las PRs que tocan los ficheros que
-// `check-mutations.mjs` muta o ejecuta. Esa lista está escrita a mano en el
-// workflow y la de mutaciones crece: si una mutación nueva toca un fichero que
-// el filtro no nombra, el job deja de ejecutarse en las PRs que lo cambian sin
-// ponerse en rojo —no se ejecuta, no falla—. La lógica vive en
-// `scripts/mutation-paths.mjs`, cubierta por su test. Tarea F0-27.
+// ── 4 bis. The mutation workflow filter covers what is mutated ────────────
+// `mutations.yml` only runs on the PRs that touch the files `check-mutations.mjs`
+// mutates or runs. That list is written by hand in the workflow and the list of
+// mutations grows: if a new mutation touches a file the filter does not name,
+// the job stops running on the PRs that change it without turning red —it does
+// not run, it does not fail—. The logic lives in `scripts/mutation-paths.mjs`,
+// covered by its test. Task F0-27.
 for (const file of uncoveredMutationInputs(
   read('scripts/check-mutations.mjs'),
   read('.github/workflows/mutations.yml'),
 )) {
   fail(
     'mutation-filter',
-    `check-mutations.mjs muta o ejecuta "${file}", pero el filtro paths: de .github/workflows/mutations.yml no lo nombra. Una PR que cambie ese fichero no lanzaría las mutaciones.`,
+    `check-mutations.mjs mutates or runs "${file}", but the paths: filter of .github/workflows/mutations.yml does not name it. A PR that changes that file would not launch the mutations.`,
   )
 }
 
-// ── 5. Los nombres de rama van en inglés y con el formato del plan ───────
-// La lógica vive en `scripts/branch-names.mjs` y está cubierta por
-// `scripts/branch-names.test.mjs` con un corpus de nombres reales. Aquí sólo
-// se conectan las dos entradas: el plan y la rama de la Pull Request en curso.
+// ── 5. Branch names are in English and follow the plan format ─────────────
+// The logic lives in `scripts/branch-names.mjs` and is covered by
+// `scripts/branch-names.test.mjs` with a corpus of real names. Here the two
+// inputs are only wired: the plan and the branch of the current Pull Request.
 //
-// La rama de la PR se lee de GITHUB_HEAD_REF y no se interpola en el workflow,
-// porque un nombre de rama lo controla quien abre la PR y meterlo en un `run:`
-// sería una vía de inyección de comandos. El autor viene de GITHUB_ACTOR.
+// The PR branch is read from GITHUB_HEAD_REF and not interpolated in the
+// workflow, because a branch name is controlled by whoever opens the PR and
+// putting it in a `run:` would be a command injection path. The author comes
+// from GITHUB_ACTOR.
 for (const reason of checkPlan(read('docs/EXECUTION_PLAN.md'))) {
   fail('plan-branch-name', reason)
 }
@@ -199,10 +201,10 @@ if (prBranchReason) {
   fail('pr-branch-name', `"${process.env.GITHUB_HEAD_REF}" ${prBranchReason}`)
 }
 
-// ── 5 bis. La cola de ejecución describe el plan (F0-40) ─────────────────
-// La siguiente tarea es la primera de la cola del §5. Si la cola se deja una
-// tarea pendiente, conserva una cerrada o pone algo antes de su dependencia,
-// la siguiente tarea deja de ser la correcta sin que nadie lo note.
+// ── 5 bis. The execution queue describes the plan (F0-40) ─────────────────
+// The next task is the first one in the queue of §5. If the queue leaves out a
+// pending task, keeps a closed one or puts something before its dependency, the
+// next task stops being the right one without anyone noticing.
 for (const reason of checkQueue(read('docs/EXECUTION_PLAN.md'))) {
   fail('execution-queue', reason)
 }
@@ -240,12 +242,12 @@ for (const reason of checkQueue(read('docs/EXECUTION_PLAN.md'))) {
   }
 }
 
-// ── 6. Las skills de agente versionadas son las que fija el lock (F0-17) ──
-// Una skill es código de terceros que el asistente carga con acceso al repo.
-// `skills-lock.json` fija su hash; si alguien la edita a mano o la sustituye,
-// el lock deja de describir lo que se carga y nadie se entera. El hash se
-// calcula igual que `computeSkillFolderHash` de la CLI `skills` (v1.5.25):
-// sha256 de ruta relativa + contenido de cada fichero, ordenados por ruta.
+// ── 6. The versioned agent skills are the ones the lock pins (F0-17) ──────
+// A skill is third-party code the assistant loads with access to the repo.
+// `skills-lock.json` pins its hash; if someone edits it by hand or replaces it,
+// the lock stops describing what is loaded and nobody notices. The hash is
+// computed like `computeSkillFolderHash` of the `skills` CLI (v1.5.25): sha256
+// of relative path + content of each file, sorted by path.
 const SKILLS_DIR = '.agents/skills'
 const CLAUDE_SKILLS_DIR = '.claude/skills'
 
@@ -256,15 +258,15 @@ function skillFolderHash(dir) {
   const walk = (current) => {
     for (const entry of readdirSync(current, { withFileTypes: true })) {
       const full = join(current, entry.name)
-      // Un enlace simbólico no es fichero ni directorio para `Dirent`: la CLI
-      // `skills` lo salta, así que su contenido nunca entra en el hash. Se
-      // prohíbe, o sería una forma de meter código que el lock no cubre.
+      // A symbolic link is neither a file nor a directory for `Dirent`: the
+      // `skills` CLI skips it, so its content never enters the hash. It is
+      // forbidden, or it would be a way to slip in code the lock does not cover.
       if (entry.isSymbolicLink()) {
-        fail('skill-symlink', `${relative(root, full)} es un enlace simbólico: el hash del lock no lo cubre`)
+        fail('skill-symlink', `${relative(root, full)} is a symbolic link: the lock hash does not cover it`)
       } else if (entry.isDirectory()) {
         if (entry.name !== '.git' && entry.name !== 'node_modules') walk(full)
       } else if (entry.isFile() && entry.name !== '.DS_Store') {
-        // .DS_Store: lo crea macOS, está en .gitignore y nunca llega a la CI.
+        // .DS_Store: macOS creates it, it is in .gitignore and never reaches CI.
         files.push({ path: relative(dir, full).split('\\').join('/'), content: readFileSync(full) })
       }
     }
@@ -282,20 +284,20 @@ if (existsSync(join(root, 'skills-lock.json'))) {
     ? readdirSync(join(root, SKILLS_DIR), { withFileTypes: true }).filter((e) => !e.isFile()).map((e) => e.name)
     : []
   for (const name of installed) {
-    if (!(name in locked)) fail('skill-not-locked', `${SKILLS_DIR}/${name} no está en skills-lock.json`)
+    if (!(name in locked)) fail('skill-not-locked', `${SKILLS_DIR}/${name} is not in skills-lock.json`)
   }
   for (const [name, entry] of Object.entries(locked)) {
     const dir = join(root, SKILLS_DIR, name)
     if (!existsSync(dir)) {
-      fail('skill-missing', `skills-lock.json fija "${name}" pero ${SKILLS_DIR}/${name} no existe`)
+      fail('skill-missing', `skills-lock.json pins "${name}" but ${SKILLS_DIR}/${name} does not exist`)
       continue
     }
     const actual = skillFolderHash(dir)
     if (actual !== entry.computedHash) {
-      fail('skill-altered', `${SKILLS_DIR}/${name} no coincide con el hash de skills-lock.json (${actual})`)
+      fail('skill-altered', `${SKILLS_DIR}/${name} does not match the hash in skills-lock.json (${actual})`)
     }
-    // 6b. Claude Code sólo lee `.claude/skills/`. Sin el enlace, la skill está
-    // instalada y versionada pero ningún asistente la carga: parece que funciona.
+    // 6b. Claude Code only reads `.claude/skills/`. Without the link, the skill
+    // is installed and versioned but no assistant loads it: it looks like it works.
     const link = join(root, CLAUDE_SKILLS_DIR, name)
     const expected = `../../${SKILLS_DIR}/${name}`
     let target
@@ -305,19 +307,19 @@ if (existsSync(join(root, 'skills-lock.json'))) {
       target = undefined
     }
     if (target !== expected) {
-      fail('skill-not-linked', `${CLAUDE_SKILLS_DIR}/${name} debe ser un enlace a ${expected}`)
+      fail('skill-not-linked', `${CLAUDE_SKILLS_DIR}/${name} must be a link to ${expected}`)
     }
   }
 }
 
-// ── 7. El runbook de napkin respeta sus propias reglas de curación (F0-17) ─
-// Las reglas están escritas en la cabecera del fichero, y una regla escrita se
-// incumple. Máximo 10 entradas por categoría; cada una con fecha y "Do instead".
+// ── 7. The napkin runbook follows its own curation rules (F0-17) ──────────
+// The rules are written in the header of the file, and a written rule gets
+// broken. At most 10 entries per category; each one with a date and "Do instead".
 const NAPKIN = '.claude/napkin.md'
 if (existsSync(join(root, NAPKIN))) {
   let category
   let count = 0
-  let pending // entrada abierta que aún no ha mostrado su "Do instead"
+  let pending // open entry that has not shown its "Do instead" yet
   const closeEntry = () => {
     if (pending) fail('napkin-no-do-instead', `"${pending}" (${category})`)
     pending = undefined
@@ -334,7 +336,7 @@ if (existsSync(join(root, NAPKIN))) {
     if (item) {
       closeEntry()
       count += 1
-      if (count === 11) fail('napkin-category-full', `"${category}" pasa de 10 entradas`)
+      if (count === 11) fail('napkin-category-full', `"${category}" has more than 10 entries`)
       if (!/^\*\*\[\d{4}-\d{2}-\d{2}\] /.test(item[1])) {
         fail('napkin-no-date', `"${item[1].slice(0, 60)}" (${category})`)
       }
@@ -346,11 +348,11 @@ if (existsSync(join(root, NAPKIN))) {
   closeEntry()
 }
 
-// ── 8. Los comandos git de la §0 de CLAUDE.md los permite la §1 (F0-15) ───
-// La guía para retomar el proyecto proponía `git branch --show-current`, que
-// no estaba en la lista de comandos de sólo lectura permitidos. Una guía que
-// manda hacer algo que el mismo fichero prohíbe sólo se descubre leyendo las
-// dos secciones a la vez, que es justo lo que nadie hace.
+// ── 8. The git commands of §0 of CLAUDE.md are allowed by §1 (F0-15) ──────
+// The guide to pick up the project proposed `git branch --show-current`, which
+// was not in the list of allowed read-only commands. A guide that tells you to
+// do something the same file forbids is only found by reading both sections at
+// once, which is exactly what nobody does.
 {
   const claude = read('CLAUDE.md')
   const section = (prefix) => {
@@ -367,25 +369,25 @@ if (existsSync(join(root, NAPKIN))) {
     ? [...allowedList[1].matchAll(/`([^`]+)`/g)].map((m) => m[1])
     : []
 
-  // Sin ancla no hay control: se falla en vez de pasar en silencio.
-  if (!section0) fail('claude-md-allowed-git', 'no se encuentra la sección "## 0. " en CLAUDE.md')
+  // Without an anchor there is no control: fail instead of passing in silence.
+  if (!section0) fail('claude-md-allowed-git', 'the "## 0. " section is not found in CLAUDE.md')
   else if (allowed.length === 0) {
-    fail('claude-md-allowed-git', 'no se encuentra la lista de comandos git de sólo lectura en la §1')
+    fail('claude-md-allowed-git', 'the list of read-only git commands is not found in §1')
   } else {
-    // Se recorre la §0 entera, no sólo sus bloques ```bash: un `git reset
-    // --hard` escrito en prosa, entre acentos graves, es igual de copiable y
-    // se colaba. El subcomando arrastra sólo sus opciones, de modo que la
-    // captura termina donde acaba el comando y no se come la frase.
+    // The whole §0 is walked, not only its ```bash blocks: a `git reset
+    // --hard` written in prose, between backticks, is just as copyable and
+    // slipped through. The subcommand only carries its options, so the capture
+    // ends where the command ends and does not swallow the sentence.
     //
-    // Se saltan las opciones globales (`git -C ruta push`, `git -c k=v commit`)
-    // para llegar al subcomando: son una forma corriente de escribir un
-    // comando, y un patrón que empiece a exigir letra tras `git ` no casaba en
-    // absoluto y lo dejaba pasar entero. La negación por detrás evita `legit`,
-    // y `\s+` tras `git` evita `gitlab`.
+    // Global options (`git -C path push`, `git -c k=v commit`) are skipped to
+    // reach the subcommand: they are a common way to write a command, and a
+    // pattern that requires a letter right after `git ` did not match at all
+    // and let it through whole. The lookbehind avoids `legit`, and `\s+` after
+    // `git` avoids `gitlab`.
     //
-    // El grupo es opcional a propósito: un `git` cuyo subcomando este control
-    // no sepa leer cae en `undefined` en vez de desaparecer, y se falla en voz
-    // alta. Silencio aquí es exactamente lo que hacía falsa la frase de la §1.
+    // The group is optional on purpose: a `git` whose subcommand this control
+    // cannot read falls into `undefined` instead of disappearing, and fails out
+    // loud. Silence here is exactly what made the sentence of §1 false.
     const uses = section0.matchAll(
       /(?<![\w-])git\s+(?:-[cC]\s+\S+\s+)*([a-z][a-z-]*(?:\s+--?[a-z][\w.-]*(?:=\S+)?)*)?/g,
     )
@@ -397,8 +399,8 @@ if (existsSync(join(root, NAPKIN))) {
         const excerpt = section0.slice(use.index, use.index + 48).split('\n')[0].trim()
         fail(
           'claude-md-allowed-git',
-          `la §0 escribe "${excerpt}", y este control no sabe leer ahí un subcomando: ` +
-            'no puede afirmar que la §1 lo permita',
+          `§0 writes "${excerpt}", and this control cannot read a subcommand there: ` +
+            'it cannot claim that §1 allows it',
         )
         continue
       }
@@ -406,17 +408,17 @@ if (existsSync(join(root, NAPKIN))) {
       if (!isAllowed) {
         fail(
           'claude-md-allowed-git',
-          `la §0 propone "git ${command}", que no está en la lista de sólo lectura de la §1`,
+          `§0 proposes "git ${command}", which is not in the read-only list of §1`,
         )
       }
     }
-    // Si la §0 deja de proponer comandos, este control se queda sin objeto y
-    // hay que revisarlo, no dejarlo pasando en verde sin mirar nada.
-    if (seen === 0) fail('claude-md-allowed-git', 'la §0 ya no propone ningún comando git')
+    // If §0 stops proposing commands, this control has no purpose left and has
+    // to be reviewed, not left passing green without looking at anything.
+    if (seen === 0) fail('claude-md-allowed-git', '§0 no longer proposes any git command')
   }
 }
 
-// ── Resultado ─────────────────────────────────────────────────────────────
+// ── Result ────────────────────────────────────────────────────────────────
 if (failures.length > 0) {
   console.error('\nCoherencia: se han encontrado incoherencias.\n')
   for (const f of failures) console.error(`  ✗ ${f}`)

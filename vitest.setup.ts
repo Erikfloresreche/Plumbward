@@ -1,16 +1,17 @@
 /**
- * Aislamiento de git para todas las pruebas.
+ * Git isolation for every test.
  *
- * Las pruebas crean repositorios reales, y cualquier variable `GIT_*` heredada
- * del proceso los contamina: `GIT_DIR` o `GIT_WORK_TREE` —por ejemplo, desde un
- * hook de git que ejecute las pruebas— hacían que cada `git` apuntara al
- * repositorio del hook, y llegaron a sobrescribir su `user.name`.
- * `GIT_CONFIG_COUNT` y compañía inyectan configuración: `git -c` las exporta a
- * los hooks, y una firma de commits con un `gpg` que falla tumbaba los tests.
+ * The tests create real repositories, and any `GIT_*` variable inherited from
+ * the process pollutes them: `GIT_DIR` or `GIT_WORK_TREE` —for example, from a
+ * git hook that runs the tests— made every `git` point at the hook's
+ * repository, and once overwrote its `user.name`. `GIT_CONFIG_COUNT` and
+ * friends inject configuration: `git -c` exports them to hooks, and commit
+ * signing with a failing `gpg` brought the tests down.
  *
- * Por eso se borran **todas**, y después se fijan las dos que aíslan de la
- * configuración global y de la del sistema. Se hace aquí y no en `test.env` de
- * vitest.config.ts porque `test.env` sólo puede poner variables, no quitarlas.
+ * That is why **all** of them are deleted, and then the two that isolate from
+ * the global and the system configuration are set. It is done here and not in
+ * `test.env` of vitest.config.ts because `test.env` can only set variables,
+ * not remove them.
  */
 for (const name of Object.keys(process.env)) {
   if (name.startsWith('GIT_')) delete process.env[name]

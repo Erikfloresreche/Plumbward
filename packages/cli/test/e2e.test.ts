@@ -12,7 +12,7 @@ import { nodeTsPack } from '@plumbward/pack-node-ts'
 
 const VERSION = '0.1.0-test'
 
-/** Crea un repositorio git realista sobre el que ejecutar el ciclo completo. */
+/** Creates a realistic git repository to run the full cycle on. */
 async function createTestRepo(): Promise<string> {
   const root = await mkdtemp(join(tmpdir(), 'plumbward-e2e-'))
 
@@ -20,7 +20,7 @@ async function createTestRepo(): Promise<string> {
     join(root, 'package.json'),
     JSON.stringify(
       {
-        name: 'proyecto-cliente',
+        name: 'client-project',
         version: '1.0.0',
         scripts: { dev: 'vite', build: 'vite build' },
         dependencies: { react: '^18.0.0' },
@@ -30,16 +30,16 @@ async function createTestRepo(): Promise<string> {
       2,
     ) + '\n',
   )
-  await writeFile(join(root, 'tsconfig.json'), '{\n  // Comentario del cliente.\n  "compilerOptions": { "strict": true }\n}\n')
+  await writeFile(join(root, 'tsconfig.json'), '{\n  // Client comment.\n  "compilerOptions": { "strict": true }\n}\n')
   await writeFile(join(root, '.gitignore'), 'node_modules/\ndist/\n')
   await mkdir(join(root, 'src'), { recursive: true })
-  await writeFile(join(root, 'src', 'app.ts'), 'export const saludo = (): string => "hola"\n')
+  await writeFile(join(root, 'src', 'app.ts'), 'export const greeting = (): string => "hello"\n')
 
   await execa('git', ['init', '-b', 'main'], { cwd: root })
   await execa('git', ['config', 'user.email', 'test@example.com'], { cwd: root })
   await execa('git', ['config', 'user.name', 'Test'], { cwd: root })
   await execa('git', ['add', '.'], { cwd: root })
-  await execa('git', ['commit', '-m', 'commit inicial'], { cwd: root })
+  await execa('git', ['commit', '-m', 'initial commit'], { cwd: root })
 
   return root
 }
@@ -53,7 +53,7 @@ async function buildTestPlan(root: string): Promise<ChangePlan> {
   const config: Operation = file(
     '.governance/config.yml',
     'strictness: strict\n',
-    'Perfil de gobernanza.',
+    'Governance profile.',
     { managed: false },
   )
 
@@ -65,7 +65,7 @@ async function gitStatus(root: string): Promise<string> {
   return stdout.trim()
 }
 
-describe('ciclo completo sobre un repositorio real', () => {
+describe('full cycle on a real repository', () => {
   let root: string
 
   beforeEach(async () => {
@@ -76,7 +76,7 @@ describe('ciclo completo sobre un repositorio real', () => {
     await rm(root, { recursive: true, force: true })
   })
 
-  it('detecta el stack, el tamaño y el modo correctos', async () => {
+  it('detects the right stack, size and mode', async () => {
     const scan = await scanRepository(root)
 
     expect(scan.git.isRepo).toBe(true)
@@ -89,7 +89,7 @@ describe('ciclo completo sobre un repositorio real', () => {
     expect(scan.maturity.score).toBeLessThan(30)
   })
 
-  it('el plan describe exactamente lo que apply va a hacer', async () => {
+  it('the plan describes exactly what apply is going to do', async () => {
     const plan = await buildTestPlan(root)
     const simulation = await simulatePlan(plan, { repoRoot: root, version: VERSION })
 
@@ -102,11 +102,11 @@ describe('ciclo completo sobre un repositorio real', () => {
     expect(changedPaths).toContain('package.json')
     expect(changedPaths).toContain('.gitignore')
 
-    // Nada se ha escrito todavía: `plan` es de sólo lectura.
+    // Nothing has been written yet: `plan` is read-only.
     expect(await gitStatus(root)).toBe('')
   })
 
-  it('apply escribe lo planificado y rollback deja el repositorio idéntico', async () => {
+  it('apply writes what was planned and rollback leaves the repository identical', async () => {
     const plan = await buildTestPlan(root)
     const originalPackage = await readFile(join(root, 'package.json'), 'utf8')
 
@@ -124,14 +124,14 @@ describe('ciclo completo sobre un repositorio real', () => {
     expect(existsSync(join(root, '.husky/pre-commit'))).toBe(true)
     expect(await gitStatus(root)).not.toBe('')
 
-    // El parche de package.json respeta los scripts que ya existían.
+    // The package.json patch respects the scripts that already existed.
     const modifiedPackage = JSON.parse(await readFile(join(root, 'package.json'), 'utf8'))
     expect(modifiedPackage.scripts.dev).toBe('vite')
     expect(modifiedPackage.scripts.build).toBe('vite build')
     expect(modifiedPackage.scripts.lint).toBe('eslint .')
 
-    // El comentario del tsconfig del cliente sigue ahí.
-    expect(await readFile(join(root, 'tsconfig.json'), 'utf8')).toContain('Comentario del cliente')
+    // The comment in the client's tsconfig is still there.
+    expect(await readFile(join(root, 'tsconfig.json'), 'utf8')).toContain('Client comment')
 
     await rollbackLastApply(root, { currentBranch: 'main', currentCommit: null })
 
@@ -140,7 +140,7 @@ describe('ciclo completo sobre un repositorio real', () => {
     expect(existsSync(join(root, '.github/workflows/ci-dev.yml'))).toBe(false)
   })
 
-  it('un segundo apply no produce ningún cambio (idempotencia de punta a punta)', async () => {
+  it('a second apply produces no change (end-to-end idempotence)', async () => {
     await applyPlan(await buildTestPlan(root), {
       repoRoot: root,
       version: VERSION,
@@ -166,7 +166,7 @@ describe('ciclo completo sobre un repositorio real', () => {
     expect(secondApply.applied).toBe(0)
   })
 
-  it('revierte automáticamente si una operación falla a mitad', async () => {
+  it('reverts automatically if an operation fails halfway', async () => {
     const plan = await buildTestPlan(root)
     const brokenPlan: ChangePlan = {
       ...plan,
@@ -174,11 +174,11 @@ describe('ciclo completo sobre un repositorio real', () => {
         ...plan.operations,
         {
           kind: 'patchJson',
-          path: 'no-existe.json',
+          path: 'missing.json',
           pointer: '/a',
           value: 1,
           strategy: 'set',
-          reason: 'Operación imposible a propósito.',
+          reason: 'Impossible operation on purpose.',
         },
       ],
     }
@@ -194,28 +194,28 @@ describe('ciclo completo sobre un repositorio real', () => {
       }),
     ).rejects.toThrow(/no existe el fichero/)
 
-    // Requisito de resiliencia operativa: el repositorio queda intacto.
+    // Operational resilience requirement: the repository stays intact.
     expect(await gitStatus(root)).toBe('')
   })
 
-  it('el pack node-ts cumple el contrato de conformidad', async () => {
+  it('the node-ts pack meets the conformance contract', async () => {
     const scan = await scanRepository(root)
     const packContext = { scan, profile: recommendedProfile(scan), cliVersion: VERSION }
 
     expect(await checkPackConformance(nodeTsPack, packContext)).toEqual([])
   })
 
-  it('impide que un pack escriba fuera del repositorio', async () => {
+  it('stops a pack from writing outside the repository', async () => {
     const plan = await buildTestPlan(root)
     const maliciousPlan: ChangePlan = {
       ...plan,
       operations: [
         {
           kind: 'createFile',
-          path: '../../fuera-del-repo.txt',
-          content: 'no debería llegar aquí',
+          path: '../../outside-the-repo.txt',
+          content: 'should never get here',
           managed: false,
-          reason: 'Intento de escapar de la raíz.',
+          reason: 'Attempt to escape the root.',
         },
       ],
     }

@@ -8,103 +8,103 @@ const read = (p) => readFileSync(fileURLToPath(new URL(p, import.meta.url)), 'ut
 const script = read('./check-mutations.mjs')
 const workflow = read('../.github/workflows/mutations.yml')
 
-describe('ficheros que el script muta o ejecuta', () => {
-  it('lee las constantes de fichero', () => {
+describe('files the script mutates or runs', () => {
+  it('reads the file constants', () => {
     expect(mutationInputs(script)).toContain('packages/packs-sdk/src/branches.ts')
     expect(mutationInputs(script)).toContain('vitest.setup.ts')
   })
 
-  it('lee el array TESTS', () => {
+  it('reads the TESTS array', () => {
     expect(mutationInputs(script)).toContain('packages/cli/test/e2e.test.ts')
   })
 
-  it('lee una ruta escrita como literal en la mutación, no como constante', () => {
-    const inline = "const MUTATIONS = [\n  ['Algo', 'packages/nuevo/src/pieza.ts', 'a', 'b'],\n]"
-    expect(mutationInputs(inline)).toContain('packages/nuevo/src/pieza.ts')
+  it('reads a path written as a literal in the mutation, not as a constant', () => {
+    const inline = "const MUTATIONS = [\n  ['Something', 'packages/new/src/piece.ts', 'a', 'b'],\n]"
+    expect(mutationInputs(inline)).toContain('packages/new/src/piece.ts')
   })
 
-  it('no confunde el texto de una mutación con un fichero', () => {
-    const withLiteral = "const BR = 'packages/a/b.ts'\nconst MUTATIONS = [\n  ['Algo', BR, '  if (x) return true\\n', ''],\n]"
+  it('does not mistake the text of a mutation for a file', () => {
+    const withLiteral = "const BR = 'packages/a/b.ts'\nconst MUTATIONS = [\n  ['Something', BR, '  if (x) return true\\n', ''],\n]"
     expect(mutationInputs(withLiteral)).toEqual(['packages/a/b.ts'])
   })
 
-  it('lee una constante con dígitos o guion bajo en el nombre', () => {
-    // Las abreviaturas de dos letras están agotadas: la siguiente mutación
-    // sobre un fichero ya usado se llamará `CX2` o `WF_2`. Si el nombre no se
-    // reconoce, el fichero desaparece de la lista y el control da verde.
-    expect(mutationInputs("const CX2 = 'packages/nuevo/a.ts'")).toEqual(['packages/nuevo/a.ts'])
-    expect(mutationInputs("const WF_2 = 'packages/nuevo/b.ts'")).toEqual(['packages/nuevo/b.ts'])
-    expect(mutationInputs("const Br = 'packages/nuevo/c.ts'")).toEqual(['packages/nuevo/c.ts'])
+  it('reads a constant with digits or an underscore in its name', () => {
+    // The two-letter abbreviations are exhausted: the next mutation on a file
+    // already used will be called `CX2` or `WF_2`. If the name is not
+    // recognised, the file vanishes from the list and the control goes green.
+    expect(mutationInputs("const CX2 = 'packages/new/a.ts'")).toEqual(['packages/new/a.ts'])
+    expect(mutationInputs("const WF_2 = 'packages/new/b.ts'")).toEqual(['packages/new/b.ts'])
+    expect(mutationInputs("const Br = 'packages/new/c.ts'")).toEqual(['packages/new/c.ts'])
   })
 
-  it('no toma por fichero una constante que no es una ruta', () => {
+  it('does not take as a file a constant that is not a path', () => {
     expect(mutationInputs("const CMD = 'pnpm'")).toEqual([])
   })
 
-  it('lee un fichero mutado que no es TypeScript', () => {
-    // La lista de mutaciones no promete tocar sólo `.ts`: filtrar por extensión
-    // conocida reabriría el mismo agujero para un `.yml` o un `.json`.
+  it('reads a mutated file that is not TypeScript', () => {
+    // The mutation list does not promise to touch only `.ts`: filtering by known
+    // extension would reopen the same hole for a `.yml` or a `.json`.
     expect(mutationInputs("const TP = 'packages/packs/node-ts/src/templates/ci.yml'")).toEqual([
       'packages/packs/node-ts/src/templates/ci.yml',
     ])
   })
 
-  it('no repite un fichero que aparece como constante y como test', () => {
+  it('does not repeat a file that appears as a constant and as a test', () => {
     const dup = "const BR = 'packages/a/b.ts'\nconst TESTS = [\n  'packages/a/b.ts',\n]"
     expect(mutationInputs(dup)).toEqual(['packages/a/b.ts'])
   })
 })
 
-describe('rutas del filtro paths del workflow', () => {
-  it('lee todas las entradas del filtro real', () => {
+describe('paths of the workflow filter', () => {
+  it('reads every entry of the real filter', () => {
     expect(workflowPaths(workflow)).toContain('packages/packs-sdk/src/branches.ts')
     expect(workflowPaths(workflow)).toContain('vitest.config.ts')
   })
 
-  it('no se detiene en un comentario ni en una línea en blanco dentro de la lista', () => {
-    const wf = "on:\n  pull_request:\n    paths:\n      - 'a.ts'\n\n      # comentario\n      - 'b.ts'\n  workflow_dispatch:\n"
+  it('does not stop at a comment or a blank line inside the list', () => {
+    const wf = "on:\n  pull_request:\n    paths:\n      - 'a.ts'\n\n      # comment\n      - 'b.ts'\n  workflow_dispatch:\n"
     expect(workflowPaths(wf)).toEqual(['a.ts', 'b.ts'])
   })
 
-  it('termina la lista al llegar a otra clave', () => {
+  it('ends the list when it reaches another key', () => {
     const wf =
       "on:\n  pull_request:\n    paths:\n      - 'a.ts'\n  workflow_dispatch:\n      - 'no.ts'\n"
     expect(workflowPaths(wf)).toEqual(['a.ts'])
   })
 
-  it('lee el filtro de pull_request, no el primer paths del fichero', () => {
-    // Un disparador `push:` con su propia lista por delante secuestraba el
-    // control: validaba esa lista y nunca miraba la que filtra las PRs.
+  it('reads the pull_request filter, not the first paths of the file', () => {
+    // A `push:` trigger with its own list ahead of it hijacked the control: it
+    // validated that list and never looked at the one filtering PRs.
     const wf =
-      "on:\n  push:\n    paths:\n      - 'todo.ts'\n  pull_request:\n    paths:\n      - 'solo-uno.ts'\n"
-    expect(workflowPaths(wf)).toEqual(['solo-uno.ts'])
+      "on:\n  push:\n    paths:\n      - 'all.ts'\n  pull_request:\n    paths:\n      - 'only-one.ts'\n"
+    expect(workflowPaths(wf)).toEqual(['only-one.ts'])
   })
 
-  it('no confunde paths-ignore con el filtro', () => {
+  it('does not mistake paths-ignore for the filter', () => {
     const wf = "on:\n  pull_request:\n    paths-ignore:\n      - 'docs/**'\n"
     expect(workflowPaths(wf)).toEqual([])
   })
 
-  it('devuelve una lista vacía si no hay filtro', () => {
+  it('returns an empty list if there is no filter', () => {
     expect(workflowPaths('on:\n  pull_request:\n    branches: [develop]\n')).toEqual([])
   })
 })
 
-describe('cobertura del filtro', () => {
-  it('el workflow real cubre todo lo que el script muta o ejecuta', () => {
+describe('filter coverage', () => {
+  it('the real workflow covers everything the script mutates or runs', () => {
     expect(uncoveredMutationInputs(script, workflow)).toEqual([])
   })
 
-  it('delata una mutación nueva sobre un fichero que el filtro no nombra', () => {
+  it('exposes a new mutation on a file the filter does not name', () => {
     const withNewMutation = script.replace(
       "const VS = 'vitest.setup.ts'",
-      "const VS = 'vitest.setup.ts'\nconst NW = 'packages/nuevo/src/pieza.ts'",
+      "const VS = 'vitest.setup.ts'\nconst NW = 'packages/new/src/piece.ts'",
     )
     expect(withNewMutation).not.toBe(script)
-    expect(uncoveredMutationInputs(withNewMutation, workflow)).toEqual(['packages/nuevo/src/pieza.ts'])
+    expect(uncoveredMutationInputs(withNewMutation, workflow)).toEqual(['packages/new/src/piece.ts'])
   })
 
-  it('no acepta un patrón amplio en lugar de la ruta exacta', () => {
+  it('does not accept a broad pattern instead of the exact path', () => {
     const broad = "on:\n  pull_request:\n    paths:\n      - 'packages/**'\n"
     expect(uncoveredMutationInputs(script, broad).length).toBeGreaterThan(0)
   })

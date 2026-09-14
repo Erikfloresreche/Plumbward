@@ -1,47 +1,49 @@
 /**
- * Aviso de rama tras una operación que puede dejar HEAD donde no estaba.
+ * Branch notice after an operation that can leave HEAD somewhere else.
  *
- * `apply` aísla el trabajo en una rama nueva, y ni la reversión automática de un
- * `apply` fallido ni `rollback` la deshacen: revierten ficheros, no ramas. Decir
- * sólo "el repositorio está intacto" es falso a medias, y quien lo lea seguirá
- * trabajando en la rama aislada creyéndose en la suya.
+ * `apply` isolates the work on a new branch, and neither the automatic revert
+ * of a failed `apply` nor `rollback` undoes it: they revert files, not
+ * branches. Saying only "the repository is intact" is half false, and whoever
+ * reads it will keep working on the isolated branch believing they are on
+ * their own.
  *
- * Se separa de `commands.ts` para poder probar el texto sin provocar un EACCES
- * real (misma razón que el punto 4 de F0-15: lógica en línea que nadie cubre).
+ * It is split from `commands.ts` so the text can be tested without causing a
+ * real EACCES (same reason as item 4 of F0-15: inline logic nobody covers).
  */
 
 export interface BranchNoticeInput {
-  /** Rama en la que ha quedado el repositorio. `null` con HEAD desacoplado. */
+  /** Branch the repository was left on. `null` with a detached HEAD. */
   readonly currentBranch: string | null
-  /** Rama desde la que se lanzó `apply`. `null` si ya estaba desacoplado. */
+  /** Branch `apply` was launched from. `null` if it was already detached. */
   readonly startedOnBranch: string | null
   /**
-   * Commit en el que se empezó, para poder nombrarlo cuando no hay rama que
-   * nombrar. `null` sólo en un repositorio sin ningún commit.
+   * Commit the work started on, to name it when there is no branch to name.
+   * `null` only in a repository with no commits at all.
    *
-   * Sale del journal (`writtenOnCommit`): sin él, el consejo era `git checkout
-   * <commit>` y dejaba al usuario rellenar un hueco que ya no puede rellenar,
-   * porque HEAD está en otro sitio desde que `apply` aisló.
+   * It comes from the journal (`writtenOnCommit`): without it, the advice was
+   * `git checkout <commit>` and left the user to fill a gap they can no longer
+   * fill, because HEAD has been elsewhere since `apply` isolated.
    */
   readonly startedOnCommit: string | null
-  /** Nombre de la rama aislada, para reconocerla y avisar de que sobra. */
+  /** Name of the isolated branch, to recognise it and warn that it is left over. */
   readonly isolatedBranch: string
   /**
-   * `true` cuando queda un `rollback` pendiente: `apply` falló y la reversión
-   * automática **también**, así que el árbol tiene ficheros a medias y el
-   * journal sigue vivo.
+   * `true` when a `rollback` is still pending: `apply` failed and the automatic
+   * revert **also** failed, so the tree has half-written files and the journal
+   * is still alive.
    *
-   * Cambia el consejo entero, no un matiz. Con trabajo a medias, `git checkout`
-   * arrastra esos ficheros a la otra rama, y borrar la rama aislada deja el
-   * `rollback` imposible para siempre: `assertSameBranch` exige estar en ella y
-   * ya no existe.
+   * It changes the whole advice, not a detail. With half-done work, `git
+   * checkout` drags those files to the other branch, and deleting the isolated
+   * branch makes the `rollback` impossible forever: `assertSameBranch` requires
+   * being on it and it no longer exists.
    */
   readonly pendingRollback: boolean
 }
 
 /**
- * Cómo volver cuando se empezó sin rama. Con el commit anotado se nombra; sin
- * él —repositorio sin ningún commit— no hay nada adonde volver con `checkout`.
+ * How to go back when the work started without a branch. With the recorded
+ * commit it is named; without it —a repository with no commits at all— there
+ * is nothing to go back to with `checkout`.
  */
 function returnToCommit(startedOnCommit: string | null): string {
   return startedOnCommit === null
@@ -50,8 +52,8 @@ function returnToCommit(startedOnCommit: string | null): string {
 }
 
 /**
- * Líneas a imprimir, sin color y sin sangrar. Vacío cuando no hay nada que
- * decir: el repositorio ha quedado donde estaba.
+ * Lines to print, uncoloured and unindented. Empty when there is nothing to
+ * say: the repository was left where it was.
  */
 export function branchReturnNotice(input: BranchNoticeInput): readonly string[] {
   const { currentBranch, startedOnBranch, startedOnCommit, isolatedBranch, pendingRollback } = input

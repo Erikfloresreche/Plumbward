@@ -1,12 +1,13 @@
 # ---------------------------------------------------------------------------
-# Integración continua.
+# Continuous integration.
 #
-# Es la puerta que impide que entre en `develop` código que no compila, no
-# tipa o no pasa las pruebas. Vendemos CI: no tenerla sería incoherente.
+# It is the gate that keeps out of `develop` code that does not build, does not
+# type-check or does not pass the tests. We sell CI: not having it would be
+# incoherent.
 #
-# Los tests de punta a punta van en `e2e.yml` porque son lentos y crean
-# repositorios git reales; separarlos mantiene esta comprobación por debajo del
-# minuto y da retroalimentación rápida en cada push.
+# The end-to-end tests go in `e2e.yml` because they are slow and create real
+# git repositories; keeping them apart holds this check under a minute and
+# gives fast feedback on every push.
 # ---------------------------------------------------------------------------
 name: CI
 
@@ -16,20 +17,20 @@ on:
   push:
     branches: [develop, Prod]
   schedule:
-    # Lunes a las 6:00 UTC: escaneo de secretos sobre todo el historial.
+    # Mondays at 6:00 UTC: secret scanning over the whole history.
     - cron: '0 6 * * 1'
   workflow_dispatch:
 
-# Un push nuevo sobre la misma rama cancela la ejecución anterior: ahorra
-# minutos, que en un repositorio privado son un recurso limitado.
+# A new push on the same branch cancels the previous run: it saves minutes,
+# which are a limited resource in a private repository.
 concurrency:
   group: ci-${{ github.ref }}
-  # Sólo se cancela en Pull Requests. En `develop` y `main`, cancelar dejaría un
-  # commit integrado sin ningún resultado de CI, y CONTRIBUTING dice que la
-  # rama de integración debe estar siempre en verde.
+  # Only Pull Requests are cancelled. On `develop` and `Prod`, cancelling would
+  # leave an integrated commit with no CI result, and CONTRIBUTING says the
+  # integration branch must always be green.
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
-# Mínimo privilegio: estos trabajos sólo necesitan leer el código.
+# Least privilege: these jobs only need to read the code.
 permissions:
   contents: read
 
@@ -39,20 +40,20 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     strategy:
-      # Que falle una versión no cancela las demás: interesa saber si el fallo
-      # es de una versión concreta o de todas.
+      # One version failing does not cancel the others: we want to know whether
+      # the failure belongs to one version or to all of them.
       fail-fast: false
       matrix:
-        # 22 es el suelo: pnpm 11 usa `node:sqlite` y exige Node >= 22.13, así
-        # que en 20 no podemos ni instalar dependencias. Se soporta lo que se
-        # puede probar. 24 es LTS activa y 26 es sobre lo que se desarrolla en
-        # local: si no se prueba, un fallo sólo de 26 se descubre tarde.
+        # 22 is the floor: pnpm 11 uses `node:sqlite` and requires Node >= 22.13,
+        # so on 20 we cannot even install dependencies. What can be tested is
+        # what is supported. 24 is the active LTS and 26 is what we develop on
+        # locally: if it is not tested, a failure only on 26 is found late.
         node: ['22.13', '24', '26']
 
     steps:
       - uses: actions/checkout@v5
 
-      # Lee la versión de pnpm del campo `packageManager` de package.json.
+      # Reads the pnpm version from the `packageManager` field of package.json.
       - uses: pnpm/action-setup@v4
 
       - uses: actions/setup-node@v5
@@ -60,8 +61,8 @@ jobs:
           node-version: ${{ matrix.node }}
           cache: pnpm
 
-      # La caché de turbo evita recompilar paquetes que no han cambiado.
-      - name: Restaurar caché de turbo
+      # The turbo cache avoids rebuilding packages that have not changed.
+      - name: Restore turbo cache
         uses: actions/cache@v5
         with:
           path: .turbo
@@ -69,24 +70,24 @@ jobs:
           restore-keys: |
             turbo-${{ runner.os }}-node${{ matrix.node }}-
 
-      - name: Instalar dependencias
+      - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Compilar
+      - name: Build
         run: pnpm build
 
-      - name: Pruebas unitarias
+      - name: Unit tests
         run: pnpm test:unit
 
 
   quality:
-    name: Tipos y coherencia
-    # Job propio, fuera de la matriz y sin condiciones `if`. Antes eran pasos
-    # de la matriz con `if: matrix.node == '22'`; al cambiar la matriz a
-    # '22.13' la condición dejó de cumplirse y ambos pasos se saltaban en
-    # silencio en cada ejecución. Aquí no hay condición que pueda desajustarse.
-    # `tsc` no depende del runtime (usa @types/node del lockfile), así que una
-    # sola versión basta: la del suelo declarado.
+    name: Types and coherence
+    # A job of its own, outside the matrix and with no `if` conditions. These
+    # used to be matrix steps with `if: matrix.node == '22'`; when the matrix
+    # changed to '22.13' the condition stopped matching and both steps were
+    # skipped in silence on every run. Here there is no condition to drift.
+    # `tsc` does not depend on the runtime (it uses @types/node from the
+    # lockfile), so one version is enough: the declared floor.
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -97,39 +98,39 @@ jobs:
           node-version: '22.13'
           cache: pnpm
 
-      - name: Instalar dependencias
+      - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Comprobar tipos
+      - name: Type-check
         run: pnpm typecheck
 
-      - name: Coherencia entre lo que declaramos y lo que probamos
+      - name: Coherence between what we declare and what we test
         run: pnpm check:coherence
 
   secrets:
-    name: Escaneo de secretos
+    name: Secret scanning
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v5
         with:
-          # Gitleaks necesita el historial completo para revisar cada commit,
-          # no sólo el árbol de trabajo. Sin esto sólo vería el último estado.
+          # Gitleaks needs the full history to review every commit, not only the
+          # working tree. Without this it would only see the latest state.
           fetch-depth: 0
 
-      # NOTA: si este repositorio se mueve a una organización de GitHub, esta
-      # acción exigirá un secreto GITLEAKS_LICENSE. Mientras sea una cuenta
-      # personal, es gratuita.
+      # NOTE: if this repository moves to a GitHub organisation, this action
+      # will require a GITLEAKS_LICENSE secret. While it is a personal account,
+      # it is free.
       - uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   history:
-    name: Escaneo de secretos sobre todo el historial
-    # El job `secrets` sólo mira los commits de la Pull Request. El historial
-    # anterior a este workflow nunca se ha revisado, y el repositorio es
-    # público: una credencial en el commit de importación sería visible para
-    # cualquiera. Esto lo cubre, semanalmente y bajo demanda.
+    name: Secret scanning over the whole history
+    # The `secrets` job only looks at the commits of the Pull Request. The
+    # history before this workflow was never reviewed, and the repository is
+    # public: a credential in the import commit would be visible to anyone.
+    # This covers it, weekly and on demand.
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 20

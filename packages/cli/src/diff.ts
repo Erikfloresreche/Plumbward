@@ -1,9 +1,9 @@
 /**
- * Diff por líneas mínimo, sin dependencias.
+ * Minimal line diff, with no dependencies.
  *
- * Los ficheros que genera la herramienta son configuraciones de unos cientos de
- * líneas, así que una LCS cuadrática con tope de seguridad es más que suficiente
- * y evita arrastrar una librería sólo para pintar el plan.
+ * The files the tool generates are configurations of a few hundred lines, so a
+ * quadratic LCS with a safety cap is more than enough and avoids pulling in a
+ * library just to render the plan.
  */
 
 export type DiffKind = 'context' | 'added' | 'removed'
@@ -13,7 +13,7 @@ export interface DiffLine {
   readonly text: string
 }
 
-/** Por encima de este tamaño no se calcula LCS: se muestra un resumen. */
+/** Above this size no LCS is computed: a summary is shown. */
 const MAX_LINES_FOR_LCS = 2_000
 
 export function lineDiff(before: string, after: string): DiffLine[] {
@@ -27,7 +27,7 @@ export function lineDiff(before: string, after: string): DiffLine[] {
     ]
   }
 
-  // Matriz de longitudes de la subsecuencia común más larga.
+  // Matrix of longest common subsequence lengths.
   const lengths: number[][] = Array.from({ length: a.length + 1 }, () =>
     new Array<number>(b.length + 1).fill(0),
   )
@@ -76,9 +76,9 @@ export function lineDiff(before: string, after: string): DiffLine[] {
 }
 
 /**
- * Reduce el diff a los trozos con cambios más unas líneas de contexto,
- * como hace `git diff`. Sin esto, un fichero de 300 líneas con un cambio
- * llenaría la pantalla de ruido.
+ * Reduces the diff to the hunks with changes plus a few context lines, as
+ * `git diff` does. Without this, a 300-line file with one change would fill
+ * the screen with noise.
  */
 export function collapseContext(lines: readonly DiffLine[], context = 2): DiffLine[] {
   const keep = new Set<number>()

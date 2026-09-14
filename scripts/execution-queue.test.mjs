@@ -5,17 +5,17 @@ import { fileURLToPath } from 'node:url'
 import { checkQueue, nextTask, parseTasks, QUEUE_END, QUEUE_START } from './execution-queue.mjs'
 
 /**
- * F0-40. Cada caso construye un plan mínimo con el formato real: cabeceras
- * `### [ ] F0-1 — ...`, línea `**Branch:** ... · **Depends on:** ...` y la cola
- * entre marcadores.
+ * F0-40. Each case builds a minimal plan with the real format: headings
+ * `### [ ] F0-1 — ...`, a line `**Branch:** ... · **Depends on:** ...` and the
+ * queue between markers.
  */
 
 function task(id, done, dependsOn) {
   return [
-    `### [${done ? 'x' : ' '}] ${id} — Tarea ${id}`,
+    `### [${done ? 'x' : ' '}] ${id} — Task ${id}`,
     `**Branch:** \`fix/f0-task\` · **Depends on:** ${dependsOn}`,
     '',
-    'Texto de la tarea.',
+    'Task text.',
     '',
     '---',
     '',
@@ -24,14 +24,14 @@ function task(id, done, dependsOn) {
 
 function plan(tasks, queue) {
   return [
-    '## FASE 0 — Fundación',
+    '## PHASE 0 — Foundation',
     '',
     ...tasks,
-    '## 5. Orden de ejecución y dependencias',
+    '## 5. Execution order and dependencies',
     '',
     QUEUE_START,
-    '**Bloque A**',
-    ...queue.map((id) => `- **${id}** — motivo`),
+    '**Block A**',
+    ...queue.map((id) => `- **${id}** — reason`),
     QUEUE_END,
     '',
   ].join('\n')
@@ -39,8 +39,8 @@ function plan(tasks, queue) {
 
 const read = (p) => readFileSync(fileURLToPath(new URL(p, import.meta.url)), 'utf8')
 
-describe('cola de ejecución del plan', () => {
-  it('acepta una cola que respeta dependencias y estado', () => {
+describe('execution queue of the plan', () => {
+  it('accepts a queue that respects dependencies and state', () => {
     const text = plan(
       [task('F0-1', true, 'nothing'), task('F0-2', false, 'F0-1'), task('F0-3', false, 'F0-2')],
       ['F0-2', 'F0-3'],
@@ -49,30 +49,30 @@ describe('cola de ejecución del plan', () => {
     expect(nextTask(text)).toBe('F0-2')
   })
 
-  it('rechaza una tarea pendiente que no está en la cola', () => {
+  it('rejects a pending task that is not in the queue', () => {
     const text = plan([task('F0-1', false, 'nothing'), task('F0-2', false, 'nothing')], ['F0-1'])
-    expect(checkQueue(text)).toEqual([expect.stringMatching(/F0-2 está pendiente y no está en la cola/)])
+    expect(checkQueue(text)).toEqual([expect.stringMatching(/F0-2 is pending and not in the queue/)])
   })
 
-  it('rechaza una tarea completada que sigue en la cola', () => {
+  it('rejects a completed task that is still in the queue', () => {
     const text = plan([task('F0-1', true, 'nothing'), task('F0-2', false, 'nothing')], ['F0-1', 'F0-2'])
-    expect(checkQueue(text)).toEqual([expect.stringMatching(/F0-1 está completada/)])
+    expect(checkQueue(text)).toEqual([expect.stringMatching(/F0-1 is completed/)])
   })
 
-  it('rechaza una tarea antes que su dependencia pendiente', () => {
+  it('rejects a task before its pending dependency', () => {
     const text = plan([task('F0-1', false, 'nothing'), task('F0-2', false, 'F0-1')], ['F0-2', 'F0-1'])
-    expect(checkQueue(text)).toEqual([expect.stringMatching(/F0-2 está en la cola antes que F0-1/)])
+    expect(checkQueue(text)).toEqual([expect.stringMatching(/F0-2 is in the queue before F0-1/)])
   })
 
-  it('lee todas las dependencias de la línea, no sólo la primera', () => {
+  it('reads every dependency of the line, not only the first one', () => {
     const text = plan(
       [task('F0-1', false, 'nothing'), task('F0-2', false, 'nothing'), task('F0-3', false, 'F0-1, F0-2')],
       ['F0-1', 'F0-3', 'F0-2'],
     )
-    expect(checkQueue(text)).toEqual([expect.stringMatching(/F0-3 está en la cola antes que F0-2/)])
+    expect(checkQueue(text)).toEqual([expect.stringMatching(/F0-3 is in the queue before F0-2/)])
   })
 
-  it('no toma como dependencia lo que la línea declara que bloquea', () => {
+  it('does not take as a dependency what the line declares it blocks', () => {
     const blocking = [
       '### [ ] F0-1 — Base',
       '**Branch:** `chore/f0-base` · **Depends on:** nothing · **Blocks:** F0-2',
@@ -83,13 +83,13 @@ describe('cola de ejecución del plan', () => {
     expect(checkQueue(text)).toEqual([])
   })
 
-  it('exige la fase entera antes de una tarea que depende de "Phase N complete"', () => {
+  it('requires the whole phase before a task that depends on "Phase N complete"', () => {
     const text = plan(
       [task('F0-1', false, 'nothing'), task('F0-2', false, 'nothing'), task('F1-1', false, 'Phase 0 complete')],
       ['F0-1', 'F1-1', 'F0-2'],
     )
     expect(checkQueue(text)).toEqual([
-      expect.stringMatching(/F1-1 está en la cola antes que F0-2, de la que depende \(Phase 0 complete\)/),
+      expect.stringMatching(/F1-1 is in the queue before F0-2, which it depends on \(Phase 0 complete\)/),
     ])
   })
 
@@ -101,31 +101,31 @@ describe('cola de ejecución del plan', () => {
     expect(checkQueue(text)).toEqual([expect.stringMatching(/F0-2 has no `\*\*Depends on:\*\*` line/)])
   })
 
-  it('rechaza identificadores que no existen y duplicados', () => {
+  it('rejects identifiers that do not exist and duplicates', () => {
     const text = plan([task('F0-1', false, 'nothing')], ['F0-1', 'F0-9', 'F0-1'])
     const failures = checkQueue(text)
-    expect(failures).toContainEqual(expect.stringMatching(/F0-9 está en la cola y no existe/))
-    expect(failures).toContainEqual(expect.stringMatching(/F0-1 aparece más de una vez/))
+    expect(failures).toContainEqual(expect.stringMatching(/F0-9 is in the queue and does not exist/))
+    expect(failures).toContainEqual(expect.stringMatching(/F0-1 appears more than once/))
   })
 
-  it('rechaza una dependencia que no existe en el plan', () => {
+  it('rejects a dependency that does not exist in the plan', () => {
     const text = plan([task('F0-1', false, 'F0-7')], ['F0-1'])
-    expect(checkQueue(text)).toEqual([expect.stringMatching(/F0-1 depende de F0-7, que no existe/)])
+    expect(checkQueue(text)).toEqual([expect.stringMatching(/F0-1 depends on F0-7, which does not exist/)])
   })
 
-  it('falla si faltan los marcadores o el plan no tiene tareas', () => {
-    expect(checkQueue(task('F0-1', false, 'nothing'))).toEqual([expect.stringMatching(/no tiene cola/)])
-    expect(checkQueue('## Plan vacío\n')).toEqual([expect.stringMatching(/ninguna tarea/)])
+  it('fails if the markers are missing or the plan has no tasks', () => {
+    expect(checkQueue(task('F0-1', false, 'nothing'))).toEqual([expect.stringMatching(/has no execution queue/)])
+    expect(checkQueue('## Empty plan\n')).toEqual([expect.stringMatching(/declares no/)])
   })
 
   it('does not recognise the Spanish queue markers the plan used before F0-42', () => {
     const text = plan([task('F0-1', false, 'nothing')], ['F0-1'])
       .replace(QUEUE_START, '<!-- cola:inicio -->')
       .replace(QUEUE_END, '<!-- cola:fin -->')
-    expect(checkQueue(text)).toEqual([expect.stringMatching(/no tiene cola/)])
+    expect(checkQueue(text)).toEqual([expect.stringMatching(/has no execution queue/)])
   })
 
-  it('la cola del plan real describe el plan', () => {
+  it('the queue of the real plan describes the plan', () => {
     expect(checkQueue(read('../docs/EXECUTION_PLAN.md'))).toEqual([])
   })
 })

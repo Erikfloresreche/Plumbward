@@ -6,15 +6,16 @@ import { join } from 'node:path'
 import { runApply, runRollback, GOVERNANCE_BRANCH } from '../src/commands.js'
 
 /**
- * Punto 2 de F0-24: tras un fallo de `apply`, la reversión automática decía
- * "el repositorio está intacto" mientras dejaba HEAD en la rama aislada.
+ * Item 2 of F0-24: after an `apply` failure, the automatic revert said "the
+ * repository is intact" while it left HEAD on the isolated branch.
  *
- * Los ficheros sí quedan intactos; la rama no. Quien lea ese mensaje se cree en
- * su rama y sigue trabajando en `chore/setup-ai-governance`, que además queda
- * creada y bloquea el siguiente `apply` (`isolatedBranchBlocks`).
+ * The files do stay intact; the branch does not. Whoever reads that message
+ * believes they are on their branch and keeps working on
+ * `chore/setup-ai-governance`, which also stays created and blocks the next
+ * `apply` (`isolatedBranchBlocks`).
  *
- * El fallo se provoca con un `.github` de sólo lectura: `apply` escribe varios
- * ficheros y revienta con EACCES al llegar al workflow.
+ * The failure is caused with a read-only `.github`: `apply` writes several
+ * files and blows up with EACCES when it reaches the workflow.
  */
 
 const created: string[] = []
@@ -25,7 +26,7 @@ async function git(cwd: string, ...args: string[]): Promise<string> {
   return stdout.trim()
 }
 
-/** Repositorio Node mínimo en `Prod`, con un commit. */
+/** Minimal Node repository on `Prod`, with one commit. */
 async function createRepo(prefix: string): Promise<string> {
   const root = await mkdtemp(join(tmpdir(), prefix))
   created.push(root)
@@ -41,13 +42,13 @@ async function createRepo(prefix: string): Promise<string> {
   return root
 }
 
-/** Deja `.github` sin permiso de escritura: `apply` fallará con EACCES. */
+/** Leaves `.github` without write permission: `apply` will fail with EACCES. */
 async function blockGithubDir(root: string): Promise<void> {
   await mkdir(join(root, '.github'))
   await chmod(join(root, '.github'), 0o555)
 }
 
-/** Todo lo que la CLI ha impreso, sin colores. */
+/** Everything the CLI printed, without colours. */
 function captureOutput(): () => string {
   const lines: string[] = []
   const spy = vi.spyOn(console, 'log').mockImplementation((...args: unknown[]) => {
@@ -72,8 +73,8 @@ afterEach(async () => {
   }
 })
 
-describe('avisos de rama tras apply fallido y tras rollback', () => {
-  it('no afirma que el repositorio está intacto cuando la rama ha cambiado', async () => {
+describe('branch notices after a failed apply and after rollback', () => {
+  it('does not claim the repository is intact when the branch has changed', async () => {
     const root = await createRepo('plumbward-notice-')
     await blockGithubDir(root)
     const output = captureOutput()
@@ -84,13 +85,13 @@ describe('avisos de rama tras apply fallido y tras rollback', () => {
     expect(exitCode).toBe(1)
     expect(await currentBranch(root)).toBe(GOVERNANCE_BRANCH)
 
-    // La rama ha cambiado: decir sólo "el repositorio está intacto" es falso.
+    // The branch has changed: saying only that the repository is intact is false.
     expect(printed).not.toMatch(/el repositorio está intacto\.?\s*$/m)
     expect(printed).toContain(GOVERNANCE_BRANCH)
     expect(printed).toContain('git checkout Prod')
   })
 
-  it('tras rollback dice cómo volver a la rama de partida, por su nombre', async () => {
+  it('after rollback, says how to go back to the starting branch, by its name', async () => {
     const root = await createRepo('plumbward-notice-ok-')
 
     expect(await runApply(root, { yes: true, install: false, branch: true })).toBe(0)
@@ -99,7 +100,7 @@ describe('avisos de rama tras apply fallido y tras rollback', () => {
     expect(await runRollback(root)).toBe(0)
     const printed = output()
 
-    // `git checkout -` depende de cuál fuera el ref anterior; el journal sabe el nombre.
+    // `git checkout -` depends on what the previous ref was; the journal knows the name.
     expect(printed).toContain('git checkout Prod')
   })
 })

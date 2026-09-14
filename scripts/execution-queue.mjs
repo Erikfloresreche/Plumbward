@@ -1,20 +1,20 @@
 /**
- * Control de la cola de ejecución del plan.
+ * Control of the execution queue of the plan.
  *
- * La cola, en el §5 de `docs/EXECUTION_PLAN.md`, dice en qué orden se
- * ejecutan las tareas pendientes. La siguiente tarea es siempre la primera: así
- * saber por dónde va el plan no depende de que nadie recuerde ni proponga nada,
- * y cualquier sesión llega a la misma respuesta. Cambiar una prioridad es mover
- * una entrada.
+ * The queue, in §5 of `docs/EXECUTION_PLAN.md`, says in which order the pending
+ * tasks are run. The next task is always the first one: that way, knowing where
+ * the plan stands does not depend on anyone remembering or proposing anything,
+ * and every session reaches the same answer. Changing a priority is moving an
+ * entry.
  *
- * Un orden escrito a mano caduca en cuanto se cierra o se crea una tarea. Este
- * control lo impide: toda tarea pendiente está en la cola exactamente una vez,
- * ninguna completada sigue en ella, y ninguna aparece antes que aquello de lo
- * que depende. Una tarea nueva sin sitio en la cola pone la CI en rojo, que es
- * lo que obliga a decidir su orden en el momento de crearla.
+ * An order written by hand goes stale as soon as a task is closed or created.
+ * This control prevents it: every pending task is in the queue exactly once, no
+ * completed one is still in it, and none appears before what it depends on. A
+ * new task with no place in the queue turns the CI red, which is what forces
+ * deciding its order at the moment it is created.
  *
- * Funciones puras, como `branch-names.mjs`: `check-coherence.mjs` sólo las
- * conecta. Tarea F0-40.
+ * Pure functions, like `branch-names.mjs`: `check-coherence.mjs` only wires
+ * them. Task F0-40.
  */
 
 export const QUEUE_START = '<!-- queue:start -->'
@@ -37,11 +37,11 @@ const DEPENDS_ON = '**Depends on:**'
  */
 
 /**
- * Tareas del plan con su estado y sus dependencias.
+ * Tasks of the plan with their state and dependencies.
  *
- * La dependencia se lee de la primera línea `**Depends on:**` del bloque de la
- * tarea, hasta el siguiente ` · ` o el final de la línea: `**Blocks:**` va en
- * la misma línea y sus identificadores no son dependencias.
+ * The dependency is read from the first `**Depends on:**` line of the task
+ * block, up to the next ` · ` or the end of the line: `**Blocks:**` goes on the
+ * same line and its identifiers are not dependencies.
  *
  * @param {string} text
  * @returns {PlanTask[]}
@@ -81,7 +81,7 @@ export function parseTasks(text) {
 }
 
 /**
- * Identificadores de la cola, en orden. `undefined` si faltan los marcadores.
+ * Identifiers of the queue, in order. `undefined` if the markers are missing.
  *
  * @param {string} text
  * @returns {string[] | undefined}
@@ -98,7 +98,7 @@ export function parseQueue(text) {
 }
 
 /**
- * La tarea que toca ahora: la primera de la cola.
+ * The task that comes now: the first one in the queue.
  *
  * @param {string} text
  * @returns {string | undefined}
@@ -108,7 +108,7 @@ export function nextTask(text) {
 }
 
 /**
- * Motivos por los que la cola no describe el plan. Vacío si está bien.
+ * Reasons why the queue does not describe the plan. Empty if it is fine.
  *
  * @param {string} text
  * @returns {string[]}
@@ -119,13 +119,13 @@ export function checkQueue(text) {
   const tasks = parseTasks(text)
   const queue = parseQueue(text)
 
-  // Aserción de mínimo, como en `checkPlan`: un plan que el analizador no
-  // reconoce daría cero tareas y el control pasaría sin haber mirado nada.
+  // Minimum assertion, as in `checkPlan`: a plan the parser does not recognise
+  // would give zero tasks and the control would pass without looking at anything.
   if (tasks.length === 0) {
-    return ['el plan no declara ninguna tarea `### [ ] ...`: el analizador no reconoce su formato']
+    return ['the plan declares no `### [ ] ...` task: the parser does not recognise its format']
   }
   if (queue === undefined) {
-    return [`el plan no tiene cola de ejecución entre \`${QUEUE_START}\` y \`${QUEUE_END}\``]
+    return [`the plan has no execution queue between \`${QUEUE_START}\` and \`${QUEUE_END}\``]
   }
 
   // Same minimum assertion, per task: a dependency line the parser does not
@@ -143,12 +143,12 @@ export function checkQueue(text) {
   queue.forEach((id, index) => {
     const task = byId.get(id)
     if (!task) {
-      failures.push(`${id} está en la cola y no existe en el plan`)
+      failures.push(`${id} is in the queue and does not exist in the plan`)
     } else if (task.done) {
-      failures.push(`${id} está completada y sigue en la cola: sácala al marcar su casilla`)
+      failures.push(`${id} is completed and still in the queue: take it out when ticking its checkbox`)
     }
     if (position.has(id)) {
-      failures.push(`${id} aparece más de una vez en la cola`)
+      failures.push(`${id} appears more than once in the queue`)
     } else {
       position.set(id, index)
     }
@@ -156,7 +156,7 @@ export function checkQueue(text) {
 
   for (const task of tasks) {
     if (!task.done && !position.has(task.id)) {
-      failures.push(`${task.id} está pendiente y no está en la cola: decide su sitio al crearla`)
+      failures.push(`${task.id} is pending and not in the queue: decide its place when creating it`)
     }
   }
 
@@ -164,13 +164,13 @@ export function checkQueue(text) {
   const requireBefore = (dependency, id, index, label) => {
     const target = byId.get(dependency)
     if (!target) {
-      failures.push(`${id} depende de ${dependency}, que no existe en el plan`)
+      failures.push(`${id} depends on ${dependency}, which does not exist in the plan`)
       return
     }
     if (target.done) return
     const at = position.get(dependency)
     if (at === undefined || at > index) {
-      failures.push(`${id} está en la cola antes que ${dependency}, de la que depende${label}`)
+      failures.push(`${id} is in the queue before ${dependency}, which it depends on${label}`)
     }
   }
 

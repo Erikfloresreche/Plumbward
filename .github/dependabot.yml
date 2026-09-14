@@ -1,17 +1,17 @@
 # ---------------------------------------------------------------------------
-# Actualización automática de dependencias.
+# Automatic dependency updates.
 #
-# Las acciones de GitHub son código de terceros que se ejecuta con acceso al
-# repositorio: mantenerlas al día es parte de la higiene que este producto
-# vende. Empezamos sólo por las acciones; las dependencias de npm entrarán
-# cuando exista el flujo de changesets (F0-6).
+# GitHub actions are third-party code that runs with access to the repository:
+# keeping them up to date is part of the hygiene this product sells. We start
+# with the actions only; npm dependencies will come in when the changesets
+# flow exists (F0-6).
 # ---------------------------------------------------------------------------
 version: 2
 updates:
   - package-ecosystem: github-actions
     directory: /
-    # Sin esto, Dependabot abre las PRs contra la rama por defecto, que no es
-    # la de integración: las actualizaciones entrarían saltándose `develop`.
+    # Without this, Dependabot opens PRs against the default branch, which is
+    # not the integration one: updates would get in skipping `develop`.
     target-branch: develop
     schedule:
       interval: monthly

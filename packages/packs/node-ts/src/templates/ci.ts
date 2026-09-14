@@ -2,7 +2,7 @@ import type { PackageManager } from '@plumbward/core'
 import type { Profile } from '@plumbward/packs-sdk'
 import type { GovernanceMode } from '@plumbward/scanner'
 
-/** Comando de instalación reproducible para cada gestor. */
+/** Reproducible install command for each package manager. */
 function installCommand(manager: PackageManager): string {
   switch (manager) {
     case 'pnpm':
@@ -29,7 +29,7 @@ function runCommand(manager: PackageManager, script: string): string {
   }
 }
 
-/** Bloque de setup común a todos los workflows: checkout, gestor y Node. */
+/** Setup block shared by every workflow: checkout, package manager and Node. */
 function setupSteps(manager: PackageManager, fullHistory: boolean): string {
   const managerSetup =
     manager === 'pnpm'
@@ -74,10 +74,10 @@ function setupSteps(manager: PackageManager, fullHistory: boolean): string {
 }
 
 /**
- * Workflow de validación de cada Pull Request.
+ * Validation workflow for every Pull Request.
  *
- * Es el corazón de la propuesta de valor: lo que aquí se automatiza es
- * exactamente lo que hoy revisa un senior a mano en cada PR generada por IA.
+ * It is the heart of the value proposition: what is automated here is exactly
+ * what a senior reviews by hand today on every AI-generated PR.
  */
 export function ciDevWorkflow(
   manager: PackageManager,
@@ -199,7 +199,7 @@ ${setupSteps(manager, mode !== 'greenfield')}
 `
 }
 
-/** Workflow de despliegue a staging. Comentado y listo para completar. */
+/** Staging deploy workflow. Commented and ready to complete. */
 export function ciStagingWorkflow(manager: PackageManager, profile: Profile): string {
   const staging = profile.branches.staging ?? 'staging'
 
@@ -258,9 +258,9 @@ ${setupSteps(manager, false)}
 }
 
 /**
- * Workflow de despliegue a producción, con puerta de aprobación manual. Sólo se llama cuando el equipo ha
- * configurado explícitamente `branches.release`: nunca se despliega desde una
- * rama deducida (ADR 0005).
+ * Production deploy workflow, with a manual approval gate. It is only called
+ * when the team has explicitly configured `branches.release`: nothing is ever
+ * deployed from an inferred branch (ADR 0005).
  */
 export function ciProdWorkflow(manager: PackageManager, release: string): string {
   return `# ---------------------------------------------------------------------------

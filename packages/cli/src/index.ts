@@ -11,7 +11,7 @@ function target(dir: string | undefined): string {
   return resolve(dir ?? process.cwd())
 }
 
-/** Envuelve un comando para convertir cualquier excepción en un mensaje legible. */
+/** Wraps a command to turn any exception into a readable message. */
 async function guard(action: () => Promise<number>): Promise<void> {
   try {
     process.exitCode = await action()
@@ -64,7 +64,7 @@ cli
 cli.help()
 cli.version(CLI_VERSION)
 
-// Sin subcomando: se muestra la ayuda en lugar de fallar en silencio.
+// No subcommand: show the help instead of failing in silence.
 if (process.argv.length <= 2) {
   cli.outputHelp()
 } else {

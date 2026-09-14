@@ -1,17 +1,17 @@
 # ---------------------------------------------------------------------------
-# Normalización de finales de línea.
+# Line ending normalisation.
 #
-# Todo el repositorio usa LF en el índice de git, incluidos los ficheros que se
-# generan para los clientes: un fichero con CRLF rompe los hooks de shell y los
-# scripts de los contenedores en Linux.
+# The whole repository uses LF in the git index, including the files generated
+# for clients: a file with CRLF breaks shell hooks and container scripts on
+# Linux.
 # ---------------------------------------------------------------------------
 * text=auto eol=lf
 
-# Ficheros que deben conservar CRLF sí o sí (scripts de Windows).
+# Files that must keep CRLF no matter what (Windows scripts).
 *.bat text eol=crlf
 *.cmd text eol=crlf
 
-# Binarios: git no debe intentar convertirlos ni mostrar diffs de texto.
+# Binaries: git must not try to convert them or show text diffs.
 *.png binary
 *.jpg binary
 *.gif binary
@@ -20,6 +20,6 @@
 *.woff binary
 *.woff2 binary
 
-# Ficheros generados: se excluyen de las estadísticas de lenguaje de GitHub y
-# se colapsan por defecto en las revisiones de Pull Request.
+# Generated files: excluded from GitHub language statistics and collapsed by
+# default in Pull Request reviews.
 pnpm-lock.yaml linguist-generated=true -diff

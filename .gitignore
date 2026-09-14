@@ -9,8 +9,8 @@ coverage/
 !.env.example
 /tmp-e2e/
 
-# Registros de ejecución de herramientas
+# Tool run logs
 *.log
 
-# Ajustes personales de Claude Code: no se versionan
+# Personal Claude Code settings: not versioned
 .claude/settings.local.json

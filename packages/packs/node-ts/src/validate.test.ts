@@ -13,7 +13,7 @@ afterEach(async () => {
   await Promise.all(created.splice(0).map((dir) => rm(dir, { recursive: true, force: true })))
 })
 
-/** Repositorio en disco con los ficheros indicados: `doctor` los lee de verdad. */
+/** Repository on disk with the given files: `doctor` really reads them. */
 async function repoWith(files: Record<string, string>): Promise<RepoScan> {
   const root = await mkdtemp(join(tmpdir(), 'plumbward-doctor-'))
   created.push(root)
@@ -54,58 +54,58 @@ const PROD = '.github/workflows/ci-prod.yml'
 const DEV = '.github/workflows/ci-dev.yml'
 const branches = (release: string | null) => ({ branches: { integration: 'main', release, staging: null } })
 
-describe('doctor: rama de despliegue', () => {
-  it('avisa si hay destino de despliegue pero no rama', async () => {
+describe('doctor: deploy branch', () => {
+  it('warns if there is a deploy target but no branch', async () => {
     expect((await check('release-branch', {}, { deployTarget: 'vercel', ...branches(null) }))?.ok).toBe(false)
   })
 
-  it('avisa si existe un ci-prod.yml sin rama configurada, aunque no haya destino', async () => {
+  it('warns if a ci-prod.yml exists with no branch configured, even with no target', async () => {
     const result = await check('release-branch', { [PROD]: 'on:\n  push:\n    branches: [develop]\n' }, { deployTarget: 'none', ...branches(null) })
     expect(result?.ok).toBe(false)
   })
 
-  it('avisa si el ci-prod.yml existente despliega desde otra rama que la configurada', async () => {
-    // El caso que dejó la versión que deducía la rama: despliegue desde develop.
+  it('warns if the existing ci-prod.yml deploys from a branch other than the configured one', async () => {
+    // The case the version that inferred the branch left behind: deploying from develop.
     const result = await check('release-branch', { [PROD]: 'on:\n  push:\n    branches: [develop]\n' }, { deployTarget: 'vercel', ...branches('Prod') })
     expect(result?.ok).toBe(false)
     expect(result?.detail).toContain('develop')
   })
 
-  it('avisa si el ci-prod.yml despliega en cualquier rama', async () => {
+  it('warns if the ci-prod.yml deploys on any branch', async () => {
     expect((await check('release-branch', { [PROD]: 'on:\n  push:\n' }, { deployTarget: 'vercel', ...branches('Prod') }))?.ok).toBe(false)
   })
 
-  it('avisa si no puede interpretar el ci-prod.yml', async () => {
+  it('warns if it cannot interpret the ci-prod.yml', async () => {
     expect((await check('release-branch', { [PROD]: 'on: [push\n' }, { deployTarget: 'vercel', ...branches('Prod') }))?.ok).toBe(false)
   })
 
-  it('da por bueno un ci-prod.yml que despliega exactamente desde la rama configurada', async () => {
+  it('accepts a ci-prod.yml that deploys exactly from the configured branch', async () => {
     const block = 'on:\n  push:\n    branches:\n      - Prod\n'
     expect((await check('release-branch', { [PROD]: block }, { deployTarget: 'vercel', ...branches('Prod') }))?.ok).toBe(true)
   })
 
-  it('no dice nada si no hay despliegue ni workflow', async () => {
+  it('says nothing if there is neither a deploy nor a workflow', async () => {
     expect(await check('release-branch', {}, { deployTarget: 'none', ...branches(null) })).toBeUndefined()
   })
 })
 
-describe('doctor: cobertura de Pull Requests', () => {
-  it('avisa si ci-dev.yml sólo revisa PRs a ciertas ramas', async () => {
+describe('doctor: Pull Request coverage', () => {
+  it('warns if ci-dev.yml only reviews PRs to certain branches', async () => {
     const result = await check('pr-coverage', { [DEV]: 'on:\n  pull_request:\n    branches: [main]\n' }, {})
     expect(result?.ok).toBe(false)
   })
 
-  it('da por bueno un ci-dev.yml que revisa todas las PRs', async () => {
+  it('accepts a ci-dev.yml that reviews every PR', async () => {
     expect((await check('pr-coverage', { [DEV]: 'on:\n  pull_request:\n  push:\n    branches: [main]\n' }, {}))?.ok).toBe(true)
   })
 
-  it('avisa si ci-dev.yml no se dispara en Pull Requests', async () => {
+  it('warns if ci-dev.yml does not trigger on Pull Requests', async () => {
     expect((await check('pr-coverage', { [DEV]: 'on:\n  push:\n    branches: [main]\n' }, {}))?.ok).toBe(false)
   })
 })
 
-describe('lectura de disparadores', () => {
-  it('distingue lista de ramas, todas las ramas y disparador ausente', () => {
+describe('reading triggers', () => {
+  it('tells apart a branch list, all branches and a missing trigger', () => {
     expect(triggerBranches('on:\n  push:\n    branches: [a, b]\n', 'push')).toEqual(['a', 'b'])
     expect(triggerBranches('on:\n  push:\n', 'push')).toBeNull()
     expect(triggerBranches('on:\n  push:\n', 'pull_request')).toBeUndefined()
