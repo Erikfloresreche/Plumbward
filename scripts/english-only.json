@@ -110,7 +110,7 @@
     },
     {
       "path": "packages/packs/node-ts/src/templates/ai-rules.test.ts",
-      "reason": "Assertions on the AI rules generated for the client, which stay in Spanish until F0-45.",
+      "reason": "Assertions on the Spanish variant of the AI rules, generated for the client with language: es (F0-45).",
       "fragments": [
         "se redactan siempre\\nen ingl\u00e9s",
         "S\u00ed puedes usar los de s\u00f3lo lectura",
@@ -123,7 +123,7 @@
     },
     {
       "path": "packages/packs/node-ts/src/templates/ai-rules.ts",
-      "reason": "AI assistant rules generated for the client, left in Spanish for F0-45.",
+      "reason": "Spanish variant of the AI assistant rules generated for the client, chosen with language: es (F0-45).",
       "fragments": [
         "ingl\u00e9s' : 'espa\u00f1ol",
         "\\`tag\\`, \\`clean\\` y la gesti\u00f3n de remotos.",
@@ -258,7 +258,7 @@
     },
     {
       "path": "packages/packs/node-ts/src/templates/docs.ts",
-      "reason": "GOVERNANCE.md generated for the client, left in Spanish for F0-45.",
+      "reason": "Spanish variant of the GOVERNANCE.md generated for the client, chosen with language: es (F0-45).",
       "fragments": [
         "El repositorio es peque\u00f1o, as\u00ed que las \u0072eglas se aplican a todo el c\u00f3digo desde el primer d\u00eda. Es el mejor momento para hacerlo: cuanto m\u00e1s tarde se empieza, m\u00e1s caro sale.",
         "\u0054rinquete (progresivo)",
