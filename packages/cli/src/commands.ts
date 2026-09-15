@@ -39,7 +39,7 @@ export async function runScan(cwd: string): Promise<number> {
   const { scan } = await buildContext(cwd)
   console.log(renderScan(scan))
   console.log(
-    `\n${pc.dim('Ejecuta `plumbward plan` para ver qué se configuraría, sin tocar nada.')}`,
+    `\n${pc.dim('Run `plumbward plan` to see what would be configured, without touching anything.')}`,
   )
   return 0
 }
@@ -57,7 +57,7 @@ async function buildFullPlan(cwd: string): Promise<{
   const configOperation: Operation = file(
     CONFIG_FILE,
     profileToYaml(context.context.profile),
-    'Guarda el perfil de gobernanza como fuente de verdad versionada.',
+    'Saves the governance profile as the versioned source of truth.',
     { managed: false },
   )
 
@@ -88,12 +88,12 @@ export async function runPlan(cwd: string, options: { diff: boolean }): Promise<
   console.log(renderPlan(plan, simulation, { showDiff: options.diff }))
 
   if (isBlocked(plan)) {
-    console.log(`\n${error('El plan no se puede aplicar: hay conflictos bloqueantes.')}`)
+    console.log(`\n${error('The plan cannot be applied: there are blocking conflicts.')}`)
     return 1
   }
 
   console.log(
-    `\n${pc.dim('Nada se ha modificado. Ejecuta `plumbward apply` para aplicar este plan.')}`,
+    `\n${pc.dim('Nothing has been modified. Run `plumbward apply` to apply this plan.')}`,
   )
   return 0
 }
@@ -115,12 +115,12 @@ async function isolatedBranchBlocks(
   if (!createBranch || !requiresIsolation(git, profile)) return false
   if (!(await branchExists(repoRoot, GOVERNANCE_BRANCH))) return false
 
-  console.log(`\n${error(`La rama "${GOVERNANCE_BRANCH}" ya existe. No se ha escrito nada.`)}`)
+  console.log(`\n${error(`Branch "${GOVERNANCE_BRANCH}" already exists. Nothing has been written.`)}`)
   console.log(
     pc.dim(
-      '  Puede estar desactualizada, y el plan se ha calculado sobre la rama actual. Opciones:\n' +
-        `  · Si es tu trabajo de gobernanza en curso: git checkout ${GOVERNANCE_BRANCH} y ejecuta apply allí.\n` +
-        `  · Si ya la integraste: git branch -d ${GOVERNANCE_BRANCH} (no borra trabajo sin integrar) y vuelve a ejecutar apply.`,
+      '  It may be out of date, and the plan was computed on the current branch. Options:\n' +
+        `  · If it is your governance work in progress: git checkout ${GOVERNANCE_BRANCH} and run apply there.\n` +
+        `  · If you already merged it: git branch -d ${GOVERNANCE_BRANCH} (it does not delete unmerged work) and run apply again.`,
     ),
   )
   return true
@@ -208,12 +208,12 @@ async function prepareBranch(
 ): Promise<void> {
   if (!createBranch) return
   if (!requiresIsolation(git, profile)) {
-    log.info(`Se trabajará sobre la rama actual "${git.branch}".`)
+    log.info(`Working on the current branch "${git.branch}".`)
     return
   }
-  const origin = git.detachedHead ? 'un HEAD desacoplado' : `la rama "${git.branch}"`
+  const origin = git.detachedHead ? 'a detached HEAD' : `branch "${git.branch}"`
   await execa('git', ['checkout', '--no-track', '-b', GOVERNANCE_BRANCH], { cwd: repoRoot })
-  log.success(`Creada y activada la rama "${GOVERNANCE_BRANCH}" a partir de ${origin}, que no se ha tocado.`)
+  log.success(`Created and checked out branch "${GOVERNANCE_BRANCH}" from ${origin}, which was left untouched.`)
 }
 
 export interface ApplyOptions {
@@ -228,9 +228,9 @@ export async function runApply(cwd: string, options: ApplyOptions): Promise<numb
   const { scan } = context
 
   if (!scan.git.isRepo) {
-    console.log(error('Este directorio no es un repositorio git.'))
+    console.log(error('This directory is not a git repository.'))
     console.log(
-      pc.dim('  Ejecuta `git init` primero: la herramienta necesita poder revertir los cambios.'),
+      pc.dim('  Run `git init` first: the tool needs to be able to revert the changes.'),
     )
     return 1
   }
@@ -242,18 +242,18 @@ export async function runApply(cwd: string, options: ApplyOptions): Promise<numb
   console.log(renderPlan(plan, simulation, { showDiff: false }))
 
   if (isBlocked(plan)) {
-    console.log(`\n${error('El plan no se puede aplicar: hay conflictos bloqueantes.')}`)
+    console.log(`\n${error('The plan cannot be applied: there are blocking conflicts.')}`)
     return 1
   }
 
   if (simulation.changes.length === 0 && simulation.sideEffects.length === 0) {
-    console.log(`\n${success('El repositorio ya está conforme. No hay nada que aplicar.')}`)
+    console.log(`\n${success('The repository already complies. There is nothing to apply.')}`)
     return 0
   }
 
   if (scan.git.isDirty) {
     console.log(
-      `\n${warn('Tienes cambios sin commitear. Se recomienda hacer commit antes de continuar.')}`,
+      `\n${warn('You have uncommitted changes. Committing before continuing is recommended.')}`,
     )
   }
 
@@ -265,20 +265,20 @@ export async function runApply(cwd: string, options: ApplyOptions): Promise<numb
 
   if (!options.yes) {
     const answer = await confirm({
-      message: `¿Aplicar estos cambios${
-        options.install ? ' e instalar las dependencias' : ''
+      message: `Apply these changes${
+        options.install ? ' and install the dependencies' : ''
       }?`,
       initialValue: true,
     })
     if (isCancel(answer) || !answer) {
-      outro('Cancelado. No se ha modificado nada.')
+      outro('Cancelled. Nothing has been modified.')
       return 0
     }
   }
 
   if (headMoved(scan.git, headBefore, await readHead(scan.repoRoot))) {
-    console.log(`\n${error('La rama o el commit actual han cambiado mientras se confirmaba. No se ha escrito nada.')}`)
-    console.log(pc.dim('  El plan se calculó sobre la rama anterior. Vuelve a ejecutar apply para ver el de la actual.'))
+    console.log(`\n${error('The current branch or commit changed during the confirmation. Nothing has been written.')}`)
+    console.log(pc.dim('  The plan was computed on the previous branch. Run apply again to see the plan for the current one.'))
     return 1
   }
 
@@ -313,18 +313,18 @@ export async function runApply(cwd: string, options: ApplyOptions): Promise<numb
 
     console.log(
       `\n${success(
-        `${result.applied} operaciones aplicadas, ${result.skipped} omitidas por estar ya al día.`,
+        `${result.applied} operations applied, ${result.skipped} skipped because they were already up to date.`,
       )}`,
     )
     console.log(pc.dim(`  Journal: ${result.journalPath}`))
 
-    console.log(`\n${pc.bold('Siguientes pasos')}`)
-    console.log('  1. Lee GOVERNANCE.md: explica al equipo qué se ha instalado.')
+    console.log(`\n${pc.bold('Next steps')}`)
+    console.log('  1. Read GOVERNANCE.md: it explains to the team what was installed.')
     if (!options.install) {
-      console.log('  2. Instala las dependencias listadas arriba.')
+      console.log('  2. Install the dependencies listed above.')
     }
     console.log(
-      `  ${options.install ? '2' : '3'}. Revisa el diff con \`git diff\` y abre una Pull Request.`,
+      `  ${options.install ? '2' : '3'}. Review the diff with \`git diff\` and open a Pull Request.`,
     )
     // The promise also holds with a detached HEAD (F0-29): the commit identifies
     // the place and `rollback` compares the empty branch like any other.
@@ -335,11 +335,11 @@ export async function runApply(cwd: string, options: ApplyOptions): Promise<numb
     // followed, which is the same false promise F0-24 withdrew.
     const step = options.install ? '3' : '4'
     console.log(
-      `  ${step}. Si algo no encaja y aún no has commiteado: \`plumbward rollback\` lo deja todo como estaba.`,
+      `  ${step}. If something does not fit and you have not committed yet: \`plumbward rollback\` leaves everything as it was.`,
     )
     console.log(
       pc.dim(
-        '     Después del commit ya no: el journal fotografió otro commit y `rollback` se niega. Deshaz con git.',
+        '     Not after the commit: the journal photographed another commit and `rollback` refuses. Undo with git.',
       ),
     )
 
@@ -349,8 +349,8 @@ export async function runApply(cwd: string, options: ApplyOptions): Promise<numb
       console.log(`\n${error(cause.message)}`)
       console.log(
         cause.rolledBack
-          ? pc.dim('  Los cambios se han revertido automáticamente: los ficheros están como estaban.')
-          : pc.red('  ATENCIÓN: no se pudo revertir del todo. Ejecuta `plumbward rollback`.'),
+          ? pc.dim('  The changes were reverted automatically: the files are as they were.')
+          : pc.red('  WARNING: it could not revert completely. Run `plumbward rollback`.'),
       )
       // The files yes, the branch no: reverting does not undo the checkout. And
       // if it could not revert, the advice changes: recover first, then go back.
@@ -374,10 +374,10 @@ export async function runRollback(cwd: string): Promise<number> {
     })
     console.log(
       success(
-        `Revertidas ${result.operationsReverted} operaciones (${result.restoredFiles} ficheros restaurados).`,
+        `Reverted ${result.operationsReverted} operations (${result.restoredFiles} files restored).`,
       ),
     )
-    console.log(pc.dim('  Comprueba con `git status --porcelain` que el árbol está limpio.'))
+    console.log(pc.dim('  Check with `git status --porcelain` that the tree is clean.'))
     // The written commit is the starting one (see `Journal.writtenOnCommit`): it
     // is the one to name if the work started with a detached HEAD.
     await printBranchNotice(
@@ -400,7 +400,7 @@ export async function runDoctor(cwd: string): Promise<number> {
   const checks = await registry.runHealthChecks(context)
 
   if (checks.length === 0) {
-    console.log(warn('No se ha reconocido ningún stack soportado en este repositorio.'))
+    console.log(warn('No supported stack was recognised in this repository.'))
     return 1
   }
 

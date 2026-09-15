@@ -28,7 +28,7 @@ export class PlanBuilder {
         if (previous.fingerprint === fingerprint) continue // exact duplicate
         this.#conflicts.push({
           path: operationPath(operation) ?? key,
-          reason: `Los packs "${previous.contributor}" y "${contributor}" quieren configurar lo mismo de forma distinta.`,
+          reason: `Packs "${previous.contributor}" and "${contributor}" want to configure the same thing in different ways.`,
           severity: 'warn',
         })
         continue

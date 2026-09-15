@@ -48,7 +48,7 @@ function parseJson(text: string, filePath: string): unknown {
     return commentJson.parse(text)
   } catch (error) {
     const detail = error instanceof Error ? error.message : String(error)
-    throw new Error(`No se pudo parsear "${filePath}" como JSON: ${detail}`)
+    throw new Error(`Could not parse "${filePath}" as JSON: ${detail}`)
   }
 }
 
@@ -112,13 +112,13 @@ export function patchJson(
   for (const patch of patches) {
     const segments = parsePointer(patch.pointer)
     if (segments.length === 0) {
-      throw new Error(`El puntero raíz no es parcheable en "${filePath}".`)
+      throw new Error(`The root pointer cannot be patched in "${filePath}".`)
     }
 
     const resolved = resolveParent(root, segments)
     if (!resolved) {
       throw new Error(
-        `La ruta "${patch.pointer}" de "${filePath}" atraviesa un valor que no es objeto ni array.`,
+        `The path "${patch.pointer}" of "${filePath}" crosses a value that is neither an object nor an array.`,
       )
     }
 
@@ -136,7 +136,7 @@ export function patchJson(
       }
       case 'merge': {
         if (!isPlainObject(patch.value)) {
-          throw new Error(`La estrategia "merge" exige un objeto en "${patch.pointer}".`)
+          throw new Error(`The "merge" strategy requires an object at "${patch.pointer}".`)
         }
         if (existing === undefined) {
           writeSlot(parent, key, patch.value)
@@ -145,7 +145,7 @@ export function patchJson(
           if (mergePreservingExisting(existing, patch.value)) changed = true
         } else {
           throw new Error(
-            `No se puede fusionar sobre un valor no objeto en "${patch.pointer}" de "${filePath}".`,
+            `Cannot merge onto a value that is not an object at "${patch.pointer}" of "${filePath}".`,
           )
         }
         break
@@ -159,7 +159,7 @@ export function patchJson(
           if (appendUnique(existing, incoming)) changed = true
         } else {
           throw new Error(
-            `No se puede añadir a un valor que no es array en "${patch.pointer}" de "${filePath}".`,
+            `Cannot append to a value that is not an array at "${patch.pointer}" of "${filePath}".`,
           )
         }
         break

@@ -24,7 +24,7 @@ function checkOperationSafety(operations: readonly Operation[]): ConformanceViol
     if (operation.reason.trim().length === 0) {
       violations.push({
         rule: 'reason-required',
-        detail: `La operación "${operation.kind}" no explica por qué se aplica; el usuario debe poder leerlo en el plan.`,
+        detail: `Operation "${operation.kind}" does not explain why it is applied; the user must be able to read it in the plan.`,
       })
     }
 
@@ -34,19 +34,19 @@ function checkOperationSafety(operations: readonly Operation[]): ConformanceViol
     if (path.startsWith('/') || /^[A-Za-z]:/.test(path)) {
       violations.push({
         rule: 'relative-paths-only',
-        detail: `Ruta absoluta prohibida: "${path}".`,
+        detail: `Absolute path forbidden: "${path}".`,
       })
     }
     if (path.split('/').includes('..')) {
       violations.push({
         rule: 'no-path-traversal',
-        detail: `La ruta "${path}" intenta salir del repositorio.`,
+        detail: `The path "${path}" tries to leave the repository.`,
       })
     }
     if (path.includes('\\')) {
       violations.push({
         rule: 'posix-paths-only',
-        detail: `La ruta "${path}" usa separadores de Windows; usa siempre "/".`,
+        detail: `The path "${path}" uses Windows separators; always use "/".`,
       })
     }
   }
@@ -70,16 +70,16 @@ export async function checkPackConformance(
   if (!ID_PATTERN.test(pack.id)) {
     violations.push({
       rule: 'id-format',
-      detail: `El id "${pack.id}" debe ser kebab-case en minúsculas.`,
+      detail: `The id "${pack.id}" must be lowercase kebab-case.`,
     })
   }
   if (pack.name.trim().length === 0) {
-    violations.push({ rule: 'name-required', detail: 'El pack no declara nombre legible.' })
+    violations.push({ rule: 'name-required', detail: 'The pack does not declare a readable name.' })
   }
   if (!/^\d+\.\d+\.\d+/.test(pack.version)) {
     violations.push({
       rule: 'semver-version',
-      detail: `La versión "${pack.version}" no sigue semver.`,
+      detail: `The version "${pack.version}" does not follow semver.`,
     })
   }
 
@@ -87,7 +87,7 @@ export async function checkPackConformance(
   if (detection.confidence < 0 || detection.confidence > 1) {
     violations.push({
       rule: 'confidence-range',
-      detail: `La confianza debe estar entre 0 y 1, se recibió ${detection.confidence}.`,
+      detail: `The confidence must be between 0 and 1, got ${detection.confidence}.`,
     })
   }
 
@@ -100,7 +100,7 @@ export async function checkPackConformance(
     violations.push({
       rule: 'deterministic-contribute',
       detail:
-        'Dos llamadas a contribute() con el mismo contexto han devuelto operaciones distintas. El plan dejaría de ser fiable.',
+        'Two calls to contribute() with the same context returned different operations. The plan would no longer be reliable.',
     })
   }
 
@@ -111,7 +111,7 @@ export async function checkPackConformance(
     if (check.id.trim().length === 0) {
       violations.push({
         rule: 'health-check-id',
-        detail: 'Una comprobación de salud no declara id.',
+        detail: 'A health check does not declare an id.',
       })
     }
   }

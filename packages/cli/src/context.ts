@@ -61,7 +61,7 @@ export async function loadProfile(scan: RepoScan): Promise<{
 
   try {
     const parsed = parseYamlToJson(raw)
-    if (typeof parsed !== 'object' || parsed === null) throw new Error('contenido vacío')
+    if (typeof parsed !== 'object' || parsed === null) throw new Error('empty content')
     // The recommended profile acts as the base: that way a config.yml from an
     // old version keeps working when new fields are added.
     const base = recommendedProfile(scan)
@@ -78,7 +78,7 @@ export async function loadProfile(scan: RepoScan): Promise<{
     return { profile, fromFile: true }
   } catch (cause) {
     const detail = cause instanceof Error ? cause.message : String(cause)
-    throw new Error(`El fichero ${CONFIG_FILE} no se puede leer: ${detail}`)
+    throw new Error(`The file ${CONFIG_FILE} cannot be read: ${detail}`)
   }
 }
 

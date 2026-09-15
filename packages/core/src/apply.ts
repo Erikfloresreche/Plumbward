@@ -97,7 +97,7 @@ export async function applyPlan(
 ): Promise<ApplyResult> {
   if (isBlocked(plan)) {
     throw new ApplyFailedError(
-      'El plan tiene conflictos bloqueantes. Resuélvelos antes de aplicar.',
+      'The plan has blocking conflicts. Resolve them before applying.',
       undefined,
       false,
     )
@@ -157,7 +157,7 @@ export async function applyPlan(
         rolledBack = false
       }
       throw new ApplyFailedError(
-        `Fallo al aplicar "${describeOperation(operation)}": ${detail}`,
+        `Failed to apply "${describeOperation(operation)}": ${detail}`,
         operation,
         rolledBack,
       )
@@ -184,14 +184,14 @@ async function executeOperation(
 
       if (existing !== undefined) {
         if (existing === content) {
-          return { snapshots: [], status: 'skipped', note: 'ya está al día' }
+          return { snapshots: [], status: 'skipped', note: 'already up to date' }
         }
         const policy = operation.onExists ?? 'skip'
         if (policy === 'skip') {
-          return { snapshots: [], status: 'skipped', note: 'ya existe, no se toca' }
+          return { snapshots: [], status: 'skipped', note: 'already exists, left untouched' }
         }
         if (policy === 'conflict') {
-          throw new Error(`el fichero "${operation.path}" ya existe y no se puede sobrescribir`)
+          throw new Error(`the file "${operation.path}" already exists and cannot be overwritten`)
         }
       }
 
@@ -204,7 +204,7 @@ async function executeOperation(
       const absolute = resolveInRepo(options.repoRoot, operation.path)
       const existing = await readFileIfExists(absolute)
       if (existing === undefined) {
-        throw new Error(`no existe el fichero "${operation.path}" que se quería parchear`)
+        throw new Error(`the file "${operation.path}" to patch does not exist`)
       }
 
       const result = patchJson(
@@ -213,7 +213,7 @@ async function executeOperation(
         operation.path,
       )
       if (!result.changed) {
-        return { snapshots: [], status: 'skipped', note: 'ya está al día' }
+        return { snapshots: [], status: 'skipped', note: 'already up to date' }
       }
 
       const snapshot = await snapshotFile(options.repoRoot, operation.path)
@@ -225,7 +225,7 @@ async function executeOperation(
       const absolute = resolveInRepo(options.repoRoot, operation.path)
       const existing = await readFileIfExists(absolute)
       if (existing === undefined) {
-        throw new Error(`no existe el fichero "${operation.path}" que se quería parchear`)
+        throw new Error(`the file "${operation.path}" to patch does not exist`)
       }
 
       const result = patchYaml(
@@ -234,7 +234,7 @@ async function executeOperation(
         operation.path,
       )
       if (!result.changed) {
-        return { snapshots: [], status: 'skipped', note: 'ya está al día' }
+        return { snapshots: [], status: 'skipped', note: 'already up to date' }
       }
 
       const snapshot = await snapshotFile(options.repoRoot, operation.path)
@@ -246,7 +246,7 @@ async function executeOperation(
       const absolute = resolveInRepo(options.repoRoot, operation.path)
       const existing = await readFileIfExists(absolute)
       if (existing === undefined && !operation.createIfMissing) {
-        return { snapshots: [], status: 'skipped', note: 'el fichero destino no existe' }
+        return { snapshots: [], status: 'skipped', note: 'the target file does not exist' }
       }
 
       const result = ensureBlockInText(
@@ -256,7 +256,7 @@ async function executeOperation(
         operation.commentStyle,
       )
       if (!result.changed) {
-        return { snapshots: [], status: 'skipped', note: 'ya está al día' }
+        return { snapshots: [], status: 'skipped', note: 'already up to date' }
       }
 
       const snapshot = await snapshotFile(options.repoRoot, operation.path)
@@ -269,16 +269,16 @@ async function executeOperation(
       // a single install command per manager, which is what runs. That is why
       // it counts as skipped: "applied" then always means "something really
       // changed", and idempotency is observable in the count.
-      return { snapshots: [], status: 'skipped', note: 'agrupada en el comando de instalación' }
+      return { snapshots: [], status: 'skipped', note: 'grouped into the install command' }
     }
 
     case 'execCommand': {
       if (!options.runCommands) {
-        return { snapshots: [], status: 'skipped', note: 'omitido (ejecución de comandos desactivada)' }
+        return { snapshots: [], status: 'skipped', note: 'skipped (command execution disabled)' }
       }
       const runner = options.runner
       if (!runner) {
-        throw new Error('no se ha inyectado un ejecutor de comandos')
+        throw new Error('no command runner was injected')
       }
       const cwd = operation.cwd
         ? resolveInRepo(options.repoRoot, operation.cwd)
@@ -289,7 +289,7 @@ async function executeOperation(
       } catch (error) {
         if (operation.optional) {
           const detail = error instanceof Error ? error.message : String(error)
-          return { snapshots: [], status: 'skipped', note: `opcional, falló: ${detail}` }
+          return { snapshots: [], status: 'skipped', note: `optional, failed: ${detail}` }
         }
         throw error
       }
@@ -375,7 +375,7 @@ export function synthesiseInstallCommands(
       kind: 'execCommand',
       cmd: invocation.cmd,
       args: invocation.args,
-      reason: `Instala ${names.length} dependencia(s) ${dev ? 'de desarrollo' : 'de producción'}.`,
+      reason: `Installs ${names.length} ${dev ? 'development' : 'production'} dependency(ies).`,
     })
   }
 

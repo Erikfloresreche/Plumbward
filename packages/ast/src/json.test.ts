@@ -84,6 +84,6 @@ describe('patchJson', () => {
 
   it('fails with a clear message if the JSON is broken', () => {
     expect(() => patchJson('{ broken', [{ pointer: '/a', value: 1, strategy: 'set' }], 'x.json'))
-      .toThrow(/No se pudo parsear "x.json"/)
+      .toThrow(/Could not parse "x.json"/)
   })
 })

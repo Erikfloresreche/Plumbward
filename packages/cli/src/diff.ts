@@ -22,8 +22,8 @@ export function lineDiff(before: string, after: string): DiffLine[] {
 
   if (a.length > MAX_LINES_FOR_LCS || b.length > MAX_LINES_FOR_LCS) {
     return [
-      { kind: 'removed', text: `... ${a.length} líneas anteriores` },
-      { kind: 'added', text: `... ${b.length} líneas nuevas` },
+      { kind: 'removed', text: `... ${a.length} previous lines` },
+      { kind: 'added', text: `... ${b.length} new lines` },
     ]
   }
 

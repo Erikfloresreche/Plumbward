@@ -7,7 +7,7 @@
 export function parsePointer(pointer: string): string[] {
   if (pointer === '' || pointer === '/') return []
   if (!pointer.startsWith('/')) {
-    throw new Error(`Puntero inválido "${pointer}": debe empezar por "/".`)
+    throw new Error(`Invalid pointer "${pointer}": it must start with "/".`)
   }
   return pointer
     .slice(1)
