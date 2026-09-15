@@ -23,6 +23,9 @@ export type PackageManager =
 /** Comment style of the target file, to inject managed blocks. */
 export type CommentStyle = 'hash' | 'slash' | 'html' | 'semicolon'
 
+/** Language of the text generated for the client. */
+export type OutputLanguage = 'en' | 'es'
+
 /** Merge strategy when patching a structured document. */
 export type PatchStrategy = 'set' | 'merge' | 'appendUnique'
 
@@ -131,6 +134,12 @@ export interface PlanSummary {
 export interface ChangePlan {
   /** Version of the plan format, for future compatibility. */
   readonly version: 1
+  /**
+   * Language of the profile. `apply` and `plan` write the managed-file header
+   * and the block warning in it, so they come from the configuration and not
+   * from whoever calls them.
+   */
+  readonly language: OutputLanguage
   readonly operations: readonly Operation[]
   readonly conflicts: readonly Conflict[]
   readonly summary: PlanSummary

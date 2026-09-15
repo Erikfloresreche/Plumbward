@@ -192,7 +192,7 @@ describe('full cycle on a real repository', () => {
         startedOnBranch: 'main',
         runCommands: false,
       }),
-    ).rejects.toThrow(/no existe el fichero/)
+    ).rejects.toThrow(/to patch does not exist/)
 
     // Operational resilience requirement: the repository stays intact.
     expect(await gitStatus(root)).toBe('')
@@ -229,6 +229,6 @@ describe('full cycle on a real repository', () => {
         startedOnBranch: 'main',
         runCommands: false,
       }),
-    ).rejects.toThrow(/escapa de la raíz/)
+    ).rejects.toThrow(/escapes the repository root/)
   })
 })

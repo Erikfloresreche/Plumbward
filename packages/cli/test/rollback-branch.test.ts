@@ -112,7 +112,7 @@ describe('rollback outside the branch apply wrote on', () => {
     expect(await apply(root)).toBe(0)
     const printed = output()
 
-    expect(printed).toContain('`plumbward rollback` lo deja todo como estaba')
+    expect(printed).toContain('`plumbward rollback` leaves everything as it was')
   })
 
   /**
@@ -128,8 +128,8 @@ describe('rollback outside the branch apply wrote on', () => {
     expect(await apply(root)).toBe(0)
     const printed = output()
 
-    expect(printed).toContain('aún no has commiteado')
-    expect(printed).not.toContain('Si algo no encaja: `plumbward rollback`')
+    expect(printed).toContain('you have not committed yet')
+    expect(printed).not.toContain('If something does not fit: `plumbward rollback`')
   })
 
   it('keeps reverting normally on the branch apply wrote on', async () => {
@@ -262,9 +262,9 @@ describe('apply --no-branch with a detached HEAD', () => {
     expect(await applyDetached(root)).toBe(0)
     const printed = output()
 
-    expect(printed).toContain('`plumbward rollback` lo deja todo como estaba')
-    expect(printed).toContain('aún no has commiteado')
-    expect(printed).not.toContain('no se podrá revertir')
+    expect(printed).toContain('`plumbward rollback` leaves everything as it was')
+    expect(printed).toContain('you have not committed yet')
+    expect(printed).not.toContain('it will not be possible to revert')
   })
 
   it('does not revert if there was a commit on the detached HEAD after the apply', async () => {

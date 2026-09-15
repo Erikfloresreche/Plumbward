@@ -33,7 +33,7 @@
     },
     {
       "path": "packages/ast/src/blocks.ts",
-      "reason": "Text the CLI writes into client files (managed-block warning and managed-file header), left in Spanish for F0-45, which moves it behind language: es.",
+      "reason": "Spanish variant of the managed-block warning and the managed-file header written into client files, chosen with language: es (F0-45).",
       "fragments": [
         "Bloque gestionado autom\u00e1ticamente. No edites dentro de los marcadores:",
         "`plumbward upgrade` regenerar\u00e1 su contenido.",
@@ -42,159 +42,9 @@
       ]
     },
     {
-      "path": "packages/ast/src/json.ts",
-      "reason": "Error messages that reach the user, left in Spanish for F0-45.",
-      "fragments": [
-        "El puntero ra\u00edz no es parcheable en \"${filePath}\".",
-        "No se puede a\u00f1adir a un valor que no es array en \"${patch.pointer}\" de \"${filePath}\"."
-      ]
-    },
-    {
-      "path": "packages/ast/src/pointer.ts",
-      "reason": "Error message that reaches the user, left in Spanish for F0-45.",
-      "fragments": [
-        "Puntero inv\u00e1lido \"${pointer}\": debe empezar por \"/\"."
-      ]
-    },
-    {
-      "path": "packages/ast/src/yaml.ts",
-      "reason": "Error messages that reach the user, left in Spanish for F0-45.",
-      "fragments": [
-        "No se puede a\u00f1adir a \"${path.join('.')}\": el nodo no es una lista.",
-        "El puntero ra\u00edz no es parcheable en \"${filePath}\".",
-        "YAML inv\u00e1lido: ${first?.message ?? 'error'}"
-      ]
-    },
-    {
-      "path": "packages/core/src/apply.ts",
-      "reason": "Errors, progress notes and install reasons shown to the user, left in Spanish for F0-45.",
-      "fragments": [
-        "El plan tiene conflictos bloqueantes. Resu\u00e9lvelos antes de aplicar.",
-        "ya est\u00e1 al d\u00eda",
-        "no existe el fichero \"${operation.path}\" que se quer\u00eda parchear",
-        "agrupada en el comando de instalaci\u00f3n",
-        "omitido (ejecuci\u00f3n de comandos desactivada)",
-        "opcional, fall\u00f3: ${detail}",
-        "Instala ${names.length} dependencia(s) ${dev ? 'de desarrollo' : 'de producci\u00f3n'}."
-      ]
-    },
-    {
-      "path": "packages/core/src/fs.ts",
-      "reason": "Error messages that reach the user, left in Spanish for F0-45.",
-      "fragments": [
-        "Ruta absoluta no permitida en una operaci\u00f3n: \"${relativePath}\".",
-        "La ruta \"${relativePath}\" escapa de la ra\u00edz del repositorio."
-      ]
-    },
-    {
-      "path": "packages/core/src/rollback.ts",
-      "reason": "RollbackError messages shown to the user, left in Spanish for F0-45.",
-      "fragments": [
-        "El journal \"${JOURNAL_FILE}\" lo escribi\u00f3 una versi\u00f3n anterior que no anota el sitio (\u0072ama y commit) en el que se aplic\u00f3.",
-        "No se revierte nada: restaurarlo en la \u0072ama equivocada sobrescribir\u00eda trabajo.",
-        "El journal \"${JOURNAL_FILE}\" est\u00e1 corrupto: ${detail}",
-        "en la \u0072ama \"${journal.writtenOnBranch}\"",
-        "El journal no anota ni la \u0072ama ni el commit en los que se escribi\u00f3.",
-        "HEAD est\u00e1 desacoplado",
-        "est\u00e1s en la \u0072ama \"${currentBranch}\"",
-        "El \u00faltimo \\`apply\\` escribi\u00f3 ${writtenWhere(journal)}, pero ${where}.",
-        "No se revierte nada: los ficheros guardados son los de aquel sitio, y restaurarlos aqu\u00ed",
-        "sobrescribir\u00eda lo que tengas en este.",
-        "Vuelve con \\`${back}\\` y ejecuta \\`plumbward rollback\\` all\u00ed.",
-        "despu\u00e9s del `apply`.",
-        "La \u0072ama lleva el mismo nombre y no es el mismo sitio: se ha borrado y recreado, o se ha",
-        "El \u00faltimo \\`apply\\` escribi\u00f3 ${writtenWhere(journal)} sobre el commit",
-        "aquel commit, y restaurarlos aqu\u00ed sobrescribir\u00eda lo que haya llegado despu\u00e9s.",
-        "No hay nada que revertir: no se encontr\u00f3 el journal de una ejecuci\u00f3n previa."
-      ]
-    },
-    {
-      "path": "packages/packs-sdk/src/conformance.ts",
-      "reason": "Violation details shown to pack authors, left in Spanish for F0-45.",
-      "fragments": [
-        "La operaci\u00f3n \"${operation.kind}\" no explica por qu\u00e9 se aplica; el usuario debe poder leerlo en el plan.",
-        "El id \"${pack.id}\" debe ser kebab-case en min\u00fasculas.",
-        "La versi\u00f3n \"${pack.version}\" no sigue semver.",
-        "La confianza debe estar entre 0 y 1, se recibi\u00f3 ${detection.confidence}.",
-        "Dos llamadas a contribute() con el mismo contexto han devuelto operaciones distintas. El plan dejar\u00eda de ser fiable.",
-        "Una comprobaci\u00f3n de salud no declara id."
-      ]
-    },
-    {
-      "path": "packages/packs-sdk/src/registry.ts",
-      "reason": "Plan conflict reason shown to the user, left in Spanish for F0-45.",
-      "fragments": [
-        "No se ha reconocido ning\u00fan stack soportado. Ejecuta `plumbward scan` para ver qu\u00e9 se detect\u00f3."
-      ]
-    },
-    {
-      "path": "packages/scanner/src/maturity.ts",
-      "reason": "Labels and hints of the maturity report shown to the client, left in Spanish for F0-45.",
-      "fragments": [
-        "Integraci\u00f3n continua",
-        "Sin CI, cada PR se valida a ojo. Es la base de todo lo dem\u00e1s.",
-        "Suite de \u0070ruebas",
-        "Sin tests, el c\u00f3digo generado por IA entra sin red de seguridad.",
-        "Detiene los problemas antes del push, no en la revisi\u00f3n.",
-        "Un token filtrado por un asistente de IA es la brecha m\u00e1s com\u00fan y m\u00e1s cara.",
-        "\u0052eglas de contexto para asistentes de IA",
-        "Acaba con el \"en mi m\u00e1quina funciona\" y acelera el alta de nuevos perfiles.",
-        "Un clon y a trabajar: entorno id\u00e9ntico para todo el equipo.",
-        "Enruta cada PR a quien de verdad conoce esa parte del c\u00f3digo.",
-        "Actualizaci\u00f3n autom\u00e1tica de dependencias",
-        "README y documentaci\u00f3n de arranque",
-        "Pol\u00edtica de seguridad",
-        "Requisito habitual en auditor\u00edas y en ventas a empresa.",
-        "Documenta qu\u00e9 secretos hacen falta sin publicar ninguno."
-      ]
-    },
-    {
-      "path": "packages/cli/src/branch-notice.ts",
-      "reason": "Branch notices shown to the user, left in Spanish for F0-45.",
-      "fragments": [
-        "desde donde quieras: el repositorio no ten\u00eda ning\u00fan commit al empezar",
-        "HEAD ha quedado desacoplado, no en la \u0072ama en la que empezaste.",
-        "Sigues en la \u0072ama",
-        "No vuelvas todav\u00eda: quedan ficheros a medias, y un `git checkout` los arrastrar\u00eda contigo.",
-        "Ejecuta \\`plumbward rollback\\` aqu\u00ed; cuando termine, vuelve con ${returnToCommit(startedOnCommit)}.",
-        "Ejecuta \\`plumbward rollback\\` aqu\u00ed; cuando termine, vuelve con \\`git checkout ${startedOnBranch}\\`.",
-        "hasta entonces: \\`rollback\\` s\u00f3lo revierte desde la \u0072ama en",
-        "la que se escribi\u00f3. Como `apply` no commitea, git la borra sin avisar de que a\u00fan hac\u00eda falta.",
-        "Empezaste con HEAD desacoplado, as\u00ed que no hay \u0072ama que nombrar: vuelve con ${returnToCommit(startedOnCommit)}.",
-        "La \u0072ama \"${isolatedBranch}\" queda creada y sin cambios: b\u00f3rrala con",
-        "\\`git branch -d ${isolatedBranch}\\`, o el pr\u00f3ximo \\`apply\\` se negar\u00e1 a usarla."
-      ]
-    },
-    {
-      "path": "packages/cli/src/commands.ts",
-      "reason": "CLI messages, prompts and the config.yml operation reason shown to the user, left in Spanish for F0-45.",
-      "fragments": [
-        "para ver qu\u00e9 se configurar\u00eda, sin tocar nada.",
-        "La \u0072ama \"${GOVERNANCE_BRANCH}\" ya existe. No se ha escrito nada.",
-        "Puede estar desactualizada, y el plan se ha calculado sobre la \u0072ama actual. Opciones:\\n",
-        "· Si es tu trabajo de gobernanza en curso: git checkout ${GOVERNANCE_BRANCH} y ejecuta apply all\u00ed.\\n",
-        "Se trabajar\u00e1 sobre la \u0072ama actual",
-        "la \u0072ama \"${git.branch}\"",
-        "Creada y activada la \u0072ama",
-        "El repositorio ya est\u00e1 conforme. No hay nada que aplicar.",
-        "\u00bfAplicar estos cambios${",
-        "La \u0072ama o el commit actual han cambiado mientras se confirmaba. No se ha escrito nada.",
-        "El plan se calcul\u00f3 sobre la \u0072ama anterior. Vuelve a ejecutar apply para ver el de la actual.",
-        "${result.applied} operaciones aplicadas, ${result.skipped} omitidas por estar ya al d\u00eda.",
-        "1. Lee GOVERNANCE.md: explica al equipo qu\u00e9 se ha instalado.",
-        "${step}. Si algo no encaja y a\u00fan no has commiteado: \\`plumbward rollback\\` lo deja todo como estaba.",
-        "Despu\u00e9s del commit ya no: el journal fotografi\u00f3 otro commit y",
-        "Los cambios se han revertido autom\u00e1ticamente: los ficheros est\u00e1n como estaban.",
-        "ATENCI\u00d3N: no se pudo revertir del todo. Ejecuta",
-        "que el \u00e1rbol est\u00e1 limpio.",
-        "No se ha reconocido ning\u00fan stack soportado en este repositorio."
-      ]
-    },
-    {
       "path": "packages/cli/src/context.ts",
-      "reason": "Header of the config.yml written for the client and a config error shown to the user, left in Spanish for F0-45.",
+      "reason": "Spanish variant of the config.yml header written for the client, chosen with language: es (F0-45).",
       "fragments": [
-        "contenido vac\u00edo",
         "# Configuraci\u00f3n de gobernanza del repositorio",
         "# Este fichero es la FUENTE DE VERDAD: la CLI es una funci\u00f3n determinista de su",
         "# contenido. C\u00e1mbialo mediante una Pull Request y vuelve a ejecutar",
@@ -213,88 +63,8 @@
       ]
     },
     {
-      "path": "packages/cli/src/diff.ts",
-      "reason": "Diff summary lines shown to the user, left in Spanish for F0-45.",
-      "fragments": [
-        "... ${a.length} l\u00edneas anteriores",
-        "... ${b.length} l\u00edneas nuevas"
-      ]
-    },
-    {
-      "path": "packages/cli/src/index.ts",
-      "reason": "Command and option descriptions of the CLI help, left in Spanish for F0-45.",
-      "fragments": [
-        "Analiza el repositorio y punt\u00faa su madurez DevSecOps (no escribe nada)",
-        "Muestra exactamente qu\u00e9 se cambiar\u00eda, sin tocar el repositorio",
-        "Aplica el plan en una \u0072ama aislada, con journal y rollback",
-        "No pide confirmaci\u00f3n (para uso en CI y scripts)",
-        "No instala dependencias, s\u00f3lo escribe ficheros",
-        "Trabaja sobre la \u0072ama actual en lugar de crear una dedicada",
-        "Deshace la \u00faltima ejecuci\u00f3n y deja el repositorio como estaba",
-        "Comprueba que la configuraci\u00f3n instalada sigue sana"
-      ]
-    },
-    {
-      "path": "packages/cli/src/render.ts",
-      "reason": "Labels and messages of the scan, plan and doctor reports shown to the user, left in Spanish for F0-45.",
-      "fragments": [
-        "Greenfield · configuraci\u00f3n estricta completa",
-        "\u0054rinquete · \u0072eglas estrictas s\u00f3lo sobre c\u00f3digo nuevo",
-        "No disruptivo · s\u00f3lo se auditan las PRs nuevas",
-        "Diagn\u00f3stico del repositorio",
-        "${BULLET} Tama\u00f1o",
-        "l\u00edneas ${pc.dim(",
-        "pc.yellow('s\u00ed')",
-        "\u0052ama actual",
-        "Lo que m\u00e1s falta te hace",
-        "No hay nada que hacer: el repositorio ya est\u00e1 conforme.",
-        "${simulation.noOps.length} ya al d\u00eda",
-        "... ${remaining} l\u00edneas m\u00e1s",
-        "Diagn\u00f3stico de la configuraci\u00f3n",
-        "${failing} comprobaci\u00f3n(es) sin pasar."
-      ]
-    },
-    {
-      "path": "packages/cli/test/apply-failed-notice.test.ts",
-      "reason": "Assertions on CLI messages that stay in Spanish until F0-45.",
-      "fragments": [
-        "Ejecuta `plumbward rollback` aqu\u00ed",
-        "no ten\u00eda ning\u00fan commit"
-      ]
-    },
-    {
-      "path": "packages/cli/test/branch-notice.e2e.test.ts",
-      "reason": "Assertion on a CLI message that stays in Spanish until F0-45.",
-      "fragments": [
-        "el repositorio est\u00e1 intacto"
-      ]
-    },
-    {
-      "path": "packages/cli/test/branch-notice.test.ts",
-      "reason": "Assertions on branch notices that stay in Spanish until F0-45.",
-      "fragments": [
-        "Sigues en la \u0072ama",
-        "no ten\u00eda ning\u00fan commit"
-      ]
-    },
-    {
-      "path": "packages/cli/test/e2e.test.ts",
-      "reason": "Assertion on a core error message that stays in Spanish until F0-45.",
-      "fragments": [
-        "escapa de la ra\u00edz"
-      ]
-    },
-    {
-      "path": "packages/cli/test/rollback-branch.test.ts",
-      "reason": "Assertions on CLI messages that stay in Spanish until F0-45.",
-      "fragments": [
-        "a\u00fan no has commiteado",
-        "no se podr\u00e1 revertir"
-      ]
-    },
-    {
       "path": "packages/packs/node-ts/src/index.ts",
-      "reason": "Operation reasons, health checks and the ESLint config generated for the client, left in Spanish for F0-45.",
+      "reason": "Spanish variant of the ESLint config, package.json scripts and .gitignore block generated for the client, chosen with language: es (F0-45).",
       "fragments": [
         "// Configuraci\u00f3n de ESLint (formato plano, ESLint 9+).",
         "// S\u00f3lo se han activado \u0072eglas que atrapan errores \u0072eales, no preferencias de",
@@ -305,42 +75,12 @@
         "anula la \u00fanica defensa autom\u00e1tica que hay contra el c\u00f3digo",
         "Sin TypeScript: no hay comprobaci\u00f3n de tipos que ejecutar.",
         "Configura aqu\u00ed el build real del proyecto.",
-        "No se ha encontrado package.json en la ra\u00edz del repositorio.",
-        "Fija la versi\u00f3n de Node para que CI y desarrollo usen la misma.",
-        "Comandos unificados: quien entra al proyecto s\u00f3lo necesita saber",
-        "Pipeline de producci\u00f3n con puerta de aprobaci\u00f3n manual.",
-        "Configura la detecci\u00f3n de secretos antes de que lleguen al historial.",
-        "Comprueba formato, linter y secretos s\u00f3lo sobre lo que vas a commitear.",
-        "\u0052eglas de Conventional Commits con l\u00edmites razonables.",
-        "El proyecto no ten\u00eda linter: se a\u00f1ade uno centrado en errores \u0072eales.",
-        "\u0052eglas base de ESLint.",
-        "\u0052eglas de ESLint para TypeScript.",
-        "\u0052eglas de arquitectura y seguridad para Cursor.",
-        "\u0052eglas del proyecto para Claude Code.",
-        "\u0052eglas del proyecto en el formato est\u00e1ndar AGENTS.md.",
-        "Entorno de desarrollo id\u00e9ntico para todo el equipo.",
-        "Explica al equipo qu\u00e9 se ha instalado y c\u00f3mo convivir con ello.",
-        "A\u00f1ade los scripts que esperan el pipeline y el Makefile (respeta los existentes).",
-        "Define qu\u00e9 se ejecuta sobre cada tipo de fichero preparado.",
-        "# El journal permite revertir la \u00faltima ejecuci\u00f3n y no debe compartirse.",
-        "Ejecuta comprobaciones s\u00f3lo sobre ficheros preparados.",
-        "Formateador de c\u00f3digo.",
-        "Convenci\u00f3n est\u00e1ndar de commits.",
-        "Ejecutor de \u0070ruebas.",
-        "Encontrado en la ra\u00edz.",
-        "No se encuentra package.json en la ra\u00edz.",
-        "Ejecuta la CLI desde la ra\u00edz del proyecto Node.",
-        "Pipeline de validaci\u00f3n de PRs",
-        "Falta el workflow de validaci\u00f3n.",
-        "y despu\u00e9s el script",
-        "Configuraci\u00f3n de escaneo de secretos",
-        "\u0052eglas para asistentes de IA",
-        "El repositorio no declara \u0072eglas para asistentes de IA."
+        "# El journal permite revertir la \u00faltima ejecuci\u00f3n y no debe compartirse."
       ]
     },
     {
       "path": "packages/packs/node-ts/src/templates/ai-rules.test.ts",
-      "reason": "Assertions on the AI rules generated for the client, which stay in Spanish until F0-45.",
+      "reason": "Assertions on the Spanish variant of the AI rules, generated for the client with language: es (F0-45).",
       "fragments": [
         "se redactan siempre\\nen ingl\u00e9s",
         "S\u00ed puedes usar los de s\u00f3lo lectura",
@@ -353,7 +93,7 @@
     },
     {
       "path": "packages/packs/node-ts/src/templates/ai-rules.ts",
-      "reason": "AI assistant rules generated for the client, left in Spanish for F0-45.",
+      "reason": "Spanish variant of the AI assistant rules generated for the client, chosen with language: es (F0-45).",
       "fragments": [
         "ingl\u00e9s' : 'espa\u00f1ol",
         "\\`tag\\`, \\`clean\\` y la gesti\u00f3n de remotos.",
@@ -437,7 +177,7 @@
     },
     {
       "path": "packages/packs/node-ts/src/templates/ci.ts",
-      "reason": "Workflows generated for the client, left in Spanish for F0-45.",
+      "reason": "Spanish variant of the workflows generated for the client, chosen with language: es (F0-45).",
       "fragments": [
         "# Instala pnpm antes que Node para que la cach\u00e9 de dependencias funcione.",
         "- name: Descargar el c\u00f3digo",
@@ -488,7 +228,7 @@
     },
     {
       "path": "packages/packs/node-ts/src/templates/docs.ts",
-      "reason": "GOVERNANCE.md generated for the client, left in Spanish for F0-45.",
+      "reason": "Spanish variant of the GOVERNANCE.md generated for the client, chosen with language: es (F0-45).",
       "fragments": [
         "El repositorio es peque\u00f1o, as\u00ed que las \u0072eglas se aplican a todo el c\u00f3digo desde el primer d\u00eda. Es el mejor momento para hacerlo: cuanto m\u00e1s tarde se empieza, m\u00e1s caro sale.",
         "\u0054rinquete (progresivo)",
@@ -534,7 +274,7 @@
     },
     {
       "path": "packages/packs/node-ts/src/templates/tooling.ts",
-      "reason": "Hooks, Makefile and tool configurations generated for the client, left in Spanish for F0-45.",
+      "reason": "Spanish variant of the hooks, Makefile and tool configurations generated for the client, chosen with language: es (F0-45).",
       "fragments": [
         "# Se ejecuta antes de cada commit y s\u00f3lo sobre los ficheros preparados (staged).",
         "# Por eso es r\u00e1pido incluso en repositorios grandes: no revisa el c\u00f3digo antiguo,",
@@ -573,26 +313,6 @@
         "clean: ## Borra artefactos de compilaci\u00f3n y dependencias",
         "// sin instalar nada en su m\u00e1quina. Se acab\u00f3 el",
         "// No ejecutes el contenedor como root: reduce el da\u00f1o de un \u0070aquete malicioso."
-      ]
-    },
-    {
-      "path": "packages/packs/node-ts/src/workflow-checks.ts",
-      "reason": "doctor health checks shown to the user, left in Spanish for F0-45.",
-      "fragments": [
-        "\u0052ama de despliegue configurada",
-        "la \u0072ama desde la que se despliega (`branches.release`). Plumbward no la deduce: desplegar desde una \u0072ama adivinada no se puede deshacer.",
-        "Se desplegar\u00e1 a producci\u00f3n desde",
-        "Hay un destino de despliegue (${deployTarget}) pero ninguna \u0072ama de despliegue: no se ha generado el workflow de producci\u00f3n.",
-        "Revisa desde qu\u00e9 \u0072ama despliega ${PROD_WORKFLOW} y que coincida con \\`branches.release\\`, o borra el workflow.",
-        "Existe ${PROD_WORKFLOW} pero no hay \u0072ama de despliegue configurada: puede estar desplegando desde una \u0072ama que nadie eligi\u00f3.",
-        "No se puede determinar desde qu\u00e9 \u0072ama despliega ${PROD_WORKFLOW}.",
-        "${PROD_WORKFLOW} despliega al hacer push en cualquier \u0072ama.",
-        "pero la \u0072ama de despliegue configurada es",
-        "Se despliega a producci\u00f3n desde",
-        "Quita el filtro de \u0072amas de \\`pull_request\\` en ${DEV_WORKFLOW}: la CI debe revisar todas las PRs.",
-        "No se puede verificar a qu\u00e9 Pull Requests se aplica ${DEV_WORKFLOW}.",
-        "S\u00f3lo se revisan las PRs dirigidas a",
-        "las dem\u00e1s no pasan por la CI."
       ]
     },
     {

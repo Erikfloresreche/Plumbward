@@ -1,6 +1,7 @@
 export type {
   PackageManager,
   CommentStyle,
+  OutputLanguage,
   PatchStrategy,
   CreateFileOp,
   PatchJsonOp,

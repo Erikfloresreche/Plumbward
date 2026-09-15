@@ -27,9 +27,9 @@ export class RollbackError extends Error {
 export class OutdatedJournalError extends RollbackError {
   constructor() {
     super(
-      `El journal "${JOURNAL_FILE}" lo escribió una versión anterior que no anota el sitio (rama y commit) en el que se aplicó.\n` +
-        '  No se revierte nada: restaurarlo en la rama equivocada sobrescribiría trabajo.\n' +
-        `  Deshaz los cambios con git (\`git diff\`, \`git checkout -- .\`) y borra ${JOURNAL_FILE}.`,
+      `The journal "${JOURNAL_FILE}" was written by an earlier version that does not record the site (branch and commit) it was applied on.\n` +
+        '  Nothing is reverted: restoring it on the wrong branch would overwrite work.\n' +
+        `  Undo the changes with git (\`git diff\`, \`git checkout -- .\`) and delete ${JOURNAL_FILE}.`,
     )
     this.name = 'OutdatedJournalError'
   }
@@ -43,20 +43,20 @@ export async function readJournal(repoRoot: string): Promise<Journal | undefined
   try {
     const parsed: unknown = JSON.parse(raw)
     if (typeof parsed !== 'object' || parsed === null) {
-      throw new Error('formato desconocido')
+      throw new Error('unknown format')
     }
     const version = (parsed as { version?: unknown }).version
     if (version === 1 || version === 2) {
       throw new OutdatedJournalError()
     }
     if (version !== 3) {
-      throw new Error('formato desconocido')
+      throw new Error('unknown format')
     }
     return parsed as Journal
   } catch (error) {
     if (error instanceof RollbackError) throw error
     const detail = error instanceof Error ? error.message : String(error)
-    throw new RollbackError(`El journal "${JOURNAL_FILE}" está corrupto: ${detail}`)
+    throw new RollbackError(`The journal "${JOURNAL_FILE}" is corrupt: ${detail}`)
   }
 }
 
@@ -79,8 +79,8 @@ function assertSameSite(journal: Journal, current: RollbackOptions): void {
 /** How the messages name the site of the journal: its branch, or none. */
 function writtenWhere(journal: Journal): string {
   return journal.writtenOnBranch === null
-    ? 'con HEAD desacoplado'
-    : `en la rama "${journal.writtenOnBranch}"`
+    ? 'with a detached HEAD'
+    : `on branch "${journal.writtenOnBranch}"`
 }
 
 /**
@@ -108,25 +108,25 @@ function writtenWhere(journal: Journal): string {
 function assertSameBranch(journal: Journal, currentBranch: string | null): void {
   if (journal.writtenOnBranch === null && journal.writtenOnCommit === null) {
     throw new RollbackError(
-      'El journal no anota ni la rama ni el commit en los que se escribió.\n' +
-        '  No se revierte nada: no hay forma de comprobar que sigues en el mismo sitio.\n' +
-        '  Deshaz los cambios con git (`git diff`, `git checkout -- .`).',
+      'The journal records neither the branch nor the commit it was written on.\n' +
+        '  Nothing is reverted: there is no way to check that you are still on the same site.\n' +
+        '  Undo the changes with git (`git diff`, `git checkout -- .`).',
     )
   }
 
   if (currentBranch === journal.writtenOnBranch) return
 
   const where =
-    currentBranch === null ? 'HEAD está desacoplado' : `estás en la rama "${currentBranch}"`
+    currentBranch === null ? 'HEAD is detached' : `you are on branch "${currentBranch}"`
   const back =
     journal.writtenOnBranch === null
       ? `git checkout --detach ${journal.writtenOnCommit}`
       : `git checkout ${journal.writtenOnBranch}`
   throw new RollbackError(
-    `El último \`apply\` escribió ${writtenWhere(journal)}, pero ${where}.\n` +
-      '  No se revierte nada: los ficheros guardados son los de aquel sitio, y restaurarlos aquí\n' +
-      '  sobrescribiría lo que tengas en este.\n' +
-      `  Vuelve con \`${back}\` y ejecuta \`plumbward rollback\` allí.`,
+    `The last \`apply\` wrote ${writtenWhere(journal)}, but ${where}.\n` +
+      '  Nothing is reverted: the saved files belong to that site, and restoring them here\n' +
+      '  would overwrite what you have on this one.\n' +
+      `  Go back with \`${back}\` and run \`plumbward rollback\` there.`,
   )
 }
 
@@ -141,19 +141,19 @@ function assertSameBranch(journal: Journal, currentBranch: string | null): void 
 function assertSameCommit(journal: Journal, currentCommit: string | null): void {
   if (currentCommit === journal.writtenOnCommit) return
 
-  const where = currentCommit === null ? 'ahora no tiene ninguno' : `ahora apunta a ${currentCommit}`
+  const where = currentCommit === null ? 'now it has none' : `now it points to ${currentCommit}`
   const cause =
     journal.writtenOnBranch === null
-      ? '  HEAD sigue desacoplado y no es el mismo sitio: se ha commiteado o cambiado de commit\n' +
-        '  después del `apply`.'
-      : '  La rama lleva el mismo nombre y no es el mismo sitio: se ha borrado y recreado, o se ha\n' +
-        '  commiteado después del `apply`.'
+      ? '  HEAD is still detached and it is not the same site: there were commits or a switch of\n' +
+        '  commit after the `apply`.'
+      : '  The branch has the same name and it is not the same site: it was deleted and recreated,\n' +
+        '  or there were commits after the `apply`.'
   throw new RollbackError(
-    `El último \`apply\` escribió ${writtenWhere(journal)} sobre el commit ` +
-      `${journal.writtenOnCommit ?? '(ninguno)'}, pero ${where}.\n` +
-      `${cause} No se revierte nada: los ficheros guardados son los de\n` +
-      '  aquel commit, y restaurarlos aquí sobrescribiría lo que haya llegado después.\n' +
-      '  Deshaz los cambios con git (`git diff`, `git checkout -- .`).',
+    `The last \`apply\` wrote ${writtenWhere(journal)} on commit ` +
+      `${journal.writtenOnCommit ?? '(none)'}, but ${where}.\n` +
+      `${cause} Nothing is reverted: the saved files belong to\n` +
+      '  that commit, and restoring them here would overwrite whatever came after it.\n' +
+      '  Undo the changes with git (`git diff`, `git checkout -- .`).',
   )
 }
 
@@ -191,7 +191,7 @@ export async function rollbackLastApply(
   const journal = await readJournal(repoRoot)
   if (!journal) {
     throw new RollbackError(
-      'No hay nada que revertir: no se encontró el journal de una ejecución previa.',
+      'There is nothing to revert: no journal of a previous run was found.',
     )
   }
 

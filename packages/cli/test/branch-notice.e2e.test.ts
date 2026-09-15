@@ -86,7 +86,7 @@ describe('branch notices after a failed apply and after rollback', () => {
     expect(await currentBranch(root)).toBe(GOVERNANCE_BRANCH)
 
     // The branch has changed: saying only that the repository is intact is false.
-    expect(printed).not.toMatch(/el repositorio está intacto\.?\s*$/m)
+    expect(printed).not.toMatch(/the repository is intact\.?\s*$/m)
     expect(printed).toContain(GOVERNANCE_BRANCH)
     expect(printed).toContain('git checkout Prod')
   })

@@ -136,7 +136,7 @@ describe('rollbackLastApply: on which branch reverting is allowed', () => {
 
     await expect(
       rollbackLastApply(root, { currentBranch: 'Prod', currentCommit: WRITTEN_COMMIT }),
-    ).rejects.toThrow(new RegExp(`desacoplado[\\s\\S]*"Prod"[\\s\\S]*git checkout --detach ${WRITTEN_COMMIT}`))
+    ).rejects.toThrow(new RegExp(`detached[\\s\\S]*"Prod"[\\s\\S]*git checkout --detach ${WRITTEN_COMMIT}`))
 
     expect(await readme(root)).toBe('current content\n')
     expect(await journalExists(root)).toBe(true)

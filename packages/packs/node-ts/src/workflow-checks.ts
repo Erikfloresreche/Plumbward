@@ -52,62 +52,62 @@ async function releaseCheck(context: RepoContext): Promise<HealthCheck | undefin
   const prodText = await read(context, PROD_WORKFLOW)
   if (deployTarget === 'none' && prodText === undefined) return undefined
 
-  const base = { id: 'release-branch', label: 'Rama de despliegue configurada' }
+  const base = { id: 'release-branch', label: 'Release branch configured' }
   const configureHint =
-    'Indica en `.governance/config.yml` la rama desde la que se despliega (`branches.release`). Plumbward no la deduce: desplegar desde una rama adivinada no se puede deshacer.'
+    'Set the branch that deploys in `.governance/config.yml` (`branches.release`). Plumbward does not infer it: deploying from a guessed branch cannot be undone.'
 
   if (prodText === undefined) {
     return release !== null
-      ? { ...base, ok: true, detail: `Se desplegará a producción desde "${release}".` }
+      ? { ...base, ok: true, detail: `Will deploy to production from "${release}".` }
       : {
           ...base,
           ok: false,
-          detail: `Hay un destino de despliegue (${deployTarget}) pero ninguna rama de despliegue: no se ha generado el workflow de producción.`,
+          detail: `There is a deploy target (${deployTarget}) but no release branch: the production workflow was not generated.`,
           fixHint: configureHint,
         }
   }
 
   const deploysFrom = triggerBranches(prodText, 'push')
-  const fileHint = `Revisa desde qué rama despliega ${PROD_WORKFLOW} y que coincida con \`branches.release\`, o borra el workflow.`
+  const fileHint = `Check which branch ${PROD_WORKFLOW} deploys from and that it matches \`branches.release\`, or delete the workflow.`
   if (release === null) {
     return {
       ...base,
       ok: false,
-      detail: `Existe ${PROD_WORKFLOW} pero no hay rama de despliegue configurada: puede estar desplegando desde una rama que nadie eligió.`,
+      detail: `${PROD_WORKFLOW} exists but no release branch is configured: it may be deploying from a branch nobody chose.`,
       fixHint: fileHint,
     }
   }
   if (deploysFrom === undefined) {
-    return { ...base, ok: false, detail: `No se puede determinar desde qué rama despliega ${PROD_WORKFLOW}.`, fixHint: fileHint }
+    return { ...base, ok: false, detail: `Cannot determine which branch ${PROD_WORKFLOW} deploys from.`, fixHint: fileHint }
   }
   if (deploysFrom === null) {
-    return { ...base, ok: false, detail: `${PROD_WORKFLOW} despliega al hacer push en cualquier rama.`, fixHint: fileHint }
+    return { ...base, ok: false, detail: `${PROD_WORKFLOW} deploys on a push to any branch.`, fixHint: fileHint }
   }
   if (deploysFrom.length !== 1 || deploysFrom[0] !== release) {
     return {
       ...base,
       ok: false,
-      detail: `${PROD_WORKFLOW} despliega desde [${deploysFrom.join(', ')}], pero la rama de despliegue configurada es "${release}".`,
+      detail: `${PROD_WORKFLOW} deploys from [${deploysFrom.join(', ')}], but the configured release branch is "${release}".`,
       fixHint: fileHint,
     }
   }
-  return { ...base, ok: true, detail: `Se despliega a producción desde "${release}".` }
+  return { ...base, ok: true, detail: `Deploys to production from "${release}".` }
 }
 
 async function pullRequestCoverageCheck(context: RepoContext): Promise<HealthCheck | undefined> {
   const devText = await read(context, DEV_WORKFLOW)
   if (devText === undefined) return undefined
-  const base = { id: 'pr-coverage', label: 'Todas las Pull Requests pasan por la CI' }
-  const hint = `Quita el filtro de ramas de \`pull_request\` en ${DEV_WORKFLOW}: la CI debe revisar todas las PRs.`
+  const base = { id: 'pr-coverage', label: 'Every Pull Request goes through CI' }
+  const hint = `Remove the branch filter from \`pull_request\` in ${DEV_WORKFLOW}: CI must review every PR.`
   const filter = triggerBranches(devText, 'pull_request')
-  if (filter === null) return { ...base, ok: true, detail: 'Se revisan todas las Pull Requests.' }
+  if (filter === null) return { ...base, ok: true, detail: 'Every Pull Request is reviewed.' }
   if (filter === undefined) {
-    return { ...base, ok: false, detail: `No se puede verificar a qué Pull Requests se aplica ${DEV_WORKFLOW}.`, fixHint: hint }
+    return { ...base, ok: false, detail: `Cannot verify which Pull Requests ${DEV_WORKFLOW} applies to.`, fixHint: hint }
   }
   return {
     ...base,
     ok: false,
-    detail: `Sólo se revisan las PRs dirigidas a [${filter.join(', ')}]; las demás no pasan por la CI.`,
+    detail: `Only PRs targeting [${filter.join(', ')}] are reviewed; the rest do not go through CI.`,
     fixHint: hint,
   }
 }

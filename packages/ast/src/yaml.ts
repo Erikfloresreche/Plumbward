@@ -7,7 +7,7 @@ import type { PatchResult } from './json.js'
  *
  * The work is done on the `Document` of the `yaml` library (not on the plain JS
  * object) because `parse` + `stringify` would destroy every comment, and the
- * specification requires explanatory comments in Spanish in the generated YAML.
+ * generated YAML carries explanatory comments in the language of the profile.
  */
 
 export type YamlPatchStrategy = 'set' | 'merge' | 'appendUnique'
@@ -63,7 +63,7 @@ function appendUniqueIntoDocument(
   }
 
   if (!isSeq(existing)) {
-    throw new Error(`No se puede añadir a "${path.join('.')}": el nodo no es una lista.`)
+    throw new Error(`Cannot append to "${path.join('.')}": the node is not a list.`)
   }
 
   const present = new Set(
@@ -95,7 +95,7 @@ export function patchYaml(
   const doc = parseDocument(text)
   if (doc.errors.length > 0) {
     const first = doc.errors[0]
-    throw new Error(`No se pudo parsear "${filePath}" como YAML: ${first?.message ?? 'error'}`)
+    throw new Error(`Could not parse "${filePath}" as YAML: ${first?.message ?? 'error'}`)
   }
 
   let changed = false
@@ -103,7 +103,7 @@ export function patchYaml(
   for (const patch of patches) {
     const path = parsePointer(patch.pointer)
     if (path.length === 0) {
-      throw new Error(`El puntero raíz no es parcheable en "${filePath}".`)
+      throw new Error(`The root pointer cannot be patched in "${filePath}".`)
     }
 
     switch (patch.strategy) {
@@ -117,7 +117,7 @@ export function patchYaml(
       }
       case 'merge': {
         if (!isPlainObject(patch.value)) {
-          throw new Error(`La estrategia "merge" exige un objeto en "${patch.pointer}".`)
+          throw new Error(`The "merge" strategy requires an object at "${patch.pointer}".`)
         }
         if (mergeIntoDocument(doc, path, patch.value)) changed = true
         break
@@ -141,7 +141,7 @@ export function parseYamlToJson(text: string): unknown {
   const doc = parseDocument(text)
   if (doc.errors.length > 0) {
     const first = doc.errors[0]
-    throw new Error(`YAML inválido: ${first?.message ?? 'error'}`)
+    throw new Error(`Invalid YAML: ${first?.message ?? 'error'}`)
   }
   return doc.toJSON()
 }

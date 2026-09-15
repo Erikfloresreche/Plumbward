@@ -21,7 +21,7 @@ export class PackRegistry {
     const ids = new Set<string>()
     for (const pack of packs) {
       if (ids.has(pack.id)) {
-        throw new Error(`Pack duplicado en el registro: "${pack.id}".`)
+        throw new Error(`Duplicate pack in the registry: "${pack.id}".`)
       }
       ids.add(pack.id)
     }
@@ -46,13 +46,13 @@ export class PackRegistry {
   /** Builds the complete plan from the selected packs. */
   async buildPlan(context: RepoContext): Promise<ChangePlan> {
     const selected = await this.select(context)
-    const builder = new PlanBuilder()
+    const builder = new PlanBuilder(context.profile.language)
 
     if (selected.length === 0) {
       builder.conflict({
         path: context.scan.repoRoot,
         reason:
-          'No se ha reconocido ningún stack soportado. Ejecuta `plumbward scan` para ver qué se detectó.',
+          'No supported stack was recognised. Run `plumbward scan` to see what was detected.',
         severity: 'block',
       })
       return builder.build()

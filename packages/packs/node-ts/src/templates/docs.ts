@@ -7,8 +7,143 @@ import type { RepoScan } from '@plumbward/scanner'
  * It is written for someone who does not know what a pre-commit hook is. It is
  * a piece of product, not technical documentation: if the client does not
  * understand what we installed, they do not maintain it and do not renew.
+ *
+ * English by default; the Spanish variant is chosen with `language: es` in the
+ * profile (F0-45). Moving both to catalogues is F1-2.
  */
 export function governanceDoc(scan: RepoScan, profile: Profile): string {
+  return profile.language === 'es' ? governanceDocEs(scan, profile) : governanceDocEn(scan, profile)
+}
+
+/** Rule files the profile generates, as a Markdown list of paths. */
+function ruleFiles(profile: Profile): string {
+  return `${profile.aiAssistants.includes('cursor') ? ' `.cursorrules`' : ''}${
+    profile.aiAssistants.includes('claude') ? ', `CLAUDE.md`' : ''
+  }`
+}
+
+function governanceDocEn(scan: RepoScan, profile: Profile): string {
+  const stack = scan.primaryStack
+  const modeText =
+    profile.mode === 'greenfield'
+      ? {
+          name: 'Strict (new project)',
+          explanation:
+            'The repository is small, so the rules apply to all the code from day one. It is the best moment to do it: the later you start, the more it costs.',
+        }
+      : profile.mode === 'ratchet'
+        ? {
+            name: 'Ratchet (progressive)',
+            explanation:
+              'The strict rules apply **only to the code you write from now on**. The old code stays as it is and nobody has to stop to fix the past. Every week that goes by, the share of code under control grows on its own.',
+          }
+        : {
+            name: 'Non-disruptive',
+            explanation:
+              'The repository is large. A snapshot of its current state (the *baseline*) was saved, and only the files each Pull Request touches are audited. Nothing that already works is affected.',
+          }
+
+  return `# Governance of this repository
+
+This document explains, taking nothing for granted, what was set up in the
+project, why, and what you have to do day to day.
+
+## In one sentence
+
+Automatic checks were installed that review the code before it reaches a
+person, so that reviews stop being spent on spotting typos and go to what
+really matters.
+
+## What was detected in the project
+
+| Item | Value |
+|---|---|
+| Stack | ${stack?.name ?? 'undetermined'} |
+| Frameworks | ${stack?.frameworks.length ? stack.frameworks.join(', ') : '—'} |
+| Package manager | ${stack?.packageManager ?? 'npm'} |
+| Size | ~${scan.sloc.total.toLocaleString('en-US')} lines of code |
+| Governance mode | **${modeText.name}** |
+
+### What the "${modeText.name}" mode means
+
+${modeText.explanation}
+
+## What was installed
+
+### 1. Checks before every commit
+
+On \`git commit\`, and **only on the files you are committing**, these run
+automatically:
+
+- The **formatter**, which tidies the code so every file looks the same. No
+  more arguing about style.
+- The **linter**, which catches frequent mistakes before they reach review.
+- A **secret scanner**, which stops a password or a token from being published
+  in the git history. This matters: once a secret enters the history, removing
+  it is an incident, not a fix.
+
+In a hurry and need to skip the check? \`git commit --no-verify\`.
+The pipeline will run it again anyway.
+
+### 2. Checks on every Pull Request
+
+In \`.github/workflows/\` there are pipelines that, on every PR, check types,
+linter, tests, build and secrets. They also warn (without blocking) when:
+
+- The PR is so large that nobody is really going to review it.
+- New code is added without any test.
+
+### 3. Rules for AI assistants
+
+The rule files${ruleFiles(profile)} tell Cursor, Claude or Copilot how code is
+written **in this particular project**: which patterns to use, what not to
+touch and what is forbidden.
+
+Without them, each person on the team gets a different architecture from the
+same prompt, and technical debt multiplies without anyone noticing until it is
+too late.
+
+### 4. Unified commands
+
+Type \`make\` at the root of the project to see everything you can do. The
+commands are the same in every governed project, so switching repositories no
+longer has a learning cost.
+
+\`\`\`bash
+make setup   # installs everything and prepares the environment
+make dev     # starts the project
+make check   # runs the same as the pipeline, locally
+\`\`\`
+
+## Frequently asked questions
+
+**A commit failed and I do not understand the message.**
+Run \`make check\`: you will see the same error with more context. If it is
+still unclear, run \`npx @plumbward/cli doctor\`, which diagnoses it and
+proposes the fix.
+
+**The scanner says there is a secret and there is none.**
+It is a false positive. Add an exception in \`.gitleaks.toml\`, in the
+\`[allowlist]\` section, and explain in the commit why it is not a secret.
+
+**Can I change these rules?**
+Yes. The configuration is in \`.governance/config.yml\` and is versioned like
+any other file: the change is proposed in a PR and discussed. What you must
+not edit by hand is the content between the
+\`plumbward:begin\` / \`plumbward:end\` markers, because it is regenerated on
+upgrade.
+
+**What if this gets in our way?**
+\`npx @plumbward/cli rollback\` leaves the repository exactly as it was before
+the installation. There is nothing to uninstall by hand.
+
+---
+
+*Set up with the governance CLI. This file can be edited freely.*
+`
+}
+
+function governanceDocEs(scan: RepoScan, profile: Profile): string {
   const stack = scan.primaryStack
   const modeText =
     profile.mode === 'greenfield'
@@ -81,9 +216,7 @@ pruebas, build y secretos. Además avisan (sin bloquear) cuando:
 
 ### 3. Reglas para los asistentes de IA
 
-Los ficheros de reglas${
-    profile.aiAssistants.includes('cursor') ? ' `.cursorrules`' : ''
-  }${profile.aiAssistants.includes('claude') ? ', `CLAUDE.md`' : ''} le dicen a Cursor, Claude o Copilot cómo se
+Los ficheros de reglas${ruleFiles(profile)} le dicen a Cursor, Claude o Copilot cómo se
 escribe el código **en este proyecto concreto**: qué patrones usar, qué no tocar
 y qué está prohibido.
 

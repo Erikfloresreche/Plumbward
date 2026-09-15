@@ -5,8 +5,8 @@
 > criterion it is considered finished. Each task is closed by updating its
 > checkbox in this file, inside the same Pull Request that implements it.
 
-**Last updated:** 2026-09-14
-**Global status:** Phase 0 in progress — F0-1, F0-3, F0-5, F0-8, F0-13, F0-14, F0-15, F0-16, F0-17, F0-18, F0-24, F0-27, F0-29, F0-30, F0-40, F0-41, F0-42, F0-43, F0-44, F0-47 and F0-48 completed. Remaining: F0-2, F0-4, F0-6, F0-7, F0-9 to F0-12, F0-19 to F0-23, F0-25, F0-26, F0-28, F0-31 to F0-39, F0-45, F0-46 and F0-49.
+**Last updated:** 2026-09-15
+**Global status:** Phase 0 in progress — F0-1, F0-3, F0-5, F0-8, F0-13, F0-14, F0-15, F0-16, F0-17, F0-18, F0-24, F0-27, F0-29, F0-30, F0-40, F0-41, F0-42, F0-43, F0-44, F0-45, F0-47 and F0-48 completed. Remaining: F0-2, F0-4, F0-6, F0-7, F0-9 to F0-12, F0-19 to F0-23, F0-25, F0-26, F0-28, F0-31 to F0-39, F0-46 and F0-49.
 **Product:** Plumbward · https://github.com/Erikfloresreche/Plumbward
 **Business model:** annual subscription per repository — see
 [BUSINESS_MODEL.md](BUSINESS_MODEL.md)
@@ -1873,7 +1873,7 @@ the F0-41 pending list.
 
 ---
 
-### [ ] F0-45 — The product speaks English by default
+### [x] F0-45 — The product speaks English by default
 **Branch:** `feat/f0-english-default-language` · **Depends on:** F0-41
 
 **Origin:** F0-41. Clients follow the same convention by default. The product
@@ -1902,10 +1902,13 @@ profile, not withdrawn. The wizard (F4-1) asks the company for the language.
    does not see, because they carry no accent and no listed word, in
    `packages/core`, `packages/ast`, `packages/scanner` and
    `packages/packs-sdk` (`plan.ts`, `registry.ts`, `apply.ts`, `json.ts`,
-   `yaml.ts`, `rollback.ts`, `conformance.ts`, `maturity.ts`), and translate
-   them with the rest. Found in the review of F0-43: only the literals with an
-   accent or a listed word were declared as fragments, so the fragment list is
-   not the whole inventory.
+   `yaml.ts`, `rollback.ts`, `conformance.ts`, `maturity.ts`), and in
+   `packages/cli` and `packages/packs/node-ts` (`commands.ts:91`, `:96`,
+   `:231`, `:233`; `index.ts:24`, `:36`; `workflow-checks.ts:100`, `:103`; the
+   `config.yml` header lines in `context.ts`), and translate them with the
+   rest. Found in the reviews of F0-43 and F0-44 (PR #24): only the literals
+   with an accent or a listed word were declared as fragments, so the fragment
+   list is not the whole inventory.
 7. Update the header of `packages/ast/src/yaml.ts`, which says the generated
    YAML carries explanatory comments in Spanish: they follow the language of
    the profile.
@@ -1915,6 +1918,47 @@ profile and fails if Spanish appears, and another that with `language: es`
 still generates Spanish. Plus a test that fails if a job id of a generated
 workflow looks Spanish, with the same heuristic as the file-name control of
 F0-16.
+
+**Result (2026-09-15):**
+- CLI messages and errors in English, including `describeOperation` in
+  `packages/core/src/apply.ts` (`crear`, `parchear`, `ejecutar`), which the
+  item 6 inventory had missed: it was found by scanning string literals for
+  unaccented Spanish words, not by the fragment list.
+- `Profile.language` defaults to `en`. Everything the Node pack writes into the
+  client repository has an English variant and keeps the Spanish one, verbatim,
+  behind `language: es`: AI rules, `GOVERNANCE.md`, workflows, hooks, Makefile,
+  tool configurations, ESLint config, `package.json` scripts, the `.gitignore`
+  block and the `config.yml` header, whose `language` line now says English is
+  the default. Operation reasons and health checks are CLI output: English only.
+- The managed-file header and the managed-block warning, which `plan` and
+  `apply` add on their own, follow the profile too. `ChangePlan` carries
+  `language`, so no caller passes it and both commands write the same text.
+- Job ids of the generated workflows are `quality`, `secrets`, `governance` and
+  `deploy` in both languages. Required checks come from the job `name`, which
+  did not change in the Spanish variant, so an existing ruleset keeps working.
+  `workflow-checks.ts` reads only the triggers, so it needed no change. The
+  gitleaks rule ids and tags are identifiers as well and went to English in both
+  languages; a client that regenerates `.gitleaks.toml` sees the findings its
+  `.gitleaksignore` silenced under the old ids again, which fails towards more
+  protection.
+- Item 7: the header of `packages/ast/src/yaml.ts` already said the comments
+  follow the language of the profile; no change.
+- Controls: `packages/packs/node-ts/src/language.test.ts` fails if the default
+  profile generates Spanish, if a file has no Spanish with `language: es`, if
+  the pack writes something listed neither as bilingual nor as textless, if a
+  job id differs between languages or looks Spanish to `spanishNameEvidence`,
+  and if the plan does not carry the profile language.
+  `packages/core/src/language.test.ts` checks the header and the block warning
+  in `plan` and `apply`; `packages/ast/src/blocks.test.ts` and
+  `packages/cli/src/context.test.ts` check their own texts. Every language
+  dispatch and every point that passes the language on was mutated (51
+  mutants): all detected.
+- Not mechanisable: the Spanish detection sees accents and a short word list, so
+  an English variant with unaccented Spanish passes; the name heuristic misses
+  `secretos` and `desplegar`, and the equality between languages does not help
+  if both are Spanish. CLI output has no language test beyond the repository
+  control, which sees accents and listed words. For those, the defence is the
+  fresh-context review.
 
 **Acceptance criteria:**
 - With no language configured, the CLI and the generated files are in English.
@@ -2079,8 +2123,11 @@ Goes after F0-46 in the queue: both change `doc-links.mjs` and
 `scripts/doc-links.test.mjs` and `scripts/english-only.test.mjs` that fail
 against the current code. Item 3 is prose and not mechanisable, but a lost
 escape already fails: the decoded Spanish lands in `english-only.json`, which is
-neither pending nor an exception. Item 5 is covered by the English control once
-F0-44 takes `check-coherence.mjs` out of the pending list.
+neither pending nor an exception. Item 5 is not covered by the English control:
+both verdict lines carry no accent and no listed word, so `findSpanish()`
+returns `undefined` for them (fresh-context review of PR #24). Item 5 is its
+own test, which runs `check-coherence.mjs` and fails if either verdict line is
+not the English one.
 
 **Acceptance criteria:**
 - A link to a heading that does not exist, in another file or in the same one,
@@ -3361,10 +3408,6 @@ The following phases go in their dependency order. Inside each one, the
 controls that watch the work of the phase go before that work.
 
 <!-- queue:start -->
-
-#### Phase 0 · 1. English as the main language
-
-- **F0-45** — the product speaks English by default; Spanish stays in the profile.
 
 #### Phase 0 · 2. Making green mean something
 

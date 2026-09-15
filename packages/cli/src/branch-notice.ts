@@ -47,7 +47,7 @@ export interface BranchNoticeInput {
  */
 function returnToCommit(startedOnCommit: string | null): string {
   return startedOnCommit === null
-    ? '`git checkout --detach` desde donde quieras: el repositorio no tenía ningún commit al empezar'
+    ? '`git checkout --detach` from wherever you like: the repository had no commit at all when it started'
     : `\`git checkout ${startedOnCommit}\``
 }
 
@@ -62,21 +62,21 @@ export function branchReturnNotice(input: BranchNoticeInput): readonly string[] 
 
   const lines = [
     currentBranch === null
-      ? 'HEAD ha quedado desacoplado, no en la rama en la que empezaste.'
-      : `Sigues en la rama "${currentBranch}", no en la que empezaste.`,
+      ? 'HEAD was left detached, not on the branch you started on.'
+      : `You are still on branch "${currentBranch}", not on the one you started on.`,
   ]
 
   if (pendingRollback) {
     lines.push(
-      'No vuelvas todavía: quedan ficheros a medias, y un `git checkout` los arrastraría contigo.',
+      'Do not go back yet: there are half-written files, and a `git checkout` would carry them with you.',
       startedOnBranch === null
-        ? `Ejecuta \`plumbward rollback\` aquí; cuando termine, vuelve con ${returnToCommit(startedOnCommit)}.`
-        : `Ejecuta \`plumbward rollback\` aquí; cuando termine, vuelve con \`git checkout ${startedOnBranch}\`.`,
+        ? `Run \`plumbward rollback\` here; when it finishes, go back with ${returnToCommit(startedOnCommit)}.`
+        : `Run \`plumbward rollback\` here; when it finishes, go back with \`git checkout ${startedOnBranch}\`.`,
     )
     if (currentBranch === isolatedBranch) {
       lines.push(
-        `No borres "${isolatedBranch}" hasta entonces: \`rollback\` sólo revierte desde la rama en ` +
-          'la que se escribió. Como `apply` no commitea, git la borra sin avisar de que aún hacía falta.',
+        `Do not delete "${isolatedBranch}" until then: \`rollback\` only reverts from the branch ` +
+          'it wrote on. Since `apply` does not commit, git deletes it without warning that it was still needed.',
       )
     }
     return lines
@@ -84,14 +84,14 @@ export function branchReturnNotice(input: BranchNoticeInput): readonly string[] 
 
   lines.push(
     startedOnBranch === null
-      ? `Empezaste con HEAD desacoplado, así que no hay rama que nombrar: vuelve con ${returnToCommit(startedOnCommit)}.`
-      : `Vuelve a la tuya con \`git checkout ${startedOnBranch}\`.`,
+      ? `You started with a detached HEAD, so there is no branch to name: go back with ${returnToCommit(startedOnCommit)}.`
+      : `Go back to yours with \`git checkout ${startedOnBranch}\`.`,
   )
 
   if (currentBranch === isolatedBranch) {
     lines.push(
-      `La rama "${isolatedBranch}" queda creada y sin cambios: bórrala con ` +
-        `\`git branch -d ${isolatedBranch}\`, o el próximo \`apply\` se negará a usarla.`,
+      `Branch "${isolatedBranch}" is left created and with no changes: delete it with ` +
+        `\`git branch -d ${isolatedBranch}\`, or the next \`apply\` will refuse to use it.`,
     )
   }
 
