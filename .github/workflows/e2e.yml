@@ -1,12 +1,12 @@
 # ---------------------------------------------------------------------------
-# Pruebas de punta a punta.
+# End-to-end tests.
 #
-# Crean repositorios git reales en directorios temporales y ejecutan el ciclo
-# completo: escanear, planificar, aplicar y revertir. Son las que de verdad
-# demuestran que la herramienta no corrompe el repositorio de un cliente.
+# They create real git repositories in temporary directories and run the full
+# cycle: scan, plan, apply and roll back. They are the ones that really prove
+# the tool does not corrupt a client's repository.
 #
-# Van separadas de `ci.yml` porque son lentas y tocan git. Se ejecutan sobre
-# una sola versión de Node: lo que prueban es comportamiento, no compatibilidad.
+# They are kept apart from `ci.yml` because they are slow and touch git. They
+# run on a single Node version: what they test is behaviour, not compatibility.
 # ---------------------------------------------------------------------------
 name: E2E
 
@@ -25,7 +25,7 @@ permissions:
 
 jobs:
   full-cycle:
-    name: Ciclo completo sobre repositorios reales
+    name: Full cycle on real repositories
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -36,13 +36,13 @@ jobs:
           node-version: '22'
           cache: pnpm
 
-      - name: Instalar dependencias
+      - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      # No se compila: los tests importan `src` a través de los alias de
-      # vitest y no cargan nada de `dist`. Compilar aquí serían 30 segundos
-      # de nada en el workflow que existe precisamente por ser lento.
-      # Los tests configuran la identidad de git en cada repositorio temporal
-      # que crean, así que no hace falta configuración global aquí.
-      - name: Pruebas de punta a punta
+      # No build: the tests import `src` through the vitest aliases and load
+      # nothing from `dist`. Building here would be 30 seconds of nothing in the
+      # workflow that exists precisely because it is slow.
+      # The tests set the git identity in every temporary repository they
+      # create, so no global configuration is needed here.
+      - name: End-to-end tests
         run: pnpm test:e2e

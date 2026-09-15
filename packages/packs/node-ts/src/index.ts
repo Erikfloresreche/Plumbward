@@ -25,7 +25,7 @@ import { workflowChecks } from './workflow-checks.js'
 const PACK_VERSION = '0.1.0'
 const DEFAULT_NODE_VERSION = '22'
 
-/** Configuración plana de ESLint, para proyectos que aún no tienen linter. */
+/** Flat ESLint configuration, for projects that have no linter yet. */
 function eslintConfig(typescript: boolean, profile: Profile): string {
   return `// ---------------------------------------------------------------------------
 // Configuración de ESLint (formato plano, ESLint 9+).
@@ -68,7 +68,7 @@ ${
 `
 }
 
-/** Scripts que el pipeline y el Makefile dan por hechos. */
+/** Scripts the pipeline and the Makefile take for granted. */
 function packageScripts(typescript: boolean): Record<string, string> {
   return {
     prepare: 'husky',
@@ -88,10 +88,10 @@ function hasSignal(context: RepoContext, id: string): boolean {
 }
 
 /**
- * Pack de Node.js / TypeScript.
+ * Node.js / TypeScript pack.
  *
- * Cubre Node y JavaScript puro además de TypeScript: el detector distingue el
- * caso y ajusta reglas y scripts en consecuencia.
+ * It covers Node and plain JavaScript as well as TypeScript: the detector tells
+ * the cases apart and adjusts rules and scripts accordingly.
  */
 export const nodeTsPack: StackPack = {
   id: 'node-ts',
@@ -121,7 +121,7 @@ export const nodeTsPack: StackPack = {
     const typescript = stack?.typescript ?? false
     const operations: Operation[] = []
 
-    // --- Entorno y estilo ---------------------------------------------------
+    // --- Environment and style ----------------------------------------------
     operations.push(
       file('.editorconfig', editorConfig(), 'Unifica el estilo de fichero entre editores.'),
       file(
@@ -136,7 +136,7 @@ export const nodeTsPack: StackPack = {
       ),
     )
 
-    // --- Integración continua ----------------------------------------------
+    // --- Continuous integration ---------------------------------------------
     operations.push(
       file(
         '.github/workflows/ci-dev.yml',
@@ -158,8 +158,8 @@ export const nodeTsPack: StackPack = {
         ),
       )
     }
-    // Sin rama de despliegue configurada no se genera el workflow: desplegar
-    // desde una rama adivinada no se puede deshacer. `validate` lo avisa.
+    // With no deploy branch configured the workflow is not generated: deploying
+    // from a guessed branch cannot be undone. `validate` warns about it.
     const release = profile.branches.release
     if (profile.deployTarget !== 'none' && release !== null) {
       operations.push(
@@ -171,7 +171,7 @@ export const nodeTsPack: StackPack = {
       )
     }
 
-    // --- Seguridad ----------------------------------------------------------
+    // --- Security -----------------------------------------------------------
     operations.push(
       file(
         '.gitleaks.toml',
@@ -195,7 +195,7 @@ export const nodeTsPack: StackPack = {
       ),
     )
 
-    // --- Linter (sólo si el proyecto no tiene ya uno) ------------------------
+    // --- Linter (only if the project does not have one already) -------------
     if (!hasSignal(context, 'linter')) {
       operations.push(
         file(
@@ -211,7 +211,7 @@ export const nodeTsPack: StackPack = {
       }
     }
 
-    // --- Reglas para asistentes de IA ---------------------------------------
+    // --- Rules for AI assistants ---------------------------------------------
     const rules = aiRules(scan, profile)
     if (profile.aiAssistants.includes('cursor')) {
       operations.push(
@@ -247,7 +247,7 @@ export const nodeTsPack: StackPack = {
       )
     }
 
-    // --- Documentación ------------------------------------------------------
+    // --- Documentation ------------------------------------------------------
     operations.push(
       file(
         'GOVERNANCE.md',
@@ -288,7 +288,7 @@ export const nodeTsPack: StackPack = {
       ),
     )
 
-    // --- Dependencias y arranque -------------------------------------------
+    // --- Dependencies and bootstrap -----------------------------------------
     operations.push(
       dep(manager, 'husky', 'Gestiona los hooks de git.'),
       dep(manager, 'lint-staged', 'Ejecuta comprobaciones sólo sobre ficheros preparados.'),
@@ -355,7 +355,7 @@ export const nodeTsPack: StackPack = {
       },
     ]
 
-    // Workflows leídos tal como están en disco: ver workflow-checks.ts.
+    // Workflows read as they are on disk: see workflow-checks.ts.
     checks.push(...(await workflowChecks(context)))
 
     return checks

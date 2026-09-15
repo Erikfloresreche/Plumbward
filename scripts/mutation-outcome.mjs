@@ -1,16 +1,15 @@
 /**
- * Veredicto de una ejecución de la batería de tests contra una mutación.
+ * Verdict of one run of the test suite against a mutation.
  *
- * Existe porque `result.status !== 0` daba "la mutación está cazada" también
- * cuando los tests no llegaban a ejecutarse: `spawnSync` devuelve
- * `status: null` si no puede lanzar el proceso —un `pnpm` que no está en el
- * PATH, un `install` a medias, un runner sin memoria— o si salta el `timeout`,
- * y `null !== 0` es cierto. El resultado era "30 de 30 mutaciones detectadas"
- * y CI en verde con cero tests ejecutados: exactamente lo contrario de lo que
- * este control promete.
+ * It exists because `result.status !== 0` said "the mutation is caught" also
+ * when the tests never ran: `spawnSync` returns `status: null` if it cannot
+ * launch the process —a `pnpm` that is not on the PATH, a half-done `install`,
+ * a runner out of memory— or if the `timeout` fires, and `null !== 0` is true.
+ * The result was "30 of 30 mutations detected" and a green CI with zero tests
+ * run: exactly the opposite of what this control promises.
  *
- * Vive fuera de `check-mutations.mjs` para poder probarse: aquel script se
- * ejecuta al cargarse y termina en `process.exit`. Tarea F0-27.
+ * It lives outside `check-mutations.mjs` so it can be tested: that script runs
+ * on load and ends in `process.exit`. Task F0-27.
  */
 
 /**
@@ -18,14 +17,14 @@
  */
 
 /**
- * Clasifica el resultado de `spawnSync`.
+ * Classifies the result of `spawnSync`.
  *
- * - `detected`: los tests corrieron y alguno falló. La pieza está cubierta.
- * - `survived`: los tests corrieron y pasaron todos. La pieza no está cubierta.
- * - `not-run`: no se sabe nada. No es una detección, y no puede contarse
- *   como tal: cuenta como fallo para que la CI se ponga en rojo.
+ * - `detected`: the tests ran and one failed. The piece is covered.
+ * - `survived`: the tests ran and all passed. The piece is not covered.
+ * - `not-run`: nothing is known. It is not a detection, and cannot count as
+ *   one: it counts as a failure so the CI turns red.
  *
- * @param {{ status: number | null, error?: Error }} result resultado de `spawnSync`
+ * @param {{ status: number | null, error?: Error }} result result of `spawnSync`
  * @returns {Outcome}
  */
 export function mutationOutcome(result) {
@@ -33,9 +32,9 @@ export function mutationOutcome(result) {
   return result.status === 0 ? 'survived' : 'detected'
 }
 
-/** Un veredicto que no sea `detected` deja la CI en rojo. */
+/** A verdict other than `detected` turns the CI red. */
 export const isFailure = (outcome) => outcome !== 'detected'
 
-/** Etiqueta de doce caracteres para alinear la salida del script. */
+/** Twelve-character label to align the script output. */
 export const label = (outcome) =>
-  ({ detected: 'DETECTADA   ', survived: 'SOBREVIVE   ', 'not-run': 'NO EJECUTADA' })[outcome]
+  ({ detected: 'DETECTED    ', survived: 'SURVIVED    ', 'not-run': 'NOT RUN     ' })[outcome]

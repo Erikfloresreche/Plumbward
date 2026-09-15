@@ -19,7 +19,7 @@ export function dim(text: string): string {
   return pc.dim(text)
 }
 
-/** Barra de progreso textual, para la puntuación de madurez. */
+/** Text progress bar, for the maturity score. */
 function bar(score: number, width = 24): string {
   const filled = Math.round((score / 100) * width)
   const colour = score >= 70 ? pc.green : score >= 40 ? pc.yellow : pc.red
@@ -102,7 +102,7 @@ export function renderScan(scan: RepoScan): string {
   return lines.join('\n')
 }
 
-/** Pinta el plan: primero el resumen, después el detalle y el diff opcional. */
+/** Renders the plan: first the summary, then the detail and the optional diff. */
 export function renderPlan(
   plan: ChangePlan,
   simulation: SimulationResult,

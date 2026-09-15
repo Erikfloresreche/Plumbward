@@ -1,40 +1,40 @@
 /**
- * Control de nombres de rama: formato, idioma y exenciones.
+ * Branch name control: format, language and exemptions.
  *
- * Vive fuera de `check-coherence.mjs` porque aquel script ejecuta todo al
- * cargarse y termina en `process.exit`: no se podía probar. Aquí sólo hay
- * funciones puras, y `scripts/branch-names.test.mjs` las cubre con el corpus
- * de `branch-names-corpus.json`.
+ * It lives outside `check-coherence.mjs` because that script runs everything on
+ * load and ends in `process.exit`: it could not be tested. Here there are only
+ * pure functions, and `scripts/branch-names.test.mjs` covers them with the
+ * corpus in `branch-names-corpus.json`.
  *
- * Tarea F0-15.
+ * Task F0-15.
  */
 
 /**
- * Formato `<tipo>/f<fase>-<slug>`.
+ * Format `<type>/f<phase>-<slug>`.
  *
- * La fase es `0` o un número sin ceros a la izquierda, como máximo de dos
- * cifras: antes era `f\d+` y aceptaba `f00` y `f999`, que no son fases.
+ * The phase is `0` or a number with no leading zeros, of two digits at most: it
+ * used to be `f\d+` and accepted `f00` and `f999`, which are not phases.
  */
 export const BRANCH_FORMAT =
   /^(feat|fix|refactor|test|docs|build|ci|chore)\/f(0|[1-9][0-9]?)-[a-z0-9]+(-[a-z0-9]+)*$/
 
 /**
- * Ramas permanentes del repositorio. No son ramas de tarea y no siguen el
- * formato: una release es una Pull Request de `develop` a `Prod`, y con el
- * control activo en CI esa PR fallaba.
+ * Permanent branches of the repository. They are not task branches and do not
+ * follow the format: a release is a Pull Request from `develop` to `Prod`, and
+ * with the control active in CI that PR failed.
  *
- * Es una lista explícita, no un patrón: un patrón vuelve a ser una puerta
- * trasera, que es justo lo que falló con el prefijo `dependabot/`.
+ * It is an explicit list, not a pattern: a pattern becomes a back door again,
+ * which is exactly what failed with the `dependabot/` prefix.
  */
 export const PERMANENT_BRANCHES = ['Prod', 'develop']
 
 /**
- * Palabras españolas de contenido frecuentes en nuestros nombres de rama.
+ * Frequent Spanish content words in our branch names.
  *
- * La lista sale del corpus, no de la intuición: son las palabras que hicieron
- * falta para detectar los nombres que la propia PR #6 renombró y que ninguna
- * terminación reconoce. Todas son inequívocamente españolas — `metricas`, no
- * `metrics`; `guia`, no `guide` — para no rechazar nombres ingleses válidos.
+ * The list comes from the corpus, not from intuition: they are the words needed
+ * to detect the names PR #6 itself renamed and that no ending recognises. All of
+ * them are unambiguously Spanish — `metricas`, not `metrics`; `guia`, not
+ * `guide` — so as not to reject valid English names.
  */
 export const SPANISH_WORDS = new Set([
   'rama', 'ramas', 'regla', 'reglas', 'prueba', 'pruebas', 'paquete', 'informe',
@@ -43,33 +43,33 @@ export const SPANISH_WORDS = new Set([
 ])
 
 /**
- * Palabras funcionales españolas. Sólo cuentan como señal **entre** otros dos
- * componentes del slug.
+ * Spanish function words. They only count as a signal **between** two other
+ * components of the slug.
  *
- * En español unen dos palabras (`gobierno-de-ramas`, `landing-y-demo`); en
- * inglés aparecen al principio como prefijo o etiqueta (`de-duplicate`,
- * `y-axis`), y ahí no dicen nada. La lista anterior no distinguía la posición
- * y rechazaba los dos nombres ingleses.
+ * In Spanish they join two words (`gobierno-de-ramas`, `landing-y-demo`); in
+ * English they appear at the start as a prefix or label (`de-duplicate`,
+ * `y-axis`), and there they say nothing. The previous list did not tell the
+ * position apart and rejected both English names.
  */
 const SPANISH_FUNCTION_WORDS = new Set([
   'de', 'del', 'la', 'las', 'el', 'los', 'y', 'con', 'para', 'por', 'al', 'sin',
 ])
 
 /**
- * Terminaciones que no existen en inglés. Generalizan mucho mejor que una
- * lista de palabras: cubren la mitad de los nombres que la lista dejaba pasar
- * sin enumerar el vocabulario del proyecto.
+ * Endings that do not exist in English. They generalise much better than a word
+ * list: they cover half of the names the list let through without enumerating
+ * the vocabulary of the project.
  *
- * `minLength` descarta las palabras inglesas cortas que acaban igual: `dad`,
- * `aid`, `via`. **No descarta las largas**: `fascia`, `aikido` y `granddad` se
- * marcarían como españolas. Es una colisión aceptada a sabiendas, no un
- * descuido — subir el umbral a 7 perdería `gracia`, que mide lo mismo que
- * `fascia` y sí está en el corpus. Ninguna de esas palabras aparece en un
- * nombre de rama de este repositorio; si algún día aparece, se añade al corpus
- * como negativo y se decide entonces.
+ * `minLength` discards short English words with the same ending: `dad`, `aid`,
+ * `via`. **It does not discard the long ones**: `fascia`, `aikido` and
+ * `granddad` would be flagged as Spanish. It is a collision accepted knowingly,
+ * not an oversight — raising the threshold to 7 would lose `gracia`, which is as
+ * long as `fascia` and is in the corpus. None of those words appears in a
+ * branch name of this repository; if one ever does, it is added to the corpus
+ * as a negative and decided then.
  *
- * No se incluye `-ado`/`-ada`: el corpus no lo necesita y el inglés tiene
- * `tornado`, `avocado` y `bravado`.
+ * `-ado`/`-ada` is not included: the corpus does not need it and English has
+ * `tornado`, `avocado` and `bravado`.
  */
 const SPANISH_SUFFIXES = [
   { suffix: 'cion', minLength: 6 },
@@ -86,9 +86,9 @@ const SPANISH_SUFFIXES = [
 ]
 
 /**
- * Devuelve las señales de que un slug está en español. Vacío = ninguna.
+ * Returns the signs that a slug is in Spanish. Empty = none.
  *
- * @param {string} slug el nombre sin `<tipo>/f<fase>-`
+ * @param {string} slug the name without `<type>/f<phase>-`
  * @returns {string[]}
  */
 export function spanishEvidence(slug) {
@@ -115,59 +115,59 @@ export function spanishEvidence(slug) {
 
 /**
  * @param {string} branch
- * @returns {string | undefined} el motivo por el que el nombre no vale
+ * @returns {string | undefined} the reason why the name is not valid
  */
 export function branchProblem(branch) {
-  if (/[^\x00-\x7F]/.test(branch)) return 'contiene caracteres no ASCII'
-  if (!BRANCH_FORMAT.test(branch)) return 'no sigue el formato <tipo>/f<fase>-<slug>'
+  if (/[^\x00-\x7F]/.test(branch)) return 'contains non-ASCII characters'
+  if (!BRANCH_FORMAT.test(branch)) return 'does not follow the format <type>/f<phase>-<slug>'
   const slug = branch.split('/')[1].replace(/^f\d+-/, '')
   const evidence = spanishEvidence(slug)
-  if (evidence.length > 0) return `parece estar en español (${evidence.join(', ')})`
+  if (evidence.length > 0) return `looks Spanish (${evidence.join(', ')})`
   return undefined
 }
 
 const escapeRegExp = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
 /**
- * Motivo por el que una rama queda exenta del formato, si lo hay.
+ * Reason why a branch is exempt from the format, if any.
  *
- * La exención es por **autor** siempre que se puede, no por nombre: el prefijo
- * `dependabot/` era una puerta trasera porque cualquiera podía llamar así a su
- * rama (`dependabot/../fix/f0-ramas` lo superaba). El autor lo pone GitHub.
+ * The exemption is by **author** whenever possible, not by name: the
+ * `dependabot/` prefix was a back door because anyone could name their branch
+ * that way (`dependabot/../fix/f0-ramas` passed). GitHub sets the author.
  *
  * @param {string} branch
- * @param {string | undefined} actor el `github.actor` que abre la Pull Request
+ * @param {string | undefined} actor the `github.actor` that opens the Pull Request
  * @returns {string | undefined}
  */
 export function branchExemption(branch, actor) {
-  if (PERMANENT_BRANCHES.includes(branch)) return 'rama permanente del repositorio'
+  if (PERMANENT_BRANCHES.includes(branch)) return 'permanent branch of the repository'
 
-  // Cualquier bot: dependabot, renovate, github-actions. El sufijo `[bot]` lo
-  // añade GitHub al login y no se puede falsificar desde el nombre de rama.
-  if (actor && actor.endsWith('[bot]')) return `rama creada por el bot ${actor}`
+  // Any bot: dependabot, renovate, github-actions. GitHub adds the `[bot]`
+  // suffix to the login and it cannot be forged from the branch name.
+  if (actor && actor.endsWith('[bot]')) return `branch created by the bot ${actor}`
 
-  // `<login>-patch-<n>`: editor web de GitHub, que usarán los colaboradores
-  // externos al ser el repositorio público. Se acepta sólo si el login del
-  // nombre es el del autor, de modo que la exención sigue siendo por autor.
+  // `<login>-patch-<n>`: the GitHub web editor, which external contributors
+  // will use since the repository is public. It is only accepted if the login
+  // in the name is the author's, so the exemption is still by author.
   if (actor && new RegExp(`^${escapeRegExp(actor)}-patch-\\d+$`).test(branch)) {
-    return 'rama del editor web de GitHub'
+    return 'GitHub web editor branch'
   }
 
-  // `revert-<pr>-<rama>`: botón Revert de GitHub. El nombre lo compone GitHub
-  // a partir de una rama que ya pasó el control, así que se exige que la rama
-  // revertida sea válida: `revert-1-lo-que-sea` no pasa.
+  // `revert-<pr>-<branch>`: the GitHub Revert button. GitHub builds the name from
+  // a branch that already passed the control, so the reverted branch is
+  // required to be valid: `revert-1-lo-que-sea` does not pass.
   const reverted = /^revert-\d+-(.+)$/.exec(branch)?.[1]
   if (reverted && (PERMANENT_BRANCHES.includes(reverted) || !branchProblem(reverted))) {
-    return 'rama del botón Revert de GitHub'
+    return 'GitHub Revert button branch'
   }
 
   return undefined
 }
 
 /**
- * @param {string | undefined} branch la rama de la PR en curso
+ * @param {string | undefined} branch the branch of the current PR
  * @param {string | undefined} actor
- * @returns {string | undefined} el motivo del fallo, si lo hay
+ * @returns {string | undefined} the reason for the failure, if any
  */
 export function checkPullRequestBranch(branch, actor) {
   if (!branch) return undefined
@@ -176,21 +176,21 @@ export function checkPullRequestBranch(branch, actor) {
 }
 
 /**
- * Extrae las tareas y sus ramas del plan de ejecución.
+ * Extracts the tasks and their branches from the execution plan.
  *
- * Reconoce `### [ ]`, `### [x]` y `### [X]`. Cualquier otra cabecera cierra la
- * tarea anterior: antes el estado `pendiente` sobrevivía a las cabeceras que no
- * son tareas y atribuía ramas a la tarea equivocada.
+ * It recognises `### [ ]`, `### [x]` and `### [X]`. Any other heading closes
+ * the previous task: before, the `pending` state survived headings that are not
+ * tasks and attributed branches to the wrong task.
  *
- * `declarations` cuenta todas las líneas `**Branch:**`; `branches`, sólo las que
- * nombran una rama entre acentos graves. No son lo mismo: dos tareas del plan
- * declaran a propósito que no tienen rama de código ("GitHub configuration",
+ * `declarations` counts every `**Branch:**` line; `branches`, only the ones that
+ * name a branch between backticks. They are not the same: two tasks of the plan
+ * declare on purpose that they have no code branch ("GitHub configuration",
  * "separate repository").
  *
- * `tasksWithoutDeclaration` se cuenta **por tarea**, no comparando totales: una
- * línea `**Branch:**` que cuelgue de una cabecera que no es tarea compensaría a la
- * que falta, y la tarea sin rama volvería a pasar sin que nadie la juzgue. Es el
- * mismo fallo silencioso que la aserción venía a cerrar.
+ * `tasksWithoutDeclaration` is counted **per task**, not by comparing totals: a
+ * `**Branch:**` line hanging from a heading that is not a task would make up for
+ * the missing one, and the task without a branch would pass again without anyone
+ * judging it. It is the same silent failure the assertion came to close.
  *
  * @param {string} text
  * @returns {{ tasks: number, declarations: number, tasksWithoutDeclaration: number, branches: { name: string, pending: boolean }[] }}
@@ -237,29 +237,28 @@ export function parsePlan(text) {
 }
 
 /**
- * Comprueba las ramas previstas para las tareas PENDIENTES del plan. Las
- * cerradas se saltan a propósito: su nombre es un hecho histórico, no una
- * convención.
+ * Checks the branches planned for the PENDING tasks of the plan. Closed ones are
+ * skipped on purpose: their name is a historical fact, not a convention.
  *
  * @param {string} text
- * @returns {string[]} los fallos encontrados
+ * @returns {string[]} the failures found
  */
 export function checkPlan(text) {
   /** @type {string[]} */
   const failures = []
   const { tasks, tasksWithoutDeclaration, branches } = parsePlan(text)
 
-  // Aserción de mínimo. El analizador anterior fallaba en silencio: un plan
-  // vacío, una cabecera con otra forma o un `**Branch:**` con otro espaciado
-  // daban cero ramas y el control pasaba sin haber mirado nada.
+  // Minimum assertion. The previous parser failed in silence: an empty plan, a
+  // heading with another shape or a `**Branch:**` with other spacing gave zero
+  // branches and the control passed without looking at anything.
   if (tasks === 0) {
-    failures.push('el plan no declara ninguna tarea `### [ ] ...`: el analizador no reconoce su formato')
+    failures.push('the plan declares no `### [ ] ...` task: the parser does not recognise its format')
     return failures
   }
   if (tasksWithoutDeclaration > 0) {
     failures.push(
-      `${tasksWithoutDeclaration} de las ${tasks} tareas del plan no declaran su rama antes de la ` +
-        'cabecera siguiente. Falta la línea "**Branch:**", o no sigue el formato que el analizador reconoce.',
+      `${tasksWithoutDeclaration} of the ${tasks} plan tasks do not declare their branch before the ` +
+        'next heading. The "**Branch:**" line is missing, or does not follow the format the parser recognises.',
     )
   }
 

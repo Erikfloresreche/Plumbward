@@ -4,6 +4,6 @@ export default defineConfig({
   entry: ['src/index.ts'],
   format: ['esm'],
   clean: true,
-  // Shebang: permite ejecutar el binario directamente vía npx sin wrapper.
+  // Shebang: lets npx run the binary directly, with no wrapper.
   banner: { js: '#!/usr/bin/env node' },
 })

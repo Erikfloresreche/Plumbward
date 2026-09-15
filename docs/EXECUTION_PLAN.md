@@ -5,8 +5,8 @@
 > criterion it is considered finished. Each task is closed by updating its
 > checkbox in this file, inside the same Pull Request that implements it.
 
-**Last updated:** 2026-09-13
-**Global status:** Phase 0 in progress — F0-1, F0-3, F0-5, F0-8, F0-13, F0-14, F0-15, F0-16, F0-17, F0-18, F0-24, F0-27, F0-29, F0-30, F0-40, F0-41, F0-42, F0-43, F0-47 and F0-48 completed. Remaining: F0-2, F0-4, F0-6, F0-7, F0-9 to F0-12, F0-19 to F0-23, F0-25, F0-26, F0-28, F0-31 to F0-39, F0-44 to F0-46 and F0-49.
+**Last updated:** 2026-09-14
+**Global status:** Phase 0 in progress — F0-1, F0-3, F0-5, F0-8, F0-13, F0-14, F0-15, F0-16, F0-17, F0-18, F0-24, F0-27, F0-29, F0-30, F0-40, F0-41, F0-42, F0-43, F0-44, F0-47 and F0-48 completed. Remaining: F0-2, F0-4, F0-6, F0-7, F0-9 to F0-12, F0-19 to F0-23, F0-25, F0-26, F0-28, F0-31 to F0-39, F0-45, F0-46 and F0-49.
 **Product:** Plumbward · https://github.com/Erikfloresreche/Plumbward
 **Business model:** annual subscription per repository — see
 [BUSINESS_MODEL.md](BUSINESS_MODEL.md)
@@ -630,6 +630,9 @@ ignored is not a control.
    **Careful:** they come from the `name` field of each job, so **any change to
    the matrix invalidates the list**. A required check that no longer exists
    blocks every PR forever.
+   F0-44 renamed the last three to `Types and coherence`, `Secret scanning` and
+   `Full cycle on real repositories`; the ruleset is updated by hand with that
+   PR.
 4. Delete from the remote the branches of tasks already integrated.
 
 **Acceptance criteria:**
@@ -1850,7 +1853,7 @@ list.
 
 ---
 
-### [ ] F0-44 — CLI, packs and scripts comments and tests in English
+### [x] F0-44 — CLI, packs and scripts comments and tests in English
 **Branch:** `refactor/f0-english-comments-cli` · **Depends on:** F0-16
 
 **Origin:** F0-41. The other half of F0-43.
@@ -1895,6 +1898,17 @@ profile, not withdrawn. The wizard (F4-1) asks the company for the language.
    `workflow-checks.ts` derives from those workflows in step. Found in the
    review of F0-16: with no accent and no listed word, the Spanish-text test
    below does not see them.
+6. Inventory the Spanish texts that reach the user and that the F0-41 control
+   does not see, because they carry no accent and no listed word, in
+   `packages/core`, `packages/ast`, `packages/scanner` and
+   `packages/packs-sdk` (`plan.ts`, `registry.ts`, `apply.ts`, `json.ts`,
+   `yaml.ts`, `rollback.ts`, `conformance.ts`, `maturity.ts`), and translate
+   them with the rest. Found in the review of F0-43: only the literals with an
+   accent or a listed word were declared as fragments, so the fragment list is
+   not the whole inventory.
+7. Update the header of `packages/ast/src/yaml.ts`, which says the generated
+   YAML carries explanatory comments in Spanish: they follow the language of
+   the profile.
 
 **What becomes a mechanical control:** a test that generates with the default
 profile and fails if Spanish appears, and another that with `language: es`
@@ -3350,7 +3364,6 @@ controls that watch the work of the phase go before that work.
 
 #### Phase 0 · 1. English as the main language
 
-- **F0-44** — comments and tests of the CLI, the packs and the scripts.
 - **F0-45** — the product speaks English by default; Spanish stays in the profile.
 
 #### Phase 0 · 2. Making green mean something

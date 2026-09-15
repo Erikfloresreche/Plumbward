@@ -15,109 +15,109 @@ import {
 const read = (p) => readFileSync(fileURLToPath(new URL(p, import.meta.url)), 'utf8')
 const corpus = JSON.parse(read('./branch-names-corpus.json'))
 
-describe('formato del nombre de rama', () => {
-  it('acepta las fases reales', () => {
+describe('branch name format', () => {
+  it('accepts the real phases', () => {
     expect(BRANCH_FORMAT.test('fix/f0-branch-control-review')).toBe(true)
     expect(BRANCH_FORMAT.test('feat/f6-launch')).toBe(true)
     expect(BRANCH_FORMAT.test('refactor/f10-something')).toBe(true)
   })
 
-  it('rechaza fases con ceros a la izquierda o de tres cifras', () => {
-    expect(branchProblem('feat/f00-launch')).toMatch(/formato/)
-    expect(branchProblem('feat/f999-launch')).toMatch(/formato/)
+  it('rejects phases with leading zeros or of three digits', () => {
+    expect(branchProblem('feat/f00-launch')).toMatch(/format/)
+    expect(branchProblem('feat/f999-launch')).toMatch(/format/)
   })
 
-  it('rechaza tipos, mayúsculas y separadores fuera de convención', () => {
-    expect(branchProblem('feature/f0-launch')).toMatch(/formato/)
-    expect(branchProblem('feat/f0-Launch')).toMatch(/formato/)
-    expect(branchProblem('feat/f0--launch')).toMatch(/formato/)
-    expect(branchProblem('feat/f0-launch-')).toMatch(/formato/)
-    expect(branchProblem('f0-launch')).toMatch(/formato/)
+  it('rejects types, uppercase and separators outside the convention', () => {
+    expect(branchProblem('feature/f0-launch')).toMatch(/format/)
+    expect(branchProblem('feat/f0-Launch')).toMatch(/format/)
+    expect(branchProblem('feat/f0--launch')).toMatch(/format/)
+    expect(branchProblem('feat/f0-launch-')).toMatch(/format/)
+    expect(branchProblem('f0-launch')).toMatch(/format/)
   })
 
-  it('rechaza caracteres no ASCII antes que el formato', () => {
-    expect(branchProblem('feat/f0-versión')).toBe('contiene caracteres no ASCII')
+  it('rejects non-ASCII characters before the format', () => {
+    expect(branchProblem('feat/f0-versión')).toBe('contains non-ASCII characters')
   })
 })
 
-describe('heurística de idioma sobre el corpus', () => {
-  // El corpus son los 33 nombres que la PR #6 renombró y sus sustitutos. La
-  // heurística anterior dejaba pasar 15 de los 33 y rechazaba dos nombres
-  // ingleses válidos; por eso el corpus está en el repositorio y no en el test.
-  it.each(corpus.spanish)('rechaza el nombre español %s', (name) => {
-    expect(branchProblem(name)).toMatch(/español/)
+describe('language heuristic over the corpus', () => {
+  // The corpus is the 33 names PR #6 renamed and their replacements. The
+  // previous heuristic let 15 of the 33 through and rejected two valid English
+  // names; that is why the corpus is in the repository and not in the test.
+  it.each(corpus.spanish)('rejects the Spanish name %s', (name) => {
+    expect(branchProblem(name)).toMatch(/Spanish/)
   })
 
-  it.each(corpus.english)('acepta el nombre inglés %s', (name) => {
+  it.each(corpus.english)('accepts the English name %s', (name) => {
     expect(branchProblem(name)).toBeUndefined()
   })
 
-  // Límite conocido y medido, no un descuido: cada componente es también una
-  // palabra inglesa. Si algún día se detecta, este test avisa para moverlo.
-  it.each(corpus.spanishNotDetected)('no detecta %s, y así está declarado', (name) => {
+  // A known and measured limit, not an oversight: each component is also an
+  // English word. If it is ever detected, this test warns to move it.
+  it.each(corpus.spanishNotDetected)('does not detect %s, and that is declared', (name) => {
     expect(branchProblem(name)).toBeUndefined()
   })
 
-  it('las palabras funcionales sólo cuentan entre otros dos componentes', () => {
+  it('function words only count between two other components', () => {
     expect(spanishEvidence('de-duplicate')).toEqual([])
     expect(spanishEvidence('y-axis')).toEqual([])
     expect(spanishEvidence('parte-de-algo')).toContain('de')
   })
 
-  it('las terminaciones no chocan con palabras inglesas cortas', () => {
+  it('endings do not collide with short English words', () => {
     expect(spanishEvidence('dad-mode')).toEqual([])
     expect(spanishEvidence('instalacion')).toContain('instalacion')
   })
 })
 
-describe('exenciones', () => {
-  it('deja pasar una release de develop a Prod', () => {
+describe('exemptions', () => {
+  it('lets a release from develop to Prod through', () => {
     expect(checkPullRequestBranch('develop', 'Erikfloresreche')).toBeUndefined()
     expect(checkPullRequestBranch('Prod', 'Erikfloresreche')).toBeUndefined()
   })
 
-  it('exime a los bots por autor, no por prefijo del nombre', () => {
+  it('exempts bots by author, not by name prefix', () => {
     expect(checkPullRequestBranch('dependabot/npm_and_yarn/vitest-2', 'dependabot[bot]')).toBeUndefined()
-    // La puerta trasera anterior: el prefijo lo escribía quien abría la PR.
-    expect(checkPullRequestBranch('dependabot/../fix/f0-ramas', 'someone')).toMatch(/formato/)
+    // The previous back door: the prefix was written by whoever opened the PR.
+    expect(checkPullRequestBranch('dependabot/../fix/f0-ramas', 'someone')).toMatch(/format/)
   })
 
-  it('exime al editor web sólo cuando el login del nombre es el del autor', () => {
+  it('exempts the web editor only when the login in the name is the author', () => {
     expect(checkPullRequestBranch('octocat-patch-1', 'octocat')).toBeUndefined()
-    expect(checkPullRequestBranch('octocat-patch-1', 'mallory')).toMatch(/formato/)
+    expect(checkPullRequestBranch('octocat-patch-1', 'mallory')).toMatch(/format/)
   })
 
-  it('exime al botón Revert sólo si la rama revertida era válida', () => {
+  it('exempts the Revert button only if the reverted branch was valid', () => {
     expect(checkPullRequestBranch('revert-42-fix/f0-protected-branches', 'octocat')).toBeUndefined()
     expect(checkPullRequestBranch('revert-42-develop', 'octocat')).toBeUndefined()
-    expect(checkPullRequestBranch('revert-42-lo-que-sea', 'octocat')).toMatch(/formato/)
+    expect(checkPullRequestBranch('revert-42-lo-que-sea', 'octocat')).toMatch(/format/)
   })
 
-  it('no exime sin autor conocido', () => {
+  it('does not exempt without a known author', () => {
     expect(branchExemption('octocat-patch-1', undefined)).toBeUndefined()
   })
 
-  it('no comprueba nada si no hay rama de PR', () => {
+  it('checks nothing if there is no PR branch', () => {
     expect(checkPullRequestBranch(undefined, 'octocat')).toBeUndefined()
   })
 })
 
-describe('analizador del plan', () => {
+describe('plan parser', () => {
   const plan = [
     '# Plan',
     '',
-    '### [ ] F0-1 — Pendiente',
+    '### [ ] F0-1 — Pending',
     '**Branch:** `fix/f0-pending-task`',
     '',
-    '### [X] F0-2 — Cerrada con equis mayúscula',
+    '### [X] F0-2 — Closed with a capital X',
     '**Branch:** `fix/f0-ramas-cerradas`',
     '',
-    '## Otra cabecera que no es una tarea',
+    '## Another heading that is not a task',
     '**Branch:** `fix/f0-ramas-huerfanas`',
     '',
   ].join('\n')
 
-  it('reconoce [ ], [x] y [X] y cuenta las tareas', () => {
+  it('recognises [ ], [x] and [X] and counts the tasks', () => {
     const { tasks, declarations, tasksWithoutDeclaration, branches } = parsePlan(plan)
     expect(tasks).toBe(2)
     expect(declarations).toBe(3)
@@ -125,9 +125,9 @@ describe('analizador del plan', () => {
     expect(branches.map((b) => b.pending)).toEqual([true, false, false])
   })
 
-  it('cuenta como declarada la tarea que dice no tener rama de código', () => {
+  it('counts as declared the task that says it has no code branch', () => {
     const { tasks, declarations, tasksWithoutDeclaration, branches } = parsePlan(
-      '### [ ] F0-1 — Sin rama\n**Branch:** GitHub configuration, no code branch\n',
+      '### [ ] F0-1 — No branch\n**Branch:** GitHub configuration, no code branch\n',
     )
     expect({ tasks, declarations, tasksWithoutDeclaration, branches }).toEqual({
       tasks: 1,
@@ -137,69 +137,70 @@ describe('analizador del plan', () => {
     })
   })
 
-  it('una cabecera que no es tarea cierra la anterior', () => {
-    // La rama bajo "## Otra cabecera" está en español, pero no cuelga de una
-    // tarea pendiente: antes el estado sobrevivía y la atribuía a la anterior.
+  it('a heading that is not a task closes the previous one', () => {
+    // The branch under "## Another heading" is in Spanish, but it does not hang
+    // from a pending task: before, the state survived and attributed it to the
+    // previous one.
     expect(checkPlan(plan)).toEqual([])
   })
 
-  it('sólo juzga las ramas de las tareas pendientes', () => {
+  it('only judges the branches of pending tasks', () => {
     const withSpanishBranch = plan.replace('fix/f0-pending-task', 'fix/f0-ramas-protegidas')
     expect(checkPlan(withSpanishBranch)).toEqual([
-      expect.stringContaining('"fix/f0-ramas-protegidas" parece estar en español'),
+      expect.stringContaining('"fix/f0-ramas-protegidas" looks Spanish'),
     ])
   })
 
-  it('falla ante un plan sin tareas en lugar de pasar en silencio', () => {
-    expect(checkPlan('')).toEqual([expect.stringContaining('no declara ninguna tarea')])
-    expect(checkPlan('### F0-1 — Sin casilla\n')).toEqual([
-      expect.stringContaining('no declara ninguna tarea'),
+  it('fails on a plan with no tasks instead of passing in silence', () => {
+    expect(checkPlan('')).toEqual([expect.stringContaining('declares no')])
+    expect(checkPlan('### F0-1 — No checkbox\n')).toEqual([
+      expect.stringContaining('declares no'),
     ])
   })
 
-  it('falla si alguna tarea no declara su rama', () => {
-    const withoutBranch = '### [ ] F0-1 — Con rama\n**Branch:** `fix/f0-one`\n\n### [ ] F0-2 — Sin rama\n'
-    expect(checkPlan(withoutBranch)).toEqual([expect.stringContaining('1 de las 2 tareas')])
+  it('fails if some task does not declare its branch', () => {
+    const withoutBranch = '### [ ] F0-1 — With branch\n**Branch:** `fix/f0-one`\n\n### [ ] F0-2 — No branch\n'
+    expect(checkPlan(withoutBranch)).toEqual([expect.stringContaining('1 of the 2 plan tasks')])
   })
 
-  it('falla si la línea de rama no sigue un formato que el analizador reconoce', () => {
-    // El fallo que motivó la aserción: el analizador se saltaba la línea y el
-    // control pasaba como si la tarea no tuviera rama que juzgar.
-    const otherFormat = '### [ ] F0-1 — Tarea\n*Branch*: `fix/f0-ramas-protegidas`\n'
-    expect(checkPlan(otherFormat)).toEqual([expect.stringContaining('1 de las 1 tareas')])
+  it('fails if the branch line does not follow a format the parser recognises', () => {
+    // The failure that motivated the assertion: the parser skipped the line and
+    // the control passed as if the task had no branch to judge.
+    const otherFormat = '### [ ] F0-1 — Task\n*Branch*: `fix/f0-ramas-protegidas`\n'
+    expect(checkPlan(otherFormat)).toEqual([expect.stringContaining('1 of the 1 plan tasks')])
   })
 
   it('does not recognise the Spanish branch line the plan used before F0-42', () => {
     const oldFormat = '### [ ] F0-1 — Task\n**Rama:** `fix/f0-ramas-protegidas`\n'
-    expect(checkPlan(oldFormat)).toEqual([expect.stringContaining('1 de las 1 tareas')])
+    expect(checkPlan(oldFormat)).toEqual([expect.stringContaining('1 of the 1 plan tasks')])
   })
 
-  it('una rama fuera de toda tarea no compensa a la tarea que no la declara', () => {
-    // Regresión de la revisión de la PR #10: comparando totales, la línea de
-    // "## Apéndice" cuadraba las cuentas y el nombre español de F0-1 nunca se
-    // llegaba a juzgar. Se cuenta por tarea, no por totales.
+  it('a branch outside any task does not make up for the task that does not declare it', () => {
+    // Regression from the review of PR #10: comparing totals, the line of
+    // "## Appendix" balanced the counts and the Spanish name of F0-1 was never
+    // judged. It is counted per task, not by totals.
     const masked = [
-      '### [ ] F0-1 — Con la rama mal escrita',
+      '### [ ] F0-1 — With the branch line misspelled',
       '*Branch*: `fix/f0-ramas-protegidas`',
       '',
-      '### [ ] F0-2 — Correcta',
+      '### [ ] F0-2 — Correct',
       '**Branch:** `fix/f0-two`',
       '',
-      '## Apéndice',
+      '## Appendix',
       '**Branch:** `fix/f0-three`',
       '',
     ].join('\n')
     const { tasks, declarations } = parsePlan(masked)
     expect({ tasks, declarations }).toEqual({ tasks: 2, declarations: 2 })
-    expect(checkPlan(masked)).toEqual([expect.stringContaining('1 de las 2 tareas')])
+    expect(checkPlan(masked)).toEqual([expect.stringContaining('1 of the 2 plan tasks')])
   })
 
-  it('tolera espaciado distinto en la línea de rama', () => {
+  it('tolerates different spacing in the branch line', () => {
     const { branches } = parsePlan('### [ ] T\n  **Branch:**   `fix/f0-spaced`\n')
     expect(branches).toEqual([{ name: 'fix/f0-spaced', pending: true }])
   })
 
-  it('el plan real del repositorio pasa el control', () => {
+  it('the real plan of the repository passes the control', () => {
     expect(checkPlan(read('../docs/EXECUTION_PLAN.md'))).toEqual([])
   })
 })

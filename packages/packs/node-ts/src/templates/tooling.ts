@@ -28,11 +28,11 @@ function run(manager: PackageManager, script: string): string {
 }
 
 /**
- * Hook de pre-commit.
+ * Pre-commit hook.
  *
- * Aquí vive el trinquete en su forma más pura: `lint-staged` sólo mira los
- * ficheros en el área de preparación, así que en un repositorio con 200.000
- * líneas de legado sigue siendo instantáneo y no pide arreglar el pasado.
+ * This is the ratchet in its purest form: `lint-staged` only looks at the files
+ * in the staging area, so in a repository with 200,000 lines of legacy code it
+ * is still instant and does not ask to fix the past.
  */
 export function preCommitHook(manager: PackageManager): string {
   return `#!/bin/sh
@@ -67,7 +67,7 @@ fi
 `
 }
 
-/** Hook que valida el formato del mensaje de commit. */
+/** Hook that validates the format of the commit message. */
 export function commitMsgHook(manager: PackageManager): string {
   return `#!/bin/sh
 # ---------------------------------------------------------------------------
@@ -83,7 +83,7 @@ ${exec(manager)} commitlint --edit "$1"
 `
 }
 
-/** Configuración de commitlint con mensajes de error en español. */
+/** commitlint configuration with error messages in Spanish. */
 export function commitlintConfig(): string {
   return `/**
  * Reglas del mensaje de commit (Conventional Commits).
@@ -103,7 +103,7 @@ export default {
 `
 }
 
-/** Configuración de Gitleaks con reglas propias y exclusiones razonables. */
+/** Gitleaks configuration with its own rules and reasonable exclusions. */
 export function gitleaksConfig(): string {
   return `# ---------------------------------------------------------------------------
 # Configuración de Gitleaks — detección de secretos
@@ -151,7 +151,7 @@ regexes = [
 `
 }
 
-/** Configuración de estilo compartida por todos los editores. */
+/** Style configuration shared by every editor. */
 export function editorConfig(): string {
   return `# ---------------------------------------------------------------------------
 # Estilo de fichero común a todo el equipo y a todos los editores.
@@ -177,7 +177,7 @@ indent_style = tab
 `
 }
 
-/** Makefile universal: los mismos comandos en cualquier proyecto del cliente. */
+/** Universal Makefile: the same commands in any project of the client. */
 export function makefile(manager: PackageManager): string {
   const install =
     manager === 'pnpm'
@@ -233,7 +233,7 @@ clean: ## Borra artefactos de compilación y dependencias
 `
 }
 
-/** Definición de DevContainer: mismo entorno para todo el equipo. */
+/** DevContainer definition: the same environment for the whole team. */
 export function devcontainer(manager: PackageManager, nodeVersion: string): string {
   const managerInstall =
     manager === 'pnpm'
@@ -283,7 +283,7 @@ export function devcontainer(manager: PackageManager, nodeVersion: string): stri
 `
 }
 
-/** Configuración de lint-staged: qué se ejecuta sobre cada tipo de fichero. */
+/** lint-staged configuration: what runs on each file type. */
 export function lintStagedConfig(profile: Profile): Record<string, string[]> {
   const jsCommands = ['eslint --fix --max-warnings=0', 'prettier --write']
 

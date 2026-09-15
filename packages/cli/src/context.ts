@@ -9,32 +9,34 @@ import { nodeTsPack } from '@plumbward/pack-node-ts'
 export const CLI_VERSION = '0.1.0'
 
 /**
- * Registro de packs disponibles.
+ * Registry of the available packs.
  *
- * En producción este listado se resolverá contra el catálogo remoto según la
- * licencia; en el MVP se enlaza estáticamente para poder probar de punta a punta.
+ * In production this list will be resolved against the remote catalogue
+ * according to the licence; in the MVP it is linked statically so it can be
+ * tested end to end.
  */
 export function buildRegistry(): PackRegistry {
   return new PackRegistry([nodeTsPack])
 }
 
 /**
- * Traduce los nombres de campo de versiones anteriores del perfil.
+ * Translates the field names of earlier versions of the profile.
  *
- * Hasta el 2026-09-11 el perfil tenía `main` y `dev`, que mezclaban dos papeles
- * (ADR 0005). `dev` pasa a `integration`. `main` **no** se traduce a `release`:
- * era un valor adivinado, y convertirlo en rama de despliegue sería justo el
- * error que el cambio evita. Un `release` explícito, en cambio, se respeta.
+ * Until 2026-09-11 the profile had `main` and `dev`, which mixed two roles
+ * (ADR 0005). `dev` becomes `integration`. `main` is **not** translated to
+ * `release`: it was a guessed value, and turning it into the deploy branch
+ * would be exactly the mistake the change avoids. An explicit `release`, on
+ * the other hand, is respected.
  */
 function normaliseBranches(raw: Record<string, unknown> | undefined): Profile['branches'] {
-  // Una cadena vacía o de otro tipo cuenta como "sin configurar": `release: ""`
-  // generaba un workflow con `branches: []` que `doctor` daba por bueno.
+  // An empty string or a value of another type counts as "not configured":
+  // `release: ""` generated a workflow with `branches: []` that `doctor` accepted.
   const text = (value: unknown): string | null =>
     typeof value === 'string' && value.trim() !== '' ? value.trim() : null
   const source = raw ?? {}
   return {
-    // La primera clave con valor: la nueva, o las antiguas `dev` y `main`. Un
-    // `dev: null` antiguo no anula el `main` que sí tenía valor.
+    // The first key with a value: the new one, or the old `dev` and `main`. An
+    // old `dev: null` does not cancel a `main` that did have a value.
     integration: text(source['integration']) ?? text(source['dev']) ?? text(source['main']),
     release: text(source['release']),
     staging: text(source['staging']),
@@ -42,11 +44,11 @@ function normaliseBranches(raw: Record<string, unknown> | undefined): Profile['b
 }
 
 /**
- * Carga el perfil desde `.governance/config.yml` o, si no existe, deriva el
- * recomendado del escaneo.
+ * Loads the profile from `.governance/config.yml` or, if it does not exist,
+ * derives the recommended one from the scan.
  *
- * El fichero es la fuente de verdad: mientras no cambie, la CLI produce
- * exactamente el mismo plan una y otra vez.
+ * The file is the source of truth: as long as it does not change, the CLI
+ * produces exactly the same plan again and again.
  */
 export async function loadProfile(scan: RepoScan): Promise<{
   profile: Profile
@@ -60,17 +62,17 @@ export async function loadProfile(scan: RepoScan): Promise<{
   try {
     const parsed = parseYamlToJson(raw)
     if (typeof parsed !== 'object' || parsed === null) throw new Error('contenido vacío')
-    // El perfil recomendado actúa como base: así un config.yml de una versión
-    // antigua sigue funcionando cuando se añaden campos nuevos.
+    // The recommended profile acts as the base: that way a config.yml from an
+    // old version keeps working when new fields are added.
     const base = recommendedProfile(scan)
     const fromFile = parsed as Partial<Profile> & { branches?: Record<string, unknown> }
     const profile = {
       ...base,
       ...fromFile,
-      // Con fichero, las ramas salen SÓLO del fichero: una rama que no declare
-      // queda sin configurar, nunca se rellena con el estado local del clon.
-      // Si no, dos clones con el mismo config.yml y distinto origin/HEAD
-      // generaban workflows distintos (invariante 2).
+      // With a file, the branches come ONLY from the file: a branch it does not
+      // declare stays unconfigured, and is never filled in from the local state
+      // of the clone. Otherwise two clones with the same config.yml and a
+      // different origin/HEAD generated different workflows (invariant 2).
       branches: normaliseBranches(fromFile.branches),
     } as Profile
     return { profile, fromFile: true }
@@ -80,7 +82,7 @@ export async function loadProfile(scan: RepoScan): Promise<{
   }
 }
 
-/** Escanea el repositorio y prepara el contexto que consumen los packs. */
+/** Scans the repository and prepares the context the packs consume. */
 export async function buildContext(cwd: string): Promise<{
   scan: RepoScan
   context: RepoContext
@@ -96,7 +98,7 @@ export async function buildContext(cwd: string): Promise<{
   }
 }
 
-/** Serializa el perfil con comentarios explicativos en español. */
+/** Serialises the profile with explanatory comments in Spanish. */
 export function profileToYaml(profile: Profile): string {
   const body = stringifyYaml(profile)
 

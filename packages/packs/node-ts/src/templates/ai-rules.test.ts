@@ -5,11 +5,11 @@ import type { RepoScan } from '@plumbward/scanner'
 import { aiRules, copilotInstructions } from './ai-rules.js'
 
 /**
- * Escaneo mínimo pero completo: construirlo a mano en lugar de escanear un
- * repositorio real mantiene la prueba rápida y determinista.
+ * Minimal but complete scan: building it by hand instead of scanning a real
+ * repository keeps the test fast and deterministic.
  */
 const scan: RepoScan = {
-  repoRoot: '/tmp/proyecto',
+  repoRoot: '/tmp/project',
   git: {
     isRepo: true,
     branch: 'main',
@@ -59,8 +59,8 @@ function withBoundaries(overrides: Partial<Profile['agentBoundaries']>): Profile
   return { ...base, agentBoundaries: { ...base.agentBoundaries, ...overrides } }
 }
 
-describe('límites operativos en las reglas de IA generadas', () => {
-  it('por defecto prohíbe git y base de datos, y pide los commits en inglés', () => {
+describe('operating limits in the generated AI rules', () => {
+  it('forbids git and database by default, and asks for commits in English', () => {
     const rules = aiRules(scan, base)
 
     expect(rules).toContain('Comandos de git que modifican el estado')
@@ -68,16 +68,16 @@ describe('límites operativos en las reglas de IA generadas', () => {
     expect(rules).toContain('se redactan siempre\nen inglés')
   })
 
-  it('permite explícitamente los comandos de sólo lectura', () => {
+  it('explicitly allows the read-only commands', () => {
     const rules = aiRules(scan, base)
 
-    // Si esto desaparece, el asistente deja de poder leer el estado del repo y
-    // la regla se vuelve inutilizable en la práctica.
+    // If this disappears, the assistant can no longer read the state of the
+    // repo and the rule becomes unusable in practice.
     expect(rules).toContain('Sí puedes usar los de sólo lectura')
     expect(rules).toContain('Sí puedes hacer `SELECT` de inspección')
   })
 
-  it('respeta la desactivación de cada límite por separado', () => {
+  it('respects disabling each limit separately', () => {
     const withoutGit = aiRules(scan, withBoundaries({ git: false }))
     expect(withoutGit).not.toContain('Comandos de git que modifican el estado')
     expect(withoutGit).toContain('Comandos de base de datos que escriben')
@@ -86,31 +86,31 @@ describe('límites operativos en las reglas de IA generadas', () => {
     expect(withoutAny).not.toContain('Comandos de base de datos que escriben')
   })
 
-  it('mantiene la numeración de secciones aunque se desactive todo', () => {
+  it('keeps the section numbering even with everything disabled', () => {
     const withoutAny = aiRules(scan, withBoundaries({ git: false, database: false }))
 
-    // La regla del idioma de los commits siempre aplica, así que la sección 7
-    // nunca desaparece y la 8 nunca queda huérfana.
+    // The commit language rule always applies, so section 7 never disappears
+    // and section 8 is never orphaned.
     expect(withoutAny).toContain('## 7. Lo que NO debes ejecutar')
     expect(withoutAny).toContain('## 8. Lo que NUNCA debes hacer')
   })
 
-  it('traduce el idioma de los commits cuando el perfil lo cambia', () => {
+  it('translates the commit language when the profile changes it', () => {
     const inSpanish = aiRules(scan, withBoundaries({ commitLanguage: 'es' }))
     expect(inSpanish).toContain('se redactan siempre\nen español')
   })
 
-  it('exige también los nombres de rama en el idioma del historial', () => {
+  it('also requires branch names in the language of the history', () => {
     const rules = aiRules(scan, base)
 
-    // El nombre de rama queda en el historial igual que el commit: si uno va en
-    // inglés y el otro no, el historial acaba mezclando idiomas.
+    // The branch name stays in the history just like the commit: if one is in
+    // English and the other is not, the history ends up mixing languages.
     expect(rules).toContain('los nombres de rama se redactan siempre')
     expect(rules).toContain('fix/protected-branch-detection')
     expect(copilotInstructions(scan, base)).toContain('los nombres de rama en inglés')
   })
 
-  it('lleva los mismos límites a las instrucciones de Copilot', () => {
+  it('carries the same limits to the Copilot instructions', () => {
     const copilot = copilotInstructions(scan, base)
 
     expect(copilot).toContain('No ejecutes comandos git que modifiquen el estado')

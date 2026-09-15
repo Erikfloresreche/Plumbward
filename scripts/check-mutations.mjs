@@ -1,27 +1,27 @@
 #!/usr/bin/env node
 /**
- * Pruebas de mutación de la lógica de ramas protegidas.
+ * Mutation tests of the protected-branch logic.
  *
- * Cada mutación deshace, a propósito, una pieza concreta de la lógica —casi todas
- * son fallos reales que encontraron las revisiones de F0-14— y comprueba que
- * algún test falla. Si una mutación sobrevive, esa pieza no está cubierta.
+ * Each mutation undoes, on purpose, one specific piece of the logic —almost all
+ * of them are real failures the reviews of F0-14 found— and checks that some
+ * test fails. If a mutation survives, that piece is not covered.
  *
- * Existe para que "N mutaciones detectadas" sea algo que cualquiera puede
- * reproducir, no una afirmación en una PR. Desde F0-27 lo ejecuta
- * `.github/workflows/mutations.yml`, sólo en las PRs que tocan lo que muta;
- * es lento, así que no va en `ci.yml`. A mano:
+ * It exists so that "N mutations detected" is something anyone can reproduce,
+ * not a claim in a PR. Since F0-27 `.github/workflows/mutations.yml` runs it,
+ * only on the PRs that touch what it mutates; it is slow, so it is not in
+ * `ci.yml`. By hand:
  *
  *     pnpm check:mutations
  *
- * Antes de mutar nada comprueba que la batería pasa en seco: un entorno que no
- * puede ejecutar los tests daría "todas detectadas" sin haber probado nada.
+ * Before mutating anything it checks that the suite passes dry: an environment
+ * that cannot run the tests would give "all detected" without testing anything.
  *
- * Todo se ejecuta con una configuración de git hostil —firma de commits con un
- * gpg que siempre falla, en la configuración global y también inyectada por
- * `GIT_CONFIG_COUNT`—, para que las pruebas demuestren también su aislamiento.
- * Restaura cada fichero aunque se interrumpa.
+ * Everything runs with a hostile git configuration —commit signing with a gpg
+ * that always fails, in the global configuration and also injected through
+ * `GIT_CONFIG_COUNT`—, so the tests also prove their isolation. It restores
+ * every file even if interrupted.
  *
- * Con un argumento, sólo ejecuta las mutaciones cuyo nombre lo contiene:
+ * With an argument, it only runs the mutations whose name contains it:
  *
  *     pnpm check:mutations HEAD
  */
@@ -52,38 +52,38 @@ const CI = 'packages/packs/node-ts/src/templates/ci.ts'
 const WF = 'packages/packs/node-ts/src/workflow-checks.ts'
 const VS = 'vitest.setup.ts'
 
-/** [descripción, fichero, texto original, texto mutado, reemplazo adicional opcional] */
+/** [description, file, original text, mutated text, optional extra replacement] */
 const MUTATIONS = [
-  ['Aislar siempre, también en ramas de trabajo', BR, '  if (head.detachedHead) return true\n', '  return true\n'],
-  ['No aislar con HEAD desacoplado', BR, '  if (head.detachedHead) return true\n', ''],
-  ['Proteger sólo lo configurado, sin inversión', BR, '  return !isWorkBranch(head.branch)\n', '  return false\n'],
-  ['Ignorar las ramas configuradas en el perfil', BR, '  if (configuredBranches(profile, head.defaultBranch).has(head.branch.toLowerCase())) return true\n', ''],
-  ['Comparar ramas configuradas distinguiendo mayúsculas', BR, '      .map((name) => name.toLowerCase()),\n', ''],
-  ['Prefijos de trabajo sensibles a mayúsculas', BR, 'branch.slice(0, slash).toLowerCase()', 'branch.slice(0, slash)'],
-  ['Quitar los prefijos de asistentes de IA', BR, "  'claude',\n", ''],
-  ['Ignorar --no-branch', CM, '  if (!createBranch) return\n', ''],
-  ['Escribir en la rama aislada existente', CM, '  if (!(await branchExists(repoRoot, GOVERNANCE_BRANCH))) return false\n', '  return false\n'],
-  ['Crear la rama aislada heredando el upstream', CM, "['checkout', '--no-track', '-b', GOVERNANCE_BRANCH]", "['checkout', '-b', GOVERNANCE_BRANCH]"],
-  ['Aplicar sin consultar el perfil', CM, '  if (!requiresIsolation(git, profile)) {', '  if (!requiresIsolation(git, { branches: { integration: null, release: null, staging: null } })) {'],
-  ['Leer la rama abreviada (heads/X)', GT, "git(repoRoot, ['symbolic-ref', '-q', 'HEAD'])", "git(repoRoot, ['symbolic-ref', '-q', 'HEAD']).then((r) => r?.replace('refs/heads/', 'refs/heads/heads/'))"],
-  ['Volver a adivinar la rama de despliegue', CT, '      release: null,\n', '      release: scan.git.defaultBranch,\n'],
-  ['Sin respaldo de integración (git init + push)', CT, "  if (scan.git.branch && !isWorkBranch(scan.git.branch)) return scan.git.branch\n  return scan.git.branches.find((name) => name === 'main' || name === 'master') ?? null", '  return null'],
-  ['Sin respaldo de main existente', CT, "  return scan.git.branches.find((name) => name === 'main' || name === 'master') ?? null", '  return null'],
-  ['Traducir el main antiguo a release', CX, "    release: text(source['release']),\n", "    release: text(source['release']) ?? text(source['main']),\n"],
-  ['No leer el main antiguo', CX, "    integration: text(source['integration']) ?? text(source['dev']) ?? text(source['main']),\n", "    integration: text(source['integration']) ?? text(source['dev']),\n"],
-  ['Aceptar una rama vacía como configurada', CX, "typeof value === 'string' && value.trim() !== ''", "typeof value === 'string'"],
-  ['Completar el config con el origin/HEAD local', CX, '      branches: normaliseBranches(fromFile.branches),\n', '      branches: Object.fromEntries(Object.entries(normaliseBranches(fromFile.branches)).map(([k, v]) => [k, v ?? base.branches[k]])),\n'],
-  ['Filtrar otra vez las PRs por rama', CI, 'on:\n  pull_request:\n$', 'on:\n  pull_request:\n    branches: [main]\n$'],
-  ['Declarar push aunque no haya ramas', CI, "${pushBranches.length > 0 ? `  push:\n    branches: [${pushBranches.join(', ')}]\n` : ''}", "  push:\n    branches: [${pushBranches.join(', ')}]\n"],
-  ['Staging con nombre literal', CI, "  const staging = profile.branches.staging ?? 'staging'", "  const staging = 'staging'"],
-  ['Push CI sin cablear el perfil', PK, '          ciPushBranches(profile),', '          ciPushBranches({ branches: { integration: null, release: null, staging: null } }),'],
-  ['Desplegar sin rama configurada', PK, "if (profile.deployTarget !== 'none' && release !== null) {", "if (profile.deployTarget !== 'none') {", ['ciProdWorkflow(manager, release)', "ciProdWorkflow(manager, release ?? 'main')"]],
-  ['doctor ignora un ci-prod.yml existente', WF, "  if (deployTarget === 'none' && prodText === undefined) return undefined\n", "  if (deployTarget === 'none') return undefined\n"],
-  ['doctor no compara la rama del ci-prod.yml', WF, '  if (deploysFrom.length !== 1 || deploysFrom[0] !== release) {', '  if (false) {'],
-  ['doctor acepta PRs filtradas', WF, '  if (filter === null) return { ...base, ok: true', '  if (filter !== undefined) return { ...base, ok: true'],
-  ['Heredar las variables GIT_* del entorno', VS, "  if (name.startsWith('GIT_')) delete process.env[name]\n", ''],
-  ['Aplicar aunque HEAD cambie durante la confirmación', CM, '  if (headMoved(scan.git, headBefore, await readHead(scan.repoRoot))) {', '  if (false) {'],
-  ['Comparar sólo la rama, no el commit', CM, ' || now.commit !== before.commit', ''],
+  ['Always isolate, on work branches too', BR, '  if (head.detachedHead) return true\n', '  return true\n'],
+  ['Do not isolate with a detached HEAD', BR, '  if (head.detachedHead) return true\n', ''],
+  ['Protect only what is configured, with no inversion', BR, '  return !isWorkBranch(head.branch)\n', '  return false\n'],
+  ['Ignore the branches configured in the profile', BR, '  if (configuredBranches(profile, head.defaultBranch).has(head.branch.toLowerCase())) return true\n', ''],
+  ['Compare configured branches case-sensitively', BR, '      .map((name) => name.toLowerCase()),\n', ''],
+  ['Case-sensitive work prefixes', BR, 'branch.slice(0, slash).toLowerCase()', 'branch.slice(0, slash)'],
+  ['Remove the AI assistant prefixes', BR, "  'claude',\n", ''],
+  ['Ignore --no-branch', CM, '  if (!createBranch) return\n', ''],
+  ['Write on the existing isolated branch', CM, '  if (!(await branchExists(repoRoot, GOVERNANCE_BRANCH))) return false\n', '  return false\n'],
+  ['Create the isolated branch inheriting the upstream', CM, "['checkout', '--no-track', '-b', GOVERNANCE_BRANCH]", "['checkout', '-b', GOVERNANCE_BRANCH]"],
+  ['Apply without consulting the profile', CM, '  if (!requiresIsolation(git, profile)) {', '  if (!requiresIsolation(git, { branches: { integration: null, release: null, staging: null } })) {'],
+  ['Read the abbreviated branch (heads/X)', GT, "git(repoRoot, ['symbolic-ref', '-q', 'HEAD'])", "git(repoRoot, ['symbolic-ref', '-q', 'HEAD']).then((r) => r?.replace('refs/heads/', 'refs/heads/heads/'))"],
+  ['Guess the deploy branch again', CT, '      release: null,\n', '      release: scan.git.defaultBranch,\n'],
+  ['No integration fallback (git init + push)', CT, "  if (scan.git.branch && !isWorkBranch(scan.git.branch)) return scan.git.branch\n  return scan.git.branches.find((name) => name === 'main' || name === 'master') ?? null", '  return null'],
+  ['No fallback to an existing main', CT, "  return scan.git.branches.find((name) => name === 'main' || name === 'master') ?? null", '  return null'],
+  ['Translate the old main to release', CX, "    release: text(source['release']),\n", "    release: text(source['release']) ?? text(source['main']),\n"],
+  ['Do not read the old main', CX, "    integration: text(source['integration']) ?? text(source['dev']) ?? text(source['main']),\n", "    integration: text(source['integration']) ?? text(source['dev']),\n"],
+  ['Accept an empty branch as configured', CX, "typeof value === 'string' && value.trim() !== ''", "typeof value === 'string'"],
+  ['Fill in the config with the local origin/HEAD', CX, '      branches: normaliseBranches(fromFile.branches),\n', '      branches: Object.fromEntries(Object.entries(normaliseBranches(fromFile.branches)).map(([k, v]) => [k, v ?? base.branches[k]])),\n'],
+  ['Filter PRs by branch again', CI, 'on:\n  pull_request:\n$', 'on:\n  pull_request:\n    branches: [main]\n$'],
+  ['Declare push even with no branches', CI, "${pushBranches.length > 0 ? `  push:\n    branches: [${pushBranches.join(', ')}]\n` : ''}", "  push:\n    branches: [${pushBranches.join(', ')}]\n"],
+  ['Staging with a literal name', CI, "  const staging = profile.branches.staging ?? 'staging'", "  const staging = 'staging'"],
+  ['Push CI without wiring the profile', PK, '          ciPushBranches(profile),', '          ciPushBranches({ branches: { integration: null, release: null, staging: null } }),'],
+  ['Deploy with no configured branch', PK, "if (profile.deployTarget !== 'none' && release !== null) {", "if (profile.deployTarget !== 'none') {", ['ciProdWorkflow(manager, release)', "ciProdWorkflow(manager, release ?? 'main')"]],
+  ['doctor ignores an existing ci-prod.yml', WF, "  if (deployTarget === 'none' && prodText === undefined) return undefined\n", "  if (deployTarget === 'none') return undefined\n"],
+  ['doctor does not compare the branch of ci-prod.yml', WF, '  if (deploysFrom.length !== 1 || deploysFrom[0] !== release) {', '  if (false) {'],
+  ['doctor accepts filtered PRs', WF, '  if (filter === null) return { ...base, ok: true', '  if (filter !== undefined) return { ...base, ok: true'],
+  ['Inherit the GIT_* variables of the environment', VS, "  if (name.startsWith('GIT_')) delete process.env[name]\n", ''],
+  ['Apply even if HEAD changes during the confirmation', CM, '  if (headMoved(scan.git, headBefore, await readHead(scan.repoRoot))) {', '  if (false) {'],
+  ['Compare only the branch, not the commit', CM, ' || now.commit !== before.commit', ''],
 ]
 
 const hostile = join(mkdtempSync(join(tmpdir(), 'plumbward-hostile-')), 'gitconfig')
@@ -107,16 +107,16 @@ const runTests = () =>
     timeout: 300_000,
   })
 
-// Arranque en seco: la batería tiene que pasar SIN mutar nada. Sin esto, un
-// entorno que no puede ejecutar los tests daba "todas detectadas" y verde, que
-// es el veredicto más peligroso posible: dice que todo está cubierto
-// precisamente cuando no se ha comprobado nada.
+// Dry start: the suite has to pass WITHOUT mutating anything. Without this, an
+// environment that cannot run the tests gave "all detected" and green, which is
+// the most dangerous verdict possible: it says everything is covered precisely
+// when nothing has been checked.
 const dryRun = runTests()
 if (dryRun.status !== 0) {
   console.error(
     dryRun.error || dryRun.status === null
-      ? `  NO EJECUTADA  la batería no se pudo ejecutar sin mutar: ${dryRun.error?.message ?? 'timeout'}`
-      : '  ROJA DE BASE  la batería falla sin mutar nada. Arregla los tests antes de medir mutaciones.',
+      ? `  NOT RUN       the suite could not run without mutating: ${dryRun.error?.message ?? 'timeout'}`
+      : '  RED AT BASE   the suite fails without mutating anything. Fix the tests before measuring mutations.',
   )
   process.exit(1)
 }
@@ -135,7 +135,7 @@ for (const [name, file, from, to, extra] of selected) {
   const original = readFileSync(path, 'utf8')
   const count = original.split(from).length - 1
   if (count !== 1) {
-    console.error(`  ANCLA ROTA    ${name} (${file}: ${count} apariciones). Actualiza la lista.`)
+    console.error(`  STALE ANCHOR  ${name} (${file}: ${count} occurrences). Update the list.`)
     survivors++
     continue
   }
@@ -153,5 +153,5 @@ for (const [name, file, from, to, extra] of selected) {
   }
 }
 
-console.log(`\n${selected.length - survivors} de ${selected.length} mutaciones detectadas.`)
+console.log(`\n${selected.length - survivors} of ${selected.length} mutations detected.`)
 process.exit(survivors === 0 ? 0 : 1)

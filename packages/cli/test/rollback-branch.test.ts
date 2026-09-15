@@ -6,17 +6,17 @@ import { join } from 'node:path'
 import { runApply, runRollback, GOVERNANCE_BRANCH } from '../src/commands.js'
 
 /**
- * Punto 1 de F0-24: `rollback` sobrescribe ficheros de la rama de partida con
- * un journal de un `apply` que escribió en la rama aislada.
+ * Item 1 of F0-24: `rollback` overwrites files of the starting branch with a
+ * journal from an `apply` that wrote on the isolated branch.
  *
- * El journal guarda la rama de partida en lugar de la rama escrita, está
- * ignorado por git —`.governance/journal.json` entra en el `.gitignore` que
- * instala el pack— y por eso sobrevive a los checkouts. La consecuencia es
- * pérdida de datos: `rollback` en `Prod` devuelve el `package.json` de `Prod` a
- * la versión que tenía cuando se lanzó `apply`.
+ * The journal stores the starting branch instead of the written branch, it is
+ * ignored by git —`.governance/journal.json` goes into the `.gitignore` the pack
+ * installs— and so it survives checkouts. The consequence is data loss:
+ * `rollback` on `Prod` returns the `package.json` of `Prod` to the version it
+ * had when `apply` was launched.
  *
- * Cada caso comprueba el contenido del fichero después de `rollback`, no sólo
- * el código de salida: el fallo es que se escribe, no que se informe mal.
+ * Each case checks the content of the file after `rollback`, not only the exit
+ * code: the failure is that it writes, not that it reports badly.
  */
 
 const created: string[] = []
@@ -30,7 +30,7 @@ function manifest(version: string): string {
   return `{"name":"client","version":"${version}","devDependencies":{"typescript":"^5.0.0"}}\n`
 }
 
-/** Repositorio Node mínimo en la rama indicada, con un commit inicial. */
+/** Minimal Node repository on the given branch, with an initial commit. */
 async function createRepo(branch: string): Promise<string> {
   const root = await mkdtemp(join(tmpdir(), 'plumbward-rollback-'))
   created.push(root)
@@ -61,7 +61,7 @@ afterEach(async () => {
   await Promise.all(created.splice(0).map((root) => rm(root, { recursive: true, force: true })))
 })
 
-/** Todo lo que la CLI ha impreso, sin colores. */
+/** Everything the CLI printed, without colours. */
 function captureOutput(): () => string {
   const lines: string[] = []
   const ansi = new RegExp(String.fromCharCode(27) + '\\[[0-9;]*m', 'g')
@@ -74,15 +74,15 @@ function captureOutput(): () => string {
   }
 }
 
-describe('rollback fuera de la rama en la que apply escribió', () => {
-  it('no sobrescribe el package.json de Prod con el snapshot de la rama aislada', async () => {
+describe('rollback outside the branch apply wrote on', () => {
+  it('does not overwrite the package.json of Prod with the snapshot of the isolated branch', async () => {
     const root = await createRepo('Prod')
 
     expect(await apply(root)).toBe(0)
     expect(await currentBranch(root)).toBe(GOVERNANCE_BRANCH)
 
-    // El desarrollador vuelve a Prod y sigue trabajando. El journal, ignorado
-    // por git, sobrevive al checkout.
+    // The developer goes back to Prod and keeps working. The journal, ignored
+    // by git, survives the checkout.
     await git(root, 'checkout', 'Prod')
     await writeFile(join(root, 'package.json'), manifest('2.0.0'))
     await git(root, 'add', 'package.json')
@@ -94,7 +94,7 @@ describe('rollback fuera de la rama en la que apply escribió', () => {
     expect(exitCode).toBe(1)
   })
 
-  it('el journal guarda la rama en la que se escribió, no la de partida', async () => {
+  it('the journal stores the branch it wrote on, not the starting one', async () => {
     const root = await createRepo('Prod')
 
     expect(await apply(root)).toBe(0)
@@ -105,7 +105,7 @@ describe('rollback fuera de la rama en la que apply escribió', () => {
     expect((journal as { writtenOnBranch: string | null }).writtenOnBranch).toBe(GOVERNANCE_BRANCH)
   })
 
-  it('sí promete el rollback cuando de verdad va a poder hacerlo', async () => {
+  it('does promise the rollback when it really will be able to do it', async () => {
     const root = await createRepo('Prod')
     const output = captureOutput()
 
@@ -116,12 +116,12 @@ describe('rollback fuera de la rama en la que apply escribió', () => {
   })
 
   /**
-   * Hallazgo 1 de la revisión de F0-30. El paso anterior manda abrir una Pull
-   * Request, y para eso hay que commitear; desde F0-30, commitear mueve el
-   * commit y `rollback` se niega. La promesa dejaba de ser cierta en cuanto se
-   * seguía el paso de antes, que es la misma promesa falsa que retiró F0-24.
+   * Finding 1 of the review of F0-30. The previous step says to open a Pull
+   * Request, and that needs a commit; since F0-30, committing moves the commit
+   * and `rollback` refuses. The promise stopped being true as soon as the
+   * previous step was followed, which is the same false promise F0-24 withdrew.
    */
-  it('no promete un rollback que el paso anterior invalida', async () => {
+  it('does not promise a rollback the previous step invalidates', async () => {
     const root = await createRepo('Prod')
     const output = captureOutput()
 
@@ -132,7 +132,7 @@ describe('rollback fuera de la rama en la que apply escribió', () => {
     expect(printed).not.toContain('Si algo no encaja: `plumbward rollback`')
   })
 
-  it('sigue revirtiendo con normalidad en la rama en la que apply escribió', async () => {
+  it('keeps reverting normally on the branch apply wrote on', async () => {
     const root = await createRepo('Prod')
 
     expect(await apply(root)).toBe(0)
@@ -145,31 +145,32 @@ describe('rollback fuera de la rama en la que apply escribió', () => {
 })
 
 /**
- * F0-30: el nombre de la rama dice dónde estás, no si es el mismo sitio.
+ * F0-30: the branch name says where you are, not whether it is the same place.
  *
- * `assertSameBranch` (F0-24) compara nombres, y `revertEntries` escribe en
- * cuanto el nombre coincide. Una rama borrada y recreada sobre otro commit
- * lleva el mismo nombre y no es el mismo sitio: los snapshots del journal son
- * de la rama vieja, y restaurarlos ahí es la misma pérdida de datos que F0-24
- * arregló para el caso fácil.
+ * `assertSameBranch` (F0-24) compares names, and `revertEntries` writes as soon
+ * as the name matches. A branch deleted and recreated on another commit carries
+ * the same name and is not the same place: the journal snapshots belong to the
+ * old branch, and restoring them there is the same data loss F0-24 fixed for the
+ * easy case.
  */
-describe('rollback en una rama del mismo nombre creada sobre otro commit', () => {
-  it('no restaura el snapshot viejo sobre el trabajo de la rama nueva', async () => {
+describe('rollback on a branch of the same name created on another commit', () => {
+  it('does not restore the old snapshot over the work of the new branch', async () => {
     const root = await createRepo('Prod')
 
     expect(await apply(root)).toBe(0)
     expect(await currentBranch(root)).toBe(GOVERNANCE_BRANCH)
 
-    // Se tira la rama aislada y se sigue en Prod. El journal, ignorado por git,
-    // sobrevive: está en `.governance/`, que no se borra con el checkout.
+    // The isolated branch is dropped and work goes on in Prod. The journal,
+    // ignored by git, survives: it is in `.governance/`, which the checkout
+    // does not delete.
     await git(root, 'checkout', '-f', 'Prod')
     await writeFile(join(root, 'package.json'), manifest('2.0.0'))
     await git(root, 'add', 'package.json')
     await git(root, 'commit', '-m', 'bump version')
     await git(root, 'branch', '-D', GOVERNANCE_BRANCH)
 
-    // Más tarde se vuelve a crear una rama con el mismo nombre, sobre el commit
-    // nuevo. Para el guardián de F0-24 es indistinguible de la original.
+    // Later a branch with the same name is created again, on the new commit.
+    // For the F0-24 guard it is indistinguishable from the original.
     await git(root, 'checkout', '-b', GOVERNANCE_BRANCH)
 
     const exitCode = await runRollback(root)
@@ -178,7 +179,7 @@ describe('rollback en una rama del mismo nombre creada sobre otro commit', () =>
     expect(exitCode).toBe(1)
   })
 
-  it('tampoco revierte si se ha commiteado en la rama aislada después del apply', async () => {
+  it('does not revert either if there was a commit on the isolated branch after the apply', async () => {
     const root = await createRepo('Prod')
 
     expect(await apply(root)).toBe(0)
@@ -193,12 +194,12 @@ describe('rollback en una rama del mismo nombre creada sobre otro commit', () =>
   })
 
   /**
-   * El commit anotado es a la vez el de partida: `headMoved` aborta si HEAD se
-   * mueve entre el plan y la confirmación, y `prepareBranch` crea la rama desde
-   * HEAD sin commitear. Este test fija esa igualdad, que es la razón de que el
-   * journal guarde un commit y no dos.
+   * The recorded commit is also the starting one: `headMoved` aborts if HEAD
+   * moves between the plan and the confirmation, and `prepareBranch` creates the
+   * branch from HEAD without committing. This test pins that equality, which is
+   * why the journal stores one commit and not two.
    */
-  it('el journal guarda el commit sobre el que se escribió, que es el de partida', async () => {
+  it('the journal stores the commit it wrote on, which is the starting one', async () => {
     const root = await createRepo('Prod')
     await git(root, 'checkout', '--detach')
     const startCommit = await git(root, 'rev-parse', 'HEAD')
@@ -211,7 +212,7 @@ describe('rollback en una rama del mismo nombre creada sobre otro commit', () =>
     expect((journal as { writtenOnCommit: string | null }).writtenOnCommit).toBe(startCommit)
   })
 
-  it('el aviso de vuelta nombra el commit de partida, no un hueco que rellenar', async () => {
+  it('the way-back notice names the starting commit, not a gap to fill', async () => {
     const root = await createRepo('Prod')
     await git(root, 'checkout', '--detach')
     const startCommit = await git(root, 'rev-parse', 'HEAD')
@@ -229,21 +230,21 @@ describe('rollback en una rama del mismo nombre creada sobre otro commit', () =>
 })
 
 /**
- * F0-29, hallazgo 2 de la revisión de la PR #11. Con `--no-branch` y HEAD
- * desacoplado, `prepareBranch` sale pronto, se escribe sobre el HEAD
- * desacoplado y `writtenOnBranch` queda `null`. F0-24 se negaba siempre a
- * revertir ese journal; antes de F0-24 funcionaba.
+ * F0-29, finding 2 of the review of PR #11. With `--no-branch` and a detached
+ * HEAD, `prepareBranch` returns early, the write happens on the detached HEAD
+ * and `writtenOnBranch` stays `null`. F0-24 always refused to revert that
+ * journal; before F0-24 it worked.
  *
- * Decisión: el sitio lo identifica el commit (F0-30), y la etiqueta vacía se
- * compara como cualquier otra. Ver `assertSameBranch`.
+ * Decision: the commit identifies the place (F0-30), and the empty label is
+ * compared like any other. See `assertSameBranch`.
  */
-describe('apply --no-branch con HEAD desacoplado', () => {
+describe('apply --no-branch with a detached HEAD', () => {
   async function applyDetached(root: string): Promise<number> {
     await git(root, 'checkout', '--detach')
     return runApply(root, { yes: true, install: false, branch: false })
   }
 
-  it('se revierte con rollback y deja el árbol limpio', async () => {
+  it('is reverted with rollback and leaves the tree clean', async () => {
     const root = await createRepo('Prod')
 
     expect(await applyDetached(root)).toBe(0)
@@ -254,7 +255,7 @@ describe('apply --no-branch con HEAD desacoplado', () => {
     expect(await git(root, 'status', '--porcelain')).toBe('')
   })
 
-  it('promete el rollback, con la misma salvedad del commit', async () => {
+  it('promises the rollback, with the same commit caveat', async () => {
     const root = await createRepo('Prod')
     const output = captureOutput()
 
@@ -266,7 +267,7 @@ describe('apply --no-branch con HEAD desacoplado', () => {
     expect(printed).not.toContain('no se podrá revertir')
   })
 
-  it('no revierte si se ha commiteado sobre el HEAD desacoplado después del apply', async () => {
+  it('does not revert if there was a commit on the detached HEAD after the apply', async () => {
     const root = await createRepo('Prod')
 
     expect(await applyDetached(root)).toBe(0)
@@ -278,7 +279,7 @@ describe('apply --no-branch con HEAD desacoplado', () => {
     expect(await readManifest(root)).toBe(manifest('3.0.0'))
   })
 
-  it('no revierte desde una rama, aunque apunte al mismo commit, y dice cómo volver', async () => {
+  it('does not revert from a branch, even one pointing at the same commit, and says how to go back', async () => {
     const root = await createRepo('Prod')
     const startCommit = await git(root, 'rev-parse', 'HEAD')
 

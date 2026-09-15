@@ -2,11 +2,11 @@ import { describe, expect, it } from 'vitest'
 import { branchReturnNotice } from '../src/branch-notice.js'
 
 /**
- * Punto 2 de F0-24, la decisión sola. Los dos casos de punta a punta —fallo de
- * `apply` con EACCES y `rollback`— están en `branch-notice.e2e.test.ts`; aquí
- * van las combinaciones que no se pueden provocar sin montar un HEAD
- * desacoplado, y el caso en que **no hay que decir nada**, que es el que se
- * rompe al escribir el aviso sin condición.
+ * Item 2 of F0-24, the decision alone. The two end-to-end cases —an `apply`
+ * failure with EACCES and `rollback`— are in `branch-notice.e2e.test.ts`; here
+ * go the combinations that cannot be triggered without setting up a detached
+ * HEAD, and the case where **nothing must be said**, which is the one that
+ * breaks when the notice is written with no condition.
  */
 
 const ISOLATED = 'chore/setup-ai-governance'
@@ -23,7 +23,7 @@ function notice(currentBranch: string | null, startedOnBranch: string | null): s
   }).join('\n')
 }
 
-/** El caso en que `apply` falló y **no** pudo revertir: queda trabajo a medias. */
+/** The case where `apply` failed and could **not** revert: half-done work is left. */
 function noticePending(currentBranch: string | null, startedOnBranch: string | null): string {
   return branchReturnNotice({
     currentBranch,
@@ -35,15 +35,15 @@ function noticePending(currentBranch: string | null, startedOnBranch: string | n
 }
 
 describe('branchReturnNotice', () => {
-  it('calla cuando el repositorio ha quedado donde estaba', () => {
+  it('stays silent when the repository was left where it was', () => {
     expect(notice('Prod', 'Prod')).toBe('')
   })
 
-  it('calla también con HEAD desacoplado si ya se empezó así', () => {
+  it('stays silent with a detached HEAD too, if it started that way', () => {
     expect(notice(null, null)).toBe('')
   })
 
-  it('dice dónde estás, cómo volver y que la rama aislada sobra', () => {
+  it('says where you are, how to go back and that the isolated branch is left over', () => {
     const text = notice(ISOLATED, 'Prod')
 
     expect(text).toContain(`Sigues en la rama "${ISOLATED}"`)
@@ -51,81 +51,81 @@ describe('branchReturnNotice', () => {
     expect(text).toContain(`git branch -d ${ISOLATED}`)
   })
 
-  it('no propone borrar una rama que no es la aislada', () => {
-    const text = notice('otra-rama', 'Prod')
+  it('does not propose deleting a branch that is not the isolated one', () => {
+    const text = notice('other-branch', 'Prod')
 
     expect(text).toContain('git checkout Prod')
     expect(text).not.toContain('git branch -d')
   })
 
-  it('avisa de que HEAD ha quedado desacoplado', () => {
+  it('warns that HEAD was left detached', () => {
     const text = notice(null, 'Prod')
 
     expect(text).toContain('desacoplado')
     expect(text).toContain('git checkout Prod')
   })
 
-  it('no inventa una rama de vuelta si se empezó con HEAD desacoplado', () => {
+  it('does not invent a branch to go back to if the work started with a detached HEAD', () => {
     const text = notice(ISOLATED, null)
 
     expect(text).toContain(`Sigues en la rama "${ISOLATED}"`)
-    // El único `git checkout` de vuelta es al commit anotado (F0-30): no hay
-    // rama que nombrar, y antes aquí había un `<commit>` sin rellenar.
+    // The only `git checkout` back is to the recorded commit (F0-30): there is
+    // no branch to name, and there used to be an unfilled `<commit>` here.
     expect(text).toContain(`git checkout ${STARTED_COMMIT}`)
     expect(text).not.toMatch(new RegExp(`git checkout (?!${STARTED_COMMIT})`))
   })
 })
 
 /**
- * Hallazgo bloqueante de la revisión de la PR #11. Cuando `apply` falla y la
- * reversión automática **también** falla, el árbol tiene ficheros a medias y el
- * journal sigue vivo. El aviso de antes proponía las dos cosas que cierran la
- * única salida:
+ * Blocking finding of the review of PR #11. When `apply` fails and the automatic
+ * revert **also** fails, the tree has half-written files and the journal is still
+ * alive. The previous notice proposed the two things that close the only way
+ * out:
  *
- *  - `git checkout <rama de partida>` arrastra los ficheros a medias a la otra
- *    rama: la misma contaminación que arregla el punto 1 de F0-24.
- *  - `git branch -d <rama aislada>` funciona, porque `apply` nunca commitea. Y
- *    sin esa rama `assertSameBranch` no se puede satisfacer jamás: el rollback
- *    que la línea anterior pedía queda imposible para siempre.
+ *  - `git checkout <starting branch>` drags the half-written files to the other
+ *    branch: the same contamination item 1 of F0-24 fixes.
+ *  - `git branch -d <isolated branch>` works, because `apply` never commits. And
+ *    without that branch `assertSameBranch` can never be satisfied: the rollback
+ *    the previous line asked for becomes impossible forever.
  */
-describe('branchReturnNotice con un rollback pendiente', () => {
-  it('no propone volver ni borrar: primero revertir, después volver', () => {
+describe('branchReturnNotice with a pending rollback', () => {
+  it('proposes neither going back nor deleting: revert first, then go back', () => {
     const text = noticePending(ISOLATED, 'Prod')
 
     expect(text).toContain(`Sigues en la rama "${ISOLATED}"`)
     expect(text).toContain('plumbward rollback')
     expect(text).not.toContain('git branch -d')
-    // El `git checkout` sólo puede aparecer detrás del rollback, nunca antes.
+    // The `git checkout` can only appear after the rollback, never before.
     expect(text.indexOf('plumbward rollback')).toBeLessThan(text.indexOf('git checkout Prod'))
   })
 
-  it('avisa de que borrar la rama aislada deja el rollback imposible', () => {
+  it('warns that deleting the isolated branch makes the rollback impossible', () => {
     expect(noticePending(ISOLATED, 'Prod')).toMatch(/No borres[\s\S]*rollback/)
   })
 
-  it('no llama "sin cambios" a un árbol con ficheros a medias', () => {
+  it('does not call a tree with half-written files "unchanged"', () => {
     expect(noticePending(ISOLATED, 'Prod')).not.toContain('sin cambios')
   })
 
-  it('calla igualmente si la rama no cambió: no hay nada de ramas que decir', () => {
+  it('stays silent all the same if the branch did not change: nothing to say about branches', () => {
     expect(noticePending('Prod', 'Prod')).toBe('')
   })
 })
 
 /**
- * F0-30, punto 3: sin el commit anotado el consejo era `git checkout <commit>`,
- * un hueco que quien lo lee ya no puede rellenar: HEAD está en la rama aislada
- * desde que `apply` la creó, y el commit de partida no se ve por ninguna parte.
+ * F0-30, item 3: without the recorded commit the advice was `git checkout
+ * <commit>`, a gap the reader can no longer fill: HEAD has been on the isolated
+ * branch since `apply` created it, and the starting commit is nowhere to be seen.
  */
-describe('branchReturnNotice cuando se empezó con HEAD desacoplado', () => {
-  it('nombra el commit de partida en lugar de un hueco', () => {
+describe('branchReturnNotice when the work started with a detached HEAD', () => {
+  it('names the starting commit instead of a gap', () => {
     const text = notice(ISOLATED, null)
 
     expect(text).toContain(`git checkout ${STARTED_COMMIT}`)
     expect(text).not.toContain('<commit>')
   })
 
-  it('también con un rollback pendiente, detrás del rollback', () => {
+  it('with a pending rollback too, after the rollback', () => {
     const text = noticePending(ISOLATED, null)
 
     expect(text).toContain(`git checkout ${STARTED_COMMIT}`)
@@ -134,7 +134,7 @@ describe('branchReturnNotice cuando se empezó con HEAD desacoplado', () => {
     )
   })
 
-  it('sin ningún commit en el repositorio no inventa uno al que volver', () => {
+  it('with no commit at all in the repository, does not invent one to go back to', () => {
     const text = branchReturnNotice({
       currentBranch: ISOLATED,
       startedOnBranch: null,

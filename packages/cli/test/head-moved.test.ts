@@ -5,11 +5,11 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
 /**
- * Qué pasa si alguien cambia de rama mientras `apply` espera la confirmación:
- * desde otro terminal, el selector de ramas del IDE o un agente en paralelo.
+ * What happens if someone switches branches while `apply` waits for the
+ * confirmation: from another terminal, the IDE branch picker or a parallel agent.
  *
- * La confirmación se sustituye por una que hace ese cambio y luego acepta. Así
- * se reproduce la carrera de forma determinista, sin temporizadores.
+ * The confirmation is replaced by one that makes that change and then accepts.
+ * That reproduces the race deterministically, with no timers.
  */
 
 const duringPrompt = vi.hoisted(() => ({ action: async (): Promise<void> => {} }))
@@ -55,8 +55,8 @@ afterEach(async () => {
   await Promise.all(created.splice(0).map((dir) => rm(dir, { recursive: true, force: true })))
 })
 
-describe('apply no escribe si HEAD cambia mientras se confirma', () => {
-  it('cambiar a Prod durante la confirmación aborta sin tocar Prod', async () => {
+describe('apply does not write if HEAD changes during the confirmation', () => {
+  it('switching to Prod during the confirmation aborts without touching Prod', async () => {
     const root = await createRepo()
     duringPrompt.action = async (): Promise<void> => {
       await git(root, 'checkout', '-q', 'Prod')
@@ -67,7 +67,7 @@ describe('apply no escribe si HEAD cambia mientras se confirma', () => {
     expect(await git(root, 'status', '--porcelain', '--untracked-files=all')).toBe('')
   })
 
-  it('un commit nuevo en la misma rama durante la confirmación también aborta', async () => {
+  it('a new commit on the same branch during the confirmation aborts too', async () => {
     const root = await createRepo()
     duringPrompt.action = async (): Promise<void> => {
       await git(root, 'commit', '-q', '--allow-empty', '-m', 'meanwhile')
@@ -77,7 +77,7 @@ describe('apply no escribe si HEAD cambia mientras se confirma', () => {
     expect(await git(root, 'status', '--porcelain', '--untracked-files=all')).toBe('')
   })
 
-  it('caso de control: sin cambios durante la confirmación, aplica en la rama de trabajo', async () => {
+  it('control case: with no change during the confirmation, it applies on the work branch', async () => {
     const root = await createRepo()
     const code = await runApply(root, { yes: false, install: false, branch: true })
     expect(code).toBe(0)

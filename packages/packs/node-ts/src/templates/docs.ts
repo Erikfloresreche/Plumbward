@@ -2,11 +2,11 @@ import type { Profile } from '@plumbward/packs-sdk'
 import type { RepoScan } from '@plumbward/scanner'
 
 /**
- * Documento de bienvenida a la gobernanza del repositorio.
+ * Welcome document to the governance of the repository.
  *
- * Está escrito para alguien que no sabe qué es un hook de pre-commit. Es una
- * pieza de producto, no documentación técnica: si el cliente no entiende qué le
- * hemos instalado, no lo mantiene y no renueva.
+ * It is written for someone who does not know what a pre-commit hook is. It is
+ * a piece of product, not technical documentation: if the client does not
+ * understand what we installed, they do not maintain it and do not renew.
  */
 export function governanceDoc(scan: RepoScan, profile: Profile): string {
   const stack = scan.primaryStack

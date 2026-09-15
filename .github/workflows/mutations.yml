@@ -1,33 +1,33 @@
 # ---------------------------------------------------------------------------
-# Pruebas de mutación de la lógica de ramas protegidas.
+# Mutation tests of the protected-branch logic.
 #
-# `check:mutations` deshace a propósito cada pieza de la lógica de ramas y
-# comprueba que algún test falla. Hasta F0-27 no se ejecutaba en ninguna parte:
-# dependía de que alguien se acordara de lanzarlo, así que no era un control,
-# era una recomendación. Aquí ya no depende de nadie.
+# `check:mutations` undoes on purpose each piece of the branch logic and checks
+# that some test fails. Until F0-27 it ran nowhere: it depended on someone
+# remembering to launch it, so it was not a control, it was a recommendation.
+# Here it no longer depends on anyone.
 #
-# Va en su propio workflow, no como job de `ci.yml`, por dos razones:
+# It is its own workflow, not a job of `ci.yml`, for two reasons:
 #
-#   - Tarda del orden de diez minutos: dentro de `ci.yml` retrasaría la
-#     retroalimentación rápida que ese workflow existe para dar.
-#   - El filtro `paths:` es del workflow entero. Como job con `if:` aparecería
-#     como *Skipped* en todas las demás PRs —el ruido que F0-27 evita aquí y
-#     que F0-23, aún pendiente, quitará del escaneo de historial— y una
-#     condición `if` se desajusta en silencio (napkin).
+#   - It takes around ten minutes: inside `ci.yml` it would delay the fast
+#     feedback that workflow exists to give.
+#   - The `paths:` filter belongs to the whole workflow. As a job with `if:` it
+#     would show as *Skipped* on every other PR —the noise F0-27 avoids here and
+#     that F0-23, still pending, will remove from the history scan— and an `if`
+#     condition drifts in silence (napkin).
 #
-# CUIDADO AL HACERLO OBLIGATORIO: con un filtro `paths:`, una PR que no toque
-# esos ficheros no dispara este workflow, y un check obligatorio que no llega
-# se queda *pending* para siempre y bloquea el merge. Si entra en el ruleset,
-# hay que quitar el filtro antes.
+# CAREFUL WHEN MAKING IT REQUIRED: with a `paths:` filter, a PR that does not
+# touch those files does not trigger this workflow, and a required check that
+# never arrives stays *pending* forever and blocks the merge. If it enters the
+# ruleset, the filter has to go first.
 # ---------------------------------------------------------------------------
-name: Mutaciones
+name: Mutations
 
 on:
   pull_request:
     branches: [develop, Prod]
-    # Sólo las PRs que tocan lo que el script muta o ejecuta. La lista la
-    # verifica `pnpm check:coherence` contra `scripts/check-mutations.mjs`:
-    # si una mutación nueva toca un fichero que no está aquí, la CI lo dice.
+    # Only the PRs that touch what the script mutates or runs. `pnpm
+    # check:coherence` verifies the list against `scripts/check-mutations.mjs`:
+    # if a new mutation touches a file that is not here, the CI says so.
     paths:
       - 'packages/cli/src/commands.ts'
       - 'packages/cli/src/context.ts'
@@ -44,7 +44,7 @@ on:
       - 'packages/scanner/src/git.ts'
       - 'packages/scanner/test/default-branch.test.ts'
       - 'vitest.setup.ts'
-      # El propio control y lo que decide cómo corren los tests.
+      # The control itself and what decides how the tests run.
       - 'scripts/check-mutations.mjs'
       - 'scripts/mutation-paths.mjs'
       - 'scripts/mutation-outcome.mjs'
@@ -61,29 +61,29 @@ permissions:
 
 jobs:
   mutations:
-    name: Mutaciones de la lógica de ramas
-    # Job propio, sin matriz y sin condiciones `if`: lo que decide si esto
-    # corre es el filtro `paths:` de arriba, en un solo sitio.
+    name: Branch logic mutations
+    # A job of its own, with no matrix and no `if` conditions: what decides
+    # whether this runs is the `paths:` filter above, in a single place.
     runs-on: ubuntu-latest
-    # Treinta mutaciones, cada una una batería de tests completa. En local son
-    # unos tres minutos; el margen es para un runner lento, no para el caso
-    # normal. El script tiene además su propio tope de 5 minutos por mutación.
+    # Thirty mutations, each one a full test suite. Locally it takes about three
+    # minutes; the margin is for a slow runner, not for the normal case. The
+    # script also has its own 5-minute cap per mutation.
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v5
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v5
         with:
-          # El suelo declarado basta: esto prueba cobertura de los tests, no
-          # compatibilidad entre versiones de Node.
+          # The declared floor is enough: this tests test coverage, not
+          # compatibility across Node versions.
           node-version: '22.13'
           cache: pnpm
 
-      - name: Instalar dependencias
+      - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      # No se compila: los tests importan `src` por los alias de vitest.
-      # El script inyecta su propia configuración de git hostil (firma que
-      # siempre falla), así que aquí no se configura identidad alguna.
-      - name: Pruebas de mutación
+      # No build: the tests import `src` through the vitest aliases.
+      # The script injects its own hostile git configuration (a signature that
+      # always fails), so no identity is configured here.
+      - name: Mutation tests
         run: pnpm check:mutations

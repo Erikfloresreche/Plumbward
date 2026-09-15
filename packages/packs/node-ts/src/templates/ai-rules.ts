@@ -2,11 +2,11 @@ import type { Profile } from '@plumbward/packs-sdk'
 import type { RepoScan } from '@plumbward/scanner'
 
 /**
- * Sección de límites operativos.
+ * Operating limits section.
  *
- * Es la única parte de las reglas que no habla de cómo escribir código sino de
- * qué NO debe ejecutar el asistente. Se genera aparte porque el equipo puede
- * desactivarla desde el perfil, y porque es la sección que más se consulta.
+ * It is the only part of the rules that is not about how to write code but
+ * about what the assistant must NOT run. It is generated apart because the team
+ * can disable it from the profile, and because it is the most consulted section.
  */
 function boundariesSection(profile: Profile): string {
   const { git, database, commitLanguage } = profile.agentBoundaries
@@ -72,11 +72,11 @@ Entrégalo todo como texto para que lo use la persona que ejecuta git.
 }
 
 /**
- * Reglas de contexto para asistentes de IA.
+ * Context rules for AI assistants.
  *
- * Se genera un único cuerpo de reglas y se publica en los ficheros que espera
- * cada herramienta. Mantener una sola fuente evita que Cursor y Claude acaben
- * con instrucciones divergentes sobre el mismo repositorio.
+ * A single body of rules is generated and published in the files each tool
+ * expects. Keeping one source stops Cursor and Claude from ending up with
+ * diverging instructions about the same repository.
  */
 export function aiRules(scan: RepoScan, profile: Profile): string {
   const stack = scan.primaryStack
@@ -179,7 +179,7 @@ ${boundariesSection(profile)}## 8. Lo que NUNCA debes hacer
 `
 }
 
-/** Instrucciones para GitHub Copilot, que espera un fichero más breve. */
+/** Instructions for GitHub Copilot, which expects a shorter file. */
 export function copilotInstructions(scan: RepoScan, profile: Profile): string {
   const stack = scan.primaryStack
   const strict = profile.strictness === 'strict'

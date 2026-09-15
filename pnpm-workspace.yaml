@@ -2,7 +2,7 @@ packages:
   - "packages/*"
   - "packages/packs/*"
   - "apps/*"
-# esbuild necesita ejecutar su script de instalación para descargar el binario
-# nativo que usa tsup al compilar los paquetes.
+# esbuild needs to run its install script to download the native binary that
+# tsup uses to build the packages.
 allowBuilds:
   esbuild: true

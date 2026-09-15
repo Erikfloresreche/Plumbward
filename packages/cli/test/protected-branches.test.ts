@@ -7,25 +7,25 @@ import { join } from 'node:path'
 import { runApply } from '../src/commands.js'
 
 /**
- * Pruebas de punta a punta de la decisión "¿escribo en esta rama o creo una
- * aislada?", ejecutando `runApply` entero sobre repositorios git reales.
+ * End-to-end tests of the decision "do I write on this branch or create an
+ * isolated one?", running the whole `runApply` on real git repositories.
  *
- * Cada caso pregunta lo único que importa: **en qué rama queda el repositorio
- * después de `apply`**. Una versión anterior comprobaba que el commit de la rama
- * no se movía, lo cual era cierto también con el fallo sin arreglar, porque
- * `apply` nunca hace commit.
+ * Each case asks the only thing that matters: **which branch the repository is
+ * on after `apply`**. An earlier version checked that the branch commit did not
+ * move, which was also true with the bug unfixed, because `apply` never
+ * commits.
  */
 
 const ISOLATED = 'refs/heads/chore/setup-ai-governance'
 const created: string[] = []
-// El aislamiento de git (configuración global y variables GIT_*) está en vitest.setup.ts.
+// Git isolation (global configuration and GIT_* variables) lives in vitest.setup.ts.
 
 async function git(cwd: string, ...args: string[]): Promise<string> {
   const { stdout } = await execa('git', args, { cwd })
   return stdout.trim()
 }
 
-/** Repositorio Node mínimo en la rama indicada, con un commit salvo que se pida lo contrario. */
+/** Minimal Node repository on the given branch, with a commit unless told otherwise. */
 async function createRepo(branch: string, options: { commit?: boolean } = {}): Promise<string> {
   const root = await mkdtemp(join(tmpdir(), 'plumbward-protected-'))
   created.push(root)
@@ -43,13 +43,13 @@ async function createRepo(branch: string, options: { commit?: boolean } = {}): P
   return root
 }
 
-/** Deja `origin/HEAD` apuntando a una rama, como tras un `git clone`, sin red. */
+/** Leaves `origin/HEAD` pointing at a branch, as after a `git clone`, with no network. */
 async function simulateClone(root: string, defaultBranch: string): Promise<void> {
   await git(root, 'update-ref', `refs/remotes/origin/${defaultBranch}`, 'HEAD')
   await git(root, 'symbolic-ref', 'refs/remotes/origin/HEAD', `refs/remotes/origin/${defaultBranch}`)
 }
 
-/** Escribe un `config.yml` parcial, como lo dejaría un equipo a mano. */
+/** Writes a partial `config.yml`, as a team would leave it by hand. */
 async function writeConfig(root: string, yaml: string): Promise<void> {
   await mkdir(join(root, '.governance'), { recursive: true })
   await writeFile(join(root, '.governance/config.yml'), yaml)
@@ -68,38 +68,38 @@ afterEach(async () => {
   await Promise.all(created.splice(0).map((dir) => rm(dir, { recursive: true, force: true })))
 })
 
-describe('apply nunca escribe directamente en una rama de larga duración', () => {
-  it('caso de control: rama Prod sin nada raro', async () => {
+describe('apply never writes directly on a long-lived branch', () => {
+  it('control case: a Prod branch with nothing odd', async () => {
     const root = await createRepo('Prod')
     await apply(root)
     expect(await headRef(root)).toBe(ISOLATED)
   })
 
-  it('una etiqueta con el mismo nombre que la rama no desactiva la protección', async () => {
+  it('a tag with the same name as the branch does not disable the protection', async () => {
     const root = await createRepo('Prod')
     await git(root, 'tag', 'Prod')
     await apply(root)
     expect(await headRef(root)).toBe(ISOLATED)
   })
 
-  it('con HEAD desacoplado crea la rama aislada en vez de trabajar suelto', async () => {
+  it('with a detached HEAD it creates the isolated branch instead of working loose', async () => {
     const root = await createRepo('Prod')
     await git(root, 'checkout', '--detach')
     await apply(root)
     expect(await headRef(root)).toBe(ISOLATED)
   })
 
-  it('en un repositorio sin commits también protege la rama', async () => {
+  it('in a repository with no commits it protects the branch too', async () => {
     const root = await createRepo('Prod', { commit: false })
     await apply(root)
     expect(await headRef(root)).toBe(ISOLATED)
   })
 
-  // Nombres que no están en ninguna lista. Antes, cualquier nombre desconocido
-  // quedaba desprotegido; ahora sólo se opera directamente sobre ramas de
-  // trabajo reconocibles, y lo desconocido cae del lado seguro.
+  // Names that are on no list. Before, any unknown name was left unprotected;
+  // now work happens directly only on recognisable work branches, and the
+  // unknown falls on the safe side.
   for (const branch of ['pro', 'pre', 'live', 'release/prod', 'env/production', 'staging']) {
-    it(`protege una rama llamada "${branch}" aunque no esté en ninguna lista`, async () => {
+    it(`protects a branch called "${branch}" even though it is on no list`, async () => {
       const root = await createRepo(branch)
       await apply(root)
       expect(await headRef(root)).toBe(ISOLATED)
@@ -107,30 +107,30 @@ describe('apply nunca escribe directamente en una rama de larga duración', () =
   }
 })
 
-describe('apply sí trabaja donde debe', () => {
-  it('en una rama de trabajo opera sobre ella, sin crear otra', async () => {
+describe('apply does work where it should', () => {
+  it('on a work branch it operates on it, without creating another one', async () => {
     const root = await createRepo('main')
     await git(root, 'checkout', '-b', 'feat/login')
     await apply(root)
     expect(await headRef(root)).toBe('refs/heads/feat/login')
   })
 
-  it('--no-branch respeta la decisión del usuario, incluso en una rama protegida', async () => {
+  it('--no-branch respects the user decision, even on a protected branch', async () => {
     const root = await createRepo('Prod')
     await apply(root, { branch: false })
     expect(await headRef(root)).toBe('refs/heads/Prod')
   })
 
-  it('si la rama aislada ya existe, aborta sin escribir nada', async () => {
-    // Puede estar desactualizada, y el plan se calculó sobre la rama de partida:
-    // escribir en ella sería aplicar algo distinto de lo que se enseñó.
+  it('if the isolated branch already exists, it aborts without writing anything', async () => {
+    // It may be out of date, and the plan was computed on the starting branch:
+    // writing on it would apply something different from what was shown.
     const root = await createRepo('Prod')
     await apply(root)
     await git(root, 'add', '-A')
     await git(root, 'commit', '-m', 'governance')
     await git(root, 'checkout', 'Prod')
-    // El journal del primer apply sigue ahí, sin seguimiento en Prod: se compara
-    // el estado antes y después, no contra un árbol vacío.
+    // The journal of the first apply is still there, untracked on Prod: the
+    // state before and after is compared, not against an empty tree.
     const before = await git(root, 'status', '--porcelain', '--untracked-files=all')
     const code = await apply(root)
     expect(code).toBe(1)
@@ -138,7 +138,7 @@ describe('apply sí trabaja donde debe', () => {
     expect(await git(root, 'status', '--porcelain', '--untracked-files=all')).toBe(before)
   })
 
-  it('en una rama creada por un asistente de IA opera sobre ella', async () => {
+  it('on a branch created by an AI assistant it operates on it', async () => {
     const root = await createRepo('main')
     await git(root, 'checkout', '-b', 'claude/add-lint')
     await apply(root)
@@ -146,8 +146,8 @@ describe('apply sí trabaja donde debe', () => {
   })
 })
 
-describe('el perfil generado no adivina lo que no se puede deducir', () => {
-  it('en git-flow, integración es la rama por defecto y la de despliegue queda sin configurar', async () => {
+describe('the generated profile does not guess what cannot be inferred', () => {
+  it('in git-flow, integration is the default branch and the deploy one stays unconfigured', async () => {
     const root = await createRepo('main')
     await git(root, 'branch', 'develop')
     await git(root, 'update-ref', 'refs/remotes/origin/main', 'HEAD')
@@ -155,18 +155,18 @@ describe('el perfil generado no adivina lo que no se puede deducir', () => {
     await apply(root)
     const config = await readFile(join(root, '.governance/config.yml'), 'utf8')
     expect(config).toMatch(/^\s+integration: develop$/m)
-    // Desde dónde se despliega nunca se deduce: se configura a mano.
+    // Where deploys come from is never inferred: it is configured by hand.
     expect(config).toMatch(/^\s+release: null$/m)
   })
 
-  it('sin rama de despliegue configurada no se genera el workflow de producción', async () => {
+  it('with no deploy branch configured, the production workflow is not generated', async () => {
     const root = await createRepo('feat/deploy')
     await writeConfig(root, 'deployTarget: vercel\n')
     await apply(root)
     expect(existsSync(join(root, '.github/workflows/ci-prod.yml'))).toBe(false)
   })
 
-  it('con la rama de despliegue configurada, despliega desde esa y sólo desde esa', async () => {
+  it('with the deploy branch configured, it deploys from that one and only that one', async () => {
     const root = await createRepo('feat/deploy')
     await writeConfig(root, 'deployTarget: vercel\nbranches:\n  release: Prod\n')
     await apply(root)
@@ -174,24 +174,24 @@ describe('el perfil generado no adivina lo que no se puede deducir', () => {
     expect(workflow).toMatch(/branches: \[Prod\]/)
   })
 
-  it('un config.yml antiguo con "main" no convierte esa rama en rama de despliegue', async () => {
-    // `main` era un valor adivinado por versiones anteriores. Traducirlo a
-    // `release` sería desplegar desde una rama que nadie eligió.
+  it('an old config.yml with "main" does not turn that branch into the deploy branch', async () => {
+    // `main` was a value guessed by earlier versions. Translating it to
+    // `release` would deploy from a branch nobody chose.
     const root = await createRepo('feat/legacy')
     await writeConfig(root, 'deployTarget: vercel\nbranches:\n  main: Prod\n  dev: develop\n')
     await apply(root)
     expect(existsSync(join(root, '.github/workflows/ci-prod.yml'))).toBe(false)
-    // `dev` sí se traduce, a `integration`. El config.yml del equipo no se
-    // reescribe —es su fuente de verdad—, así que se comprueba en su efecto: la
-    // CI generada se ejecuta al hacer push a esa rama.
+    // `dev` is translated, to `integration`. The team's config.yml is not
+    // rewritten —it is their source of truth—, so it is checked by its effect:
+    // the generated CI runs on push to that branch.
     const workflow = await readFile(join(root, '.github/workflows/ci-dev.yml'), 'utf8')
     expect(workflow).toMatch(/push:\s*\n\s+branches: \[develop\]/)
   })
 
-  it('el mismo config.yml genera la misma CI, tenga el repo las referencias que tenga', async () => {
-    // Invariante: la CLI es una función determinista de su configuración. Una
-    // versión anterior metía en el workflow las ramas remotas existentes, y las
-    // referencias huérfanas de cada copia cambiaban el resultado.
+  it('the same config.yml generates the same CI, whatever refs the repo has', async () => {
+    // Invariant: the CLI is a deterministic function of its configuration. An
+    // earlier version put the existing remote branches in the workflow, and
+    // the stale refs of each copy changed the result.
     const config = 'branches:\n  integration: main\n  release: Prod\n'
     const clean = await createRepo('feat/a')
     await writeConfig(clean, config)
@@ -208,9 +208,9 @@ describe('el perfil generado no adivina lo que no se puede deducir', () => {
     expect(cleanWorkflow).toMatch(/push:\s*\n\s+branches: \[main, Prod\]/)
   })
 
-  it('un config.yml sin integration no se completa con el origin/HEAD de cada clon', async () => {
-    // Invariante 2 por la otra vía: con el fichero, lo que no declara queda sin
-    // configurar. Antes se rellenaba con el origin/HEAD local de cada copia.
+  it('a config.yml without integration is not filled in with the origin/HEAD of each clone', async () => {
+    // Invariant 2 the other way round: with the file, what it does not declare
+    // stays unconfigured. It used to be filled in with each copy's local origin/HEAD.
     const config = 'deployTarget: vercel\nbranches:\n  release: main\n'
     const first = await createRepo('feat/a')
     await writeConfig(first, config)
@@ -224,14 +224,14 @@ describe('el perfil generado no adivina lo que no se puede deducir', () => {
     expect(await readFile(join(second, '.github/workflows/ci-dev.yml'), 'utf8')).toBe(firstWorkflow)
   })
 
-  it('en un repo creado con git init y push, sin origin/HEAD, la CI se ejecuta en la rama principal', async () => {
+  it('in a repo created with git init and push, with no origin/HEAD, the CI runs on the main branch', async () => {
     const root = await createRepo('main')
     await apply(root)
     const workflow = await readFile(join(root, '.github/workflows/ci-dev.yml'), 'utf8')
     expect(workflow).toMatch(/push:\s*\n\s+branches: \[main\]/)
   })
 
-  it('propone la main existente aunque el primer apply se haga desde una rama de trabajo', async () => {
+  it('proposes the existing main even when the first apply runs from a work branch', async () => {
     const root = await createRepo('main')
     await git(root, 'checkout', '-b', 'feat/first')
     await apply(root)
@@ -239,7 +239,7 @@ describe('el perfil generado no adivina lo que no se puede deducir', () => {
     expect(config).toMatch(/^\s+integration: main$/m)
   })
 
-  it('sin ramas configuradas, la CI sólo revisa Pull Requests y no declara push', async () => {
+  it('with no branches configured, the CI only reviews Pull Requests and declares no push', async () => {
     const root = await createRepo('feat/nothing')
     await writeConfig(root, 'branches: {}\n')
     await apply(root)
@@ -247,7 +247,7 @@ describe('el perfil generado no adivina lo que no se puede deducir', () => {
     expect(workflow).not.toMatch(/^ {2}push:/m)
   })
 
-  it('una rama configurada como integración se protege aunque parezca de trabajo', async () => {
+  it('a branch configured as integration is protected even if it looks like a work branch', async () => {
     const root = await createRepo('main')
     await git(root, 'checkout', '-b', 'feat/integration')
     await writeConfig(root, 'branches:\n  integration: feat/integration\n')
@@ -255,9 +255,9 @@ describe('el perfil generado no adivina lo que no se puede deducir', () => {
     expect(await headRef(root)).toBe(ISOLATED)
   })
 
-  it('la rama aislada no hereda el upstream de la rama de partida', async () => {
-    // Con branch.autoSetupMerge=inherit, un checkout -b normal copiaría el
-    // upstream de Prod, y un git push sin argumentos iría a producción.
+  it('the isolated branch does not inherit the upstream of the starting branch', async () => {
+    // With branch.autoSetupMerge=inherit, a normal checkout -b would copy the
+    // upstream of Prod, and a git push with no arguments would go to production.
     const root = await createRepo('Prod')
     await git(root, 'update-ref', 'refs/remotes/origin/Prod', 'HEAD')
     await git(root, 'config', 'remote.origin.url', 'https://example.invalid/repo.git')
@@ -270,7 +270,7 @@ describe('el perfil generado no adivina lo que no se puede deducir', () => {
     expect(upstream.exitCode).not.toBe(0)
   })
 
-  it('la rama de staging configurada genera su workflow y se dispara en ella', async () => {
+  it('the configured staging branch generates its workflow and triggers on it', async () => {
     const root = await createRepo('feat/staging')
     await writeConfig(root, 'branches:\n  staging: pre\n')
     await apply(root)
@@ -278,14 +278,14 @@ describe('el perfil generado no adivina lo que no se puede deducir', () => {
     expect(workflow).toMatch(/branches: \[pre\]/)
   })
 
-  it('una rama de despliegue vacía cuenta como no configurada', async () => {
+  it('an empty deploy branch counts as not configured', async () => {
     const root = await createRepo('feat/empty')
     await writeConfig(root, 'deployTarget: vercel\nbranches:\n  release: ""\n')
     await apply(root)
     expect(existsSync(join(root, '.github/workflows/ci-prod.yml'))).toBe(false)
   })
 
-  it('en un config antiguo, un dev nulo no anula el main que sí tenía valor', async () => {
+  it('in an old config, a null dev does not cancel a main that did have a value', async () => {
     const root = await createRepo('feat/legacy-null')
     await writeConfig(root, 'branches:\n  main: live\n  dev: null\n')
     await apply(root)
@@ -293,10 +293,10 @@ describe('el perfil generado no adivina lo que no se puede deducir', () => {
     expect(workflow).toMatch(/push:\s*\n\s+branches: \[live\]/)
   })
 
-  it('la CI generada revisa todas las Pull Requests, vayan a la rama que vayan', async () => {
-    // Antes sólo se disparaba en las ramas que el perfil creía principales; en un
-    // repo con `main` (donde van las PRs) y `Prod` (despliegue), las PRs a
-    // `main` se quedaban sin revisar.
+  it('the generated CI reviews every Pull Request, whatever branch it targets', async () => {
+    // It used to trigger only on the branches the profile believed were main;
+    // in a repo with `main` (where PRs go) and `Prod` (deploy), PRs to `main`
+    // were left unreviewed.
     const root = await createRepo('main')
     await git(root, 'branch', 'Prod')
     await simulateClone(root, 'main')

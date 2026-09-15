@@ -1,53 +1,53 @@
 /**
- * Control del filtro `paths:` del workflow de mutaciones.
+ * Control of the `paths:` filter of the mutation workflow.
  *
- * `mutations.yml` no corre en todas las PRs: sólo en las que tocan los
- * ficheros que `check-mutations.mjs` muta o ejecuta. Ese filtro es una lista
- * escrita a mano, y la lista de mutaciones crece: en cuanto una mutación nueva
- * toque un fichero que el filtro no nombra, el job deja de ejecutarse en las
- * PRs que lo cambian y nadie se entera, porque un workflow que no dispara no
- * sale en rojo — ni sale.
+ * `mutations.yml` does not run on every PR: only on the ones that touch the
+ * files `check-mutations.mjs` mutates or runs. That filter is a list written by
+ * hand, and the list of mutations grows: as soon as a new mutation touches a
+ * file the filter does not name, the job stops running on the PRs that change
+ * it and nobody finds out, because a workflow that does not trigger does not
+ * show up red — it does not show up at all.
  *
- * Es la misma clase de fallo que el `if: matrix.node == '22'` del napkin: una
- * condición que se desajusta en silencio. Aquí se deriva la lista del propio
- * script en lugar de confiar en que alguien actualice las dos.
+ * It is the same class of failure as the `if: matrix.node == '22'` of the
+ * napkin: a condition that drifts in silence. Here the list is derived from the
+ * script itself instead of trusting someone to update both.
  *
- * Vive fuera de `check-coherence.mjs` por la misma razón que
- * `branch-names.mjs`: aquel script se ejecuta al cargarse y termina en
- * `process.exit`, así que no se puede probar. Aquí sólo hay funciones puras.
+ * It lives outside `check-coherence.mjs` for the same reason as
+ * `branch-names.mjs`: that script runs on load and ends in `process.exit`, so
+ * it cannot be tested. Here there are only pure functions.
  *
- * Tarea F0-27.
+ * Task F0-27.
  */
 
 /**
- * ¿Este literal es una ruta de fichero y no un valor cualquiera?
+ * Is this literal a file path and not just any value?
  *
- * El nombre de la constante no sirve para distinguirlo: se reconoce cualquier
- * identificador, porque limitarlo a mayúsculas puras dejaba fuera el `CX2` que
- * escribe quien añade la segunda mutación sobre un fichero ya usado —las
- * abreviaturas de dos letras están agotadas— y el fichero desaparecía de la
- * lista sin que nada fallara.
+ * The constant name does not help to tell: any identifier is recognised,
+ * because limiting it to plain uppercase left out the `CX2` written by whoever
+ * adds the second mutation on a file already used —the two-letter
+ * abbreviations are exhausted— and the file vanished from the list without
+ * anything failing.
  *
- * Tampoco se filtra por extensión conocida: eso reabriría el mismo agujero en
- * cuanto se mute un `.yml` o un `.json`. Basta con que tenga forma de ruta
- * —una barra, o una extensión cualquiera—, que es lo que separa
- * `packages/a/b.ts` de `pnpm`. Un falso positivo aquí falla en voz alta; un
- * falso negativo no falla nunca, y por eso el corte se pone de este lado.
+ * It does not filter by known extension either: that would reopen the same hole
+ * as soon as a `.yml` or a `.json` is mutated. It is enough that it looks like a
+ * path —a slash, or any extension—, which is what separates `packages/a/b.ts`
+ * from `pnpm`. A false positive here fails out loud; a false negative never
+ * fails, and that is why the cut is placed on this side.
  *
- * @param {string} valor literal de la constante
+ * @param {string} value literal of the constant
  * @returns {boolean}
  */
 const looksLikePath = (value) => value.includes('/') || /\.[A-Za-z0-9]+$/.test(value)
 
 /**
- * Ficheros que `check-mutations.mjs` muta o ejecuta como test.
+ * Files `check-mutations.mjs` mutates or runs as a test.
  *
- * Tres fuentes, porque el script usa las tres: las constantes de fichero
- * (`const BR = '...'`), el array `TESTS`, y cualquier ruta escrita como
- * literal en la posición de fichero de una mutación.
+ * Three sources, because the script uses all three: the file constants
+ * (`const BR = '...'`), the `TESTS` array, and any path written as a literal in
+ * the file position of a mutation.
  *
- * @param {string} scriptText contenido de `scripts/check-mutations.mjs`
- * @returns {string[]} rutas relativas a la raíz, ordenadas y sin repetir
+ * @param {string} scriptText content of `scripts/check-mutations.mjs`
+ * @returns {string[]} paths relative to the root, sorted and without repeats
  */
 export function mutationInputs(scriptText) {
   const files = new Set()
@@ -59,26 +59,26 @@ export function mutationInputs(scriptText) {
   const tests = /const TESTS = \[([\s\S]*?)\]/.exec(scriptText)
   if (tests) for (const m of tests[1].matchAll(/'([^']+)'/g)) files.add(m[1])
 
-  // Posición de fichero de una mutación escrita como literal en vez de como
-  // constante: `['descripción', 'ruta/al/fichero.ts', ...]`.
+  // File position of a mutation written as a literal instead of a constant:
+  // `['description', 'path/to/file.ts', ...]`.
   for (const m of scriptText.matchAll(/^\s*\['(?:[^'\\]|\\.)*',\s*'([^']+)'/gm)) files.add(m[1])
 
   return [...files].sort()
 }
 
 /**
- * Rutas declaradas en el filtro `paths:` de un workflow.
+ * Paths declared in the `paths:` filter of a workflow.
  *
- * @param {string} workflowText contenido del fichero de workflow
- * @returns {string[]} rutas tal y como están escritas, sin comillas
+ * @param {string} workflowText content of the workflow file
+ * @returns {string[]} paths as written, without quotes
  */
 export function workflowPaths(workflowText) {
   const lines = workflowText.split('\n')
   const indentOf = (line) => /^(\s*)/.exec(line)[1].length
 
-  // El filtro que importa es el de `pull_request`, no el primer `paths:` del
-  // fichero: un disparador `push:` con su propia lista por delante secuestraba
-  // el control, que validaba esa lista y nunca miraba la que filtra las PRs.
+  // The filter that matters is the `pull_request` one, not the first `paths:` of
+  // the file: a `push:` trigger with its own list ahead of it hijacked the
+  // control, which validated that list and never looked at the one filtering PRs.
   const pr = lines.findIndex((line) => /^\s+pull_request:\s*$/.test(line))
   if (pr === -1) return []
 
@@ -98,11 +98,11 @@ export function workflowPaths(workflowText) {
   for (const line of lines.slice(start + 1)) {
     if (line.trim() === '') continue
 
-    // Una línea que no está más indentada que `paths:` ya es otra clave.
+    // A line that is not indented further than `paths:` is already another key.
     if (indentOf(line) <= indent) break
 
-    // Los comentarios no interrumpen la lista: el filtro lleva uno en medio
-    // para separar los ficheros mutados de los que gobiernan la ejecución.
+    // Comments do not interrupt the list: the filter has one in the middle to
+    // separate the mutated files from the ones that govern the run.
     const content = line.trim()
     if (content.startsWith('#')) continue
 
@@ -114,15 +114,15 @@ export function workflowPaths(workflowText) {
 }
 
 /**
- * Ficheros que el script muta o ejecuta y que el filtro del workflow no nombra.
+ * Files the script mutates or runs that the workflow filter does not name.
  *
- * Se exige la ruta exacta, no un patrón que la cubra: un `packages/**` haría
- * pasar el control y devolvería el job a ejecutarse en PRs que no lo necesitan,
- * que es justo lo que el filtro evita.
+ * The exact path is required, not a pattern that covers it: a `packages/**`
+ * would make the control pass and send the job back to running on PRs that do
+ * not need it, which is exactly what the filter avoids.
  *
- * @param {string} scriptText contenido de `scripts/check-mutations.mjs`
- * @param {string} workflowText contenido de `.github/workflows/mutations.yml`
- * @returns {string[]} rutas sin cubrir, ordenadas
+ * @param {string} scriptText content of `scripts/check-mutations.mjs`
+ * @param {string} workflowText content of `.github/workflows/mutations.yml`
+ * @returns {string[]} uncovered paths, sorted
  */
 export function uncoveredMutationInputs(scriptText, workflowText) {
   const declared = new Set(workflowPaths(workflowText))

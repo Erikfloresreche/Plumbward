@@ -4,8 +4,8 @@ import { fileURLToPath } from 'node:url'
 const r = (p: string): string => fileURLToPath(new URL(p, import.meta.url))
 
 /**
- * Los tests se ejecutan directamente sobre `src` (sin build previo) mediante
- * alias de workspace. Esto mantiene el ciclo de feedback en segundos.
+ * Tests run directly on `src` (no prior build) through workspace aliases. This
+ * keeps the feedback loop in seconds.
  */
 export default defineConfig({
   resolve: {
@@ -18,15 +18,15 @@ export default defineConfig({
     },
   },
   test: {
-    // Aísla git de la configuración de la máquina y del entorno en todas las
-    // pruebas: con `commit.gpgsign` o un `core.hooksPath` globales, o un
-    // `GIT_DIR` heredado, las que crean repositorios fallaban o escribían fuera.
+    // Isolates git from the machine configuration and the environment in every
+    // test: with a global `commit.gpgsign` or `core.hooksPath`, or an inherited
+    // `GIT_DIR`, the tests that create repositories failed or wrote outside.
     setupFiles: ['./vitest.setup.ts'],
     include: [
       'packages/**/src/**/*.test.ts',
       'packages/**/test/**/*.test.ts',
-      // Los controles de `scripts/` también se prueban: `check-coherence`
-      // ejecutaba todo al cargarse y no se podía cubrir (F0-15).
+      // The `scripts/` controls are tested too: `check-coherence` ran everything
+      // on load and could not be covered (F0-15).
       'scripts/**/*.test.mjs',
     ],
     exclude: ['**/node_modules/**', '**/dist/**'],

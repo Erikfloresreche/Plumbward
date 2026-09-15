@@ -19,21 +19,21 @@ import { error, renderHealthChecks, renderPlan, renderScan, success, warn } from
 import { branchReturnNotice } from './branch-notice.js'
 
 /**
- * Rama aislada donde se integran los cambios. Nunca se trabaja directamente
- * sobre una rama de larga duración, se llame como se llame en cada equipo.
+ * Isolated branch where the changes are integrated. Work never happens directly
+ * on a long-lived branch, whatever each team calls it.
  */
 export const GOVERNANCE_BRANCH = 'chore/setup-ai-governance'
 
-/** Ejecutor real de comandos, con la salida visible para el usuario. */
+/** Real command runner, with the output visible to the user. */
 const runner: CommandRunner = async (cmd, args, cwd) => {
   await execa(cmd, [...args], { cwd, stdio: 'inherit' })
 }
 
 /**
- * `scan` — diagnóstico de sólo lectura.
+ * `scan` — read-only diagnosis.
  *
- * No requiere licencia por diseño: es el gancho comercial. El informe crea la
- * necesidad que el resto del producto resuelve.
+ * It needs no licence by design: it is the commercial hook. The report creates
+ * the need the rest of the product solves.
  */
 export async function runScan(cwd: string): Promise<number> {
   const { scan } = await buildContext(cwd)
@@ -44,7 +44,7 @@ export async function runScan(cwd: string): Promise<number> {
   return 0
 }
 
-/** Construye el plan añadiendo la escritura del perfil, que no pertenece a ningún pack. */
+/** Builds the plan adding the write of the profile, which belongs to no pack. */
 async function buildFullPlan(cwd: string): Promise<{
   plan: ChangePlan
   cwd: string
@@ -70,10 +70,10 @@ async function buildFullPlan(cwd: string): Promise<{
 }
 
 /**
- * `plan` — muestra el diff exacto sin escribir nada.
+ * `plan` — shows the exact diff without writing anything.
  *
- * Es la operación que hace segura a la herramienta: el usuario ve el resultado
- * antes de autorizarlo, y el equipo de seguridad del cliente puede auditarlo.
+ * It is the operation that makes the tool safe: the user sees the result
+ * before authorising it, and the client's security team can audit it.
  */
 export async function runPlan(cwd: string, options: { diff: boolean }): Promise<number> {
   const { plan, context } = await buildFullPlan(cwd)
@@ -99,12 +99,12 @@ export async function runPlan(cwd: string, options: { diff: boolean }): Promise<
 }
 
 /**
- * ¿Bloquea la rama aislada ya existente este `apply`?
+ * Does the already existing isolated branch block this `apply`?
  *
- * Si hay que aislar el trabajo y la rama aislada ya existe, **no se usa**: puede
- * estar desactualizada, y el plan que se enseña se calcula sobre la rama de
- * partida. Se comprueba **antes** de pedir confirmación, para no preguntar algo
- * que luego no se va a hacer.
+ * If the work has to be isolated and the isolated branch already exists, **it
+ * is not used**: it may be out of date, and the plan shown is computed on the
+ * starting branch. It is checked **before** asking for confirmation, so as not
+ * to ask about something that will not be done.
  */
 async function isolatedBranchBlocks(
   repoRoot: string,
@@ -127,9 +127,9 @@ async function isolatedBranchBlocks(
 }
 
 interface HeadSnapshot {
-  /** `refs/heads/<rama>`, o `null` con HEAD desacoplado. */
+  /** `refs/heads/<branch>`, or `null` with a detached HEAD. */
   readonly ref: string | null
-  /** Commit al que apunta HEAD, o `null` en un repositorio sin commits. */
+  /** Commit HEAD points at, or `null` in a repository with no commits. */
   readonly commit: string | null
 }
 
@@ -145,10 +145,11 @@ async function readHead(repoRoot: string): Promise<HeadSnapshot> {
 }
 
 /**
- * Imprime, si hace falta, en qué rama ha quedado el repositorio y cómo volver.
+ * Prints, if needed, which branch the repository was left on and how to go back.
  *
- * La rama actual se lee ahora, no del escaneo: entre medias `apply` ha podido
- * crear y activar la rama aislada, que es justo el caso que hay que avisar.
+ * The current branch is read now, not from the scan: in between, `apply` may
+ * have created and checked out the isolated branch, which is exactly the case
+ * to warn about.
  */
 async function printBranchNotice(
   repoRoot: string,
@@ -167,23 +168,23 @@ async function printBranchNotice(
 }
 
 /**
- * Nombre de rama de un HEAD, o `null` si está desacoplado.
+ * Branch name of a HEAD, or `null` if it is detached.
  *
- * Sale de `symbolic-ref` sin abreviar a propósito: `rev-parse --abbrev-ref HEAD`
- * devuelve `heads/X` cuando existe una etiqueta llamada `X`.
+ * It comes from `symbolic-ref` unabbreviated on purpose: `rev-parse
+ * --abbrev-ref HEAD` returns `heads/X` when a tag called `X` exists.
  */
 function branchNameOf(head: HeadSnapshot): string | null {
   return head.ref === null ? null : head.ref.replace(/^refs\/heads\//, '')
 }
 
 /**
- * ¿Ha cambiado HEAD desde que se calculó el plan?
+ * Has HEAD changed since the plan was computed?
  *
- * La confirmación puede tardar, y mientras tanto alguien puede cambiar de rama
- * desde otro terminal, el selector de ramas del IDE o un agente en paralelo. El
- * plan y la decisión de aislar se calcularon sobre la rama del escaneo:
- * aplicarlos en otra sería escribir algo que nadie aprobó, quizá directamente en
- * `Prod`. Si HEAD se ha movido, no se escribe nada.
+ * The confirmation can take a while, and meanwhile someone can switch branches
+ * from another terminal, the IDE branch picker or a parallel agent. The plan and
+ * the decision to isolate were computed on the scanned branch: applying them on
+ * another one would write something nobody approved, maybe straight onto
+ * `Prod`. If HEAD has moved, nothing is written.
  */
 function headMoved(scanned: Pick<GitState, 'branch'>, before: HeadSnapshot, now: HeadSnapshot): boolean {
   const scannedRef = scanned.branch === null ? null : `refs/heads/${scanned.branch}`
@@ -191,13 +192,13 @@ function headMoved(scanned: Pick<GitState, 'branch'>, before: HeadSnapshot, now:
 }
 
 /**
- * Prepara la rama aislada de trabajo, si hace falta.
+ * Prepares the isolated work branch, if needed.
  *
- * Qué ramas se aíslan lo decide `requiresIsolation`: todas salvo las ramas de
- * trabajo reconocibles, y siempre con HEAD desacoplado (ADR 0005). La rama se
- * crea con `--no-track`: sin eso, con `branch.autoSetupMerge=inherit` heredaría
- * el upstream de la rama de partida, y un `git push` sin argumentos podría
- * mandar el trabajo a `Prod`.
+ * `requiresIsolation` decides which branches are isolated: all of them except
+ * recognisable work branches, and always with a detached HEAD (ADR 0005). The
+ * branch is created with `--no-track`: without it, with
+ * `branch.autoSetupMerge=inherit` it would inherit the upstream of the starting
+ * branch, and a `git push` with no arguments could send the work to `Prod`.
  */
 async function prepareBranch(
   repoRoot: string,
@@ -221,7 +222,7 @@ export interface ApplyOptions {
   readonly branch: boolean
 }
 
-/** `apply` — materializa el plan con journal, rollback automático y rama aislada. */
+/** `apply` — materialises the plan with a journal, automatic rollback and an isolated branch. */
 export async function runApply(cwd: string, options: ApplyOptions): Promise<number> {
   const { plan, context } = await buildFullPlan(cwd)
   const { scan } = context
@@ -283,9 +284,9 @@ export async function runApply(cwd: string, options: ApplyOptions): Promise<numb
 
   await prepareBranch(scan.repoRoot, scan.git, options.branch, context.context.profile)
 
-  // Después de `prepareBranch`, no antes: es el sitio que de verdad se escribe,
-  // y el único en el que `rollback` puede restaurar sin destruir trabajo. El
-  // commit va con la rama: el nombre etiqueta el sitio, el commit lo identifica.
+  // After `prepareBranch`, not before: it is the place that is really written,
+  // and the only one where `rollback` can restore without destroying work. The
+  // commit goes with the branch: the name labels the place, the commit identifies it.
   const headWritten = await readHead(scan.repoRoot)
   const writtenOnBranch = branchNameOf(headWritten)
 
@@ -325,13 +326,13 @@ export async function runApply(cwd: string, options: ApplyOptions): Promise<numb
     console.log(
       `  ${options.install ? '2' : '3'}. Revisa el diff con \`git diff\` y abre una Pull Request.`,
     )
-    // La promesa vale también con HEAD desacoplado (F0-29): el commit identifica
-    // el sitio y `rollback` compara la rama vacía como cualquier otra.
+    // The promise also holds with a detached HEAD (F0-29): the commit identifies
+    // the place and `rollback` compares the empty branch like any other.
     //
-    // Y caduca al commitear: el paso anterior manda abrir una Pull Request, y el
-    // commit mueve el sitio que `assertSameCommit` comprueba. Sin la condición,
-    // este paso deja de ser cierto en cuanto se sigue el de arriba, que es la
-    // misma promesa falsa que retiró F0-24.
+    // And it expires on commit: the previous step says to open a Pull Request,
+    // and the commit moves the place `assertSameCommit` checks. Without the
+    // condition, this step stops being true as soon as the one above is
+    // followed, which is the same false promise F0-24 withdrew.
     const step = options.install ? '3' : '4'
     console.log(
       `  ${step}. Si algo no encaja y aún no has commiteado: \`plumbward rollback\` lo deja todo como estaba.`,
@@ -351,8 +352,8 @@ export async function runApply(cwd: string, options: ApplyOptions): Promise<numb
           ? pc.dim('  Los cambios se han revertido automáticamente: los ficheros están como estaban.')
           : pc.red('  ATENCIÓN: no se pudo revertir del todo. Ejecuta `plumbward rollback`.'),
       )
-      // Los ficheros sí, la rama no: revertir no deshace el checkout. Y si no
-      // se pudo revertir, el consejo es otro: primero recuperar, luego volver.
+      // The files yes, the branch no: reverting does not undo the checkout. And
+      // if it could not revert, the advice changes: recover first, then go back.
       await printBranchNotice(scan.repoRoot, scan.git.branch, headBefore.commit, !cause.rolledBack)
       return 1
     }
@@ -360,12 +361,12 @@ export async function runApply(cwd: string, options: ApplyOptions): Promise<numb
   }
 }
 
-/** `rollback` — deshace la última ejecución a partir del journal. */
+/** `rollback` — undoes the last run from the journal. */
 export async function runRollback(cwd: string): Promise<number> {
   const { scan } = await buildContext(cwd)
 
   try {
-    // Con `readHead`, la misma fuente que usó `apply` al anotar el sitio.
+    // With `readHead`, the same source `apply` used to record the place.
     const headNow = await readHead(scan.repoRoot)
     const result = await rollbackLastApply(scan.repoRoot, {
       currentBranch: branchNameOf(headNow),
@@ -377,8 +378,8 @@ export async function runRollback(cwd: string): Promise<number> {
       ),
     )
     console.log(pc.dim('  Comprueba con `git status --porcelain` que el árbol está limpio.'))
-    // El commit escrito es el de partida (ver `Journal.writtenOnCommit`): es el
-    // que hay que nombrar si se empezó con HEAD desacoplado.
+    // The written commit is the starting one (see `Journal.writtenOnCommit`): it
+    // is the one to name if the work started with a detached HEAD.
     await printBranchNotice(
       scan.repoRoot,
       result.journal.startedOnBranch,
@@ -392,7 +393,7 @@ export async function runRollback(cwd: string): Promise<number> {
   }
 }
 
-/** `doctor` — diagnostica la configuración instalada y propone arreglos. */
+/** `doctor` — diagnoses the installed configuration and proposes fixes. */
 export async function runDoctor(cwd: string): Promise<number> {
   const { context } = await buildContext(cwd)
   const registry = buildRegistry()
