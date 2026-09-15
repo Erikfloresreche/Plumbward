@@ -1,4 +1,4 @@
-import type { ChangePlan, Conflict, Operation, PlanSummary } from './types.js'
+import type { ChangePlan, Conflict, Operation, OutputLanguage, PlanSummary } from './types.js'
 
 /**
  * Accumulator of operations. Every pack contributes here, and the builder takes
@@ -14,6 +14,13 @@ export class PlanBuilder {
   readonly #contributors = new Set<string>()
   /** Target key -> fingerprint of the operation, to detect clashes. */
   readonly #targets = new Map<string, { fingerprint: string; contributor: string }>()
+
+  readonly #language: OutputLanguage
+
+  /** @param language language of the profile the plan is built for. */
+  constructor(language: OutputLanguage) {
+    this.#language = language
+  }
 
   /** Adds operations attributed to a pack. Exact duplicates are ignored. */
   add(contributor: string, operations: readonly Operation[]): this {
@@ -50,6 +57,7 @@ export class PlanBuilder {
   build(): ChangePlan {
     return {
       version: 1,
+      language: this.#language,
       operations: [...this.#operations].sort(compareOperations),
       conflicts: [...this.#conflicts],
       summary: summarise(this.#operations, this.#conflicts),

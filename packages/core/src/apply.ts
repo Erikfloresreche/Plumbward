@@ -12,6 +12,7 @@ import type {
   Journal,
   JournalEntry,
   Operation,
+  OutputLanguage,
   PackageManager,
 } from './types.js'
 import { JOURNAL_FILE } from './types.js'
@@ -123,7 +124,7 @@ export async function applyPlan(
 
   for (const [index, operation] of operations.entries()) {
     try {
-      const outcome = await executeOperation(operation, options)
+      const outcome = await executeOperation(operation, options, plan.language)
 
       entries.push({
         index,
@@ -173,13 +174,14 @@ export async function applyPlan(
 async function executeOperation(
   operation: Operation,
   options: ApplyOptions,
+  language: OutputLanguage,
 ): Promise<ExecutionOutcome> {
   switch (operation.kind) {
     case 'createFile': {
       const absolute = resolveInRepo(options.repoRoot, operation.path)
       const existing = await readFileIfExists(absolute)
       const content = operation.managed
-        ? withManagedHeader(operation.path, operation.content, options.version)
+        ? withManagedHeader(operation.path, operation.content, options.version, language)
         : operation.content
 
       if (existing !== undefined) {
@@ -254,6 +256,7 @@ async function executeOperation(
         operation.blockId,
         operation.content,
         operation.commentStyle,
+        language,
       )
       if (!result.changed) {
         return { snapshots: [], status: 'skipped', note: 'already up to date' }
@@ -303,10 +306,11 @@ export function withManagedHeader(
   filePath: string,
   content: string,
   version: string,
+  language: OutputLanguage,
 ): string {
   const style = commentStyleForPath(filePath)
   if (!style) return content
-  const header = managedHeader(style, version, shortHash(content))
+  const header = managedHeader(style, version, shortHash(content), language)
   return `${header}\n\n${content}`
 }
 
@@ -413,16 +417,16 @@ function installInvocation(
 export function describeOperation(operation: Operation): string {
   switch (operation.kind) {
     case 'createFile':
-      return `crear ${operation.path}`
+      return `create ${operation.path}`
     case 'patchJson':
-      return `parchear ${operation.path} en ${operation.pointer}`
+      return `patch ${operation.path} at ${operation.pointer}`
     case 'patchYaml':
-      return `parchear ${operation.path} en ${operation.pointer}`
+      return `patch ${operation.path} at ${operation.pointer}`
     case 'ensureBlock':
-      return `bloque "${operation.blockId}" en ${operation.path}`
+      return `block "${operation.blockId}" in ${operation.path}`
     case 'addDependency':
-      return `dependencia ${operation.name} (${operation.manager})`
+      return `dependency ${operation.name} (${operation.manager})`
     case 'execCommand':
-      return `ejecutar ${operation.cmd} ${operation.args.join(' ')}`
+      return `run ${operation.cmd} ${operation.args.join(' ')}`
   }
 }

@@ -33,7 +33,7 @@
     },
     {
       "path": "packages/ast/src/blocks.ts",
-      "reason": "Text the CLI writes into client files (managed-block warning and managed-file header), left in Spanish for F0-45, which moves it behind language: es.",
+      "reason": "Spanish variant of the managed-block warning and the managed-file header written into client files, chosen with language: es (F0-45).",
       "fragments": [
         "Bloque gestionado autom\u00e1ticamente. No edites dentro de los marcadores:",
         "`plumbward upgrade` regenerar\u00e1 su contenido.",
@@ -43,7 +43,7 @@
     },
     {
       "path": "packages/cli/src/context.ts",
-      "reason": "Header of the config.yml written for the client, left in Spanish for F0-45.",
+      "reason": "Spanish variant of the config.yml header written for the client, chosen with language: es (F0-45).",
       "fragments": [
         "# Configuraci\u00f3n de gobernanza del repositorio",
         "# Este fichero es la FUENTE DE VERDAD: la CLI es una funci\u00f3n determinista de su",
@@ -64,7 +64,7 @@
     },
     {
       "path": "packages/packs/node-ts/src/index.ts",
-      "reason": "Operation reasons, health checks and the ESLint config generated for the client, left in Spanish for F0-45.",
+      "reason": "Spanish variant of the ESLint config, package.json scripts and .gitignore block generated for the client, chosen with language: es (F0-45).",
       "fragments": [
         "// Configuraci\u00f3n de ESLint (formato plano, ESLint 9+).",
         "// S\u00f3lo se han activado \u0072eglas que atrapan errores \u0072eales, no preferencias de",
@@ -75,37 +75,7 @@
         "anula la \u00fanica defensa autom\u00e1tica que hay contra el c\u00f3digo",
         "Sin TypeScript: no hay comprobaci\u00f3n de tipos que ejecutar.",
         "Configura aqu\u00ed el build real del proyecto.",
-        "No se ha encontrado package.json en la ra\u00edz del repositorio.",
-        "Fija la versi\u00f3n de Node para que CI y desarrollo usen la misma.",
-        "Comandos unificados: quien entra al proyecto s\u00f3lo necesita saber",
-        "Pipeline de producci\u00f3n con puerta de aprobaci\u00f3n manual.",
-        "Configura la detecci\u00f3n de secretos antes de que lleguen al historial.",
-        "Comprueba formato, linter y secretos s\u00f3lo sobre lo que vas a commitear.",
-        "\u0052eglas de Conventional Commits con l\u00edmites razonables.",
-        "El proyecto no ten\u00eda linter: se a\u00f1ade uno centrado en errores \u0072eales.",
-        "\u0052eglas base de ESLint.",
-        "\u0052eglas de ESLint para TypeScript.",
-        "\u0052eglas de arquitectura y seguridad para Cursor.",
-        "\u0052eglas del proyecto para Claude Code.",
-        "\u0052eglas del proyecto en el formato est\u00e1ndar AGENTS.md.",
-        "Entorno de desarrollo id\u00e9ntico para todo el equipo.",
-        "Explica al equipo qu\u00e9 se ha instalado y c\u00f3mo convivir con ello.",
-        "A\u00f1ade los scripts que esperan el pipeline y el Makefile (respeta los existentes).",
-        "Define qu\u00e9 se ejecuta sobre cada tipo de fichero preparado.",
-        "# El journal permite revertir la \u00faltima ejecuci\u00f3n y no debe compartirse.",
-        "Ejecuta comprobaciones s\u00f3lo sobre ficheros preparados.",
-        "Formateador de c\u00f3digo.",
-        "Convenci\u00f3n est\u00e1ndar de commits.",
-        "Ejecutor de \u0070ruebas.",
-        "Encontrado en la ra\u00edz.",
-        "No se encuentra package.json en la ra\u00edz.",
-        "Ejecuta la CLI desde la ra\u00edz del proyecto Node.",
-        "Pipeline de validaci\u00f3n de PRs",
-        "Falta el workflow de validaci\u00f3n.",
-        "y despu\u00e9s el script",
-        "Configuraci\u00f3n de escaneo de secretos",
-        "\u0052eglas para asistentes de IA",
-        "El repositorio no declara \u0072eglas para asistentes de IA."
+        "# El journal permite revertir la \u00faltima ejecuci\u00f3n y no debe compartirse."
       ]
     },
     {
@@ -207,7 +177,7 @@
     },
     {
       "path": "packages/packs/node-ts/src/templates/ci.ts",
-      "reason": "Workflows generated for the client, left in Spanish for F0-45.",
+      "reason": "Spanish variant of the workflows generated for the client, chosen with language: es (F0-45).",
       "fragments": [
         "# Instala pnpm antes que Node para que la cach\u00e9 de dependencias funcione.",
         "- name: Descargar el c\u00f3digo",
@@ -304,7 +274,7 @@
     },
     {
       "path": "packages/packs/node-ts/src/templates/tooling.ts",
-      "reason": "Hooks, Makefile and tool configurations generated for the client, left in Spanish for F0-45.",
+      "reason": "Spanish variant of the hooks, Makefile and tool configurations generated for the client, chosen with language: es (F0-45).",
       "fragments": [
         "# Se ejecuta antes de cada commit y s\u00f3lo sobre los ficheros preparados (staged).",
         "# Por eso es r\u00e1pido incluso en repositorios grandes: no revisa el c\u00f3digo antiguo,",

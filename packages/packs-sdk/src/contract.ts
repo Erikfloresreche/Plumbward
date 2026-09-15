@@ -1,4 +1,4 @@
-import type { Operation } from '@plumbward/core'
+import type { Operation, OutputLanguage } from '@plumbward/core'
 import type { GovernanceMode, RepoScan } from '@plumbward/scanner'
 import { isWorkBranch } from './branches.js'
 
@@ -16,7 +16,7 @@ export type AiAssistant = 'cursor' | 'claude' | 'copilot' | 'agents'
 
 export type DeployTarget = 'vercel' | 'aws' | 'docker' | 'render' | 'none'
 
-export type OutputLanguage = 'es' | 'en'
+export type { OutputLanguage }
 
 /**
  * Operating limits imposed on the AI assistants that work in the repository.

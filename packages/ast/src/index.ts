@@ -12,4 +12,4 @@ export {
   BEGIN_TOKEN,
   END_TOKEN,
 } from './blocks.js'
-export type { CommentStyle, EnsureBlockResult } from './blocks.js'
+export type { CommentStyle, EnsureBlockResult, OutputLanguage } from './blocks.js'

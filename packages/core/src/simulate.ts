@@ -61,7 +61,7 @@ export async function simulatePlan(
       case 'createFile': {
         const current = await load(operation.path)
         const content = operation.managed
-          ? withManagedHeader(operation.path, operation.content, options.version)
+          ? withManagedHeader(operation.path, operation.content, options.version, plan.language)
           : operation.content
 
         if (current !== null && (operation.onExists ?? 'skip') === 'skip') {
@@ -128,6 +128,7 @@ export async function simulatePlan(
           operation.blockId,
           operation.content,
           operation.commentStyle,
+          plan.language,
         )
         if (!result.changed) {
           noOps.push(operation)

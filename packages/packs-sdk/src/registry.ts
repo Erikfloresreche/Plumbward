@@ -46,7 +46,7 @@ export class PackRegistry {
   /** Builds the complete plan from the selected packs. */
   async buildPlan(context: RepoContext): Promise<ChangePlan> {
     const selected = await this.select(context)
-    const builder = new PlanBuilder()
+    const builder = new PlanBuilder(context.profile.language)
 
     if (selected.length === 0) {
       builder.conflict({

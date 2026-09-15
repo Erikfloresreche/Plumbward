@@ -1,23 +1,42 @@
 import { describe, expect, it } from 'vitest'
-import { recommendedProfile } from '@plumbward/packs-sdk'
-import type { Profile, RepoContext } from '@plumbward/packs-sdk'
+import { fileURLToPath } from 'node:url'
+import { parseYamlToJson } from '@plumbward/ast'
+import type { Operation } from '@plumbward/core'
+import { PackRegistry, recommendedProfile } from '@plumbward/packs-sdk'
+import type { OutputLanguage, Profile, RepoContext } from '@plumbward/packs-sdk'
 import type { RepoScan } from '@plumbward/scanner'
 import { nodeTsPack } from './index.js'
 
 /**
  * Language of the files the Node pack generates for the client (F0-45).
  *
- * English by default; Spanish only with `language: es`. The files the pack
- * still generates only in Spanish (workflows, hooks, tool configurations) join
- * `BILINGUAL_FILES` when they get their English variant.
+ * English by default; Spanish only with `language: es`. Every text the pack
+ * writes into the client repository is listed here: whole files, managed
+ * blocks (`path#blockId`) and JSON patches (`path#pointer`).
  */
 const BILINGUAL_FILES = [
+  '.editorconfig',
+  'Makefile',
+  '.github/workflows/ci-dev.yml',
+  '.github/workflows/ci-staging.yml',
+  '.github/workflows/ci-prod.yml',
+  '.gitleaks.toml',
+  '.husky/pre-commit',
+  '.husky/commit-msg',
+  'commitlint.config.js',
+  'eslint.config.js',
   '.cursorrules',
   'CLAUDE.md',
   'AGENTS.md',
   '.github/copilot-instructions.md',
+  '.devcontainer/devcontainer.json',
   'GOVERNANCE.md',
+  'package.json#/scripts',
+  '.gitignore#gitignore-artifacts',
 ]
+
+/** What the pack writes with no text in it, so it has no language. */
+const TEXTLESS_FILES = ['.nvmrc', 'package.json#/lint-staged']
 
 /**
  * Signs of Spanish: the characters only Spanish uses among the languages we
@@ -60,11 +79,27 @@ function scanWith(mode: Profile['mode'], typescript: boolean): RepoScan {
   }
 }
 
+/** Key and text of an operation that writes into the repository, if it does. */
+function written(op: Operation): { path: string; content: string } | undefined {
+  switch (op.kind) {
+    case 'createFile':
+      return { path: op.path, content: op.content }
+    case 'ensureBlock':
+      return { path: `${op.path}#${op.blockId}`, content: op.content }
+    case 'patchJson':
+    case 'patchYaml':
+      return { path: `${op.path}#${op.pointer}`, content: JSON.stringify(op.value, null, 2) }
+    default:
+      return undefined
+  }
+}
+
 /**
- * Every bilingual file the pack generates, across the variations that change
- * their text: mode, strictness, TypeScript and each operating limit.
+ * Everything the pack writes, across the variations that change its text:
+ * mode, strictness, TypeScript and each operating limit. Every branch and the
+ * devcontainer are configured, so no file is left out.
  */
-async function generated(changes: Partial<Profile>): Promise<{ path: string; variant: string; content: string }[]> {
+async function everything(changes: Partial<Profile>): Promise<{ path: string; variant: string; content: string }[]> {
   const out: { path: string; variant: string; content: string }[] = []
   for (const mode of ['greenfield', 'ratchet', 'non-disruptive'] as const) {
     for (const typescript of [true, false]) {
@@ -77,19 +112,57 @@ async function generated(changes: Partial<Profile>): Promise<{ path: string; var
           strictness: mode === 'greenfield' ? 'strict' : 'moderate',
           aiAssistants: ['cursor', 'claude', 'agents', 'copilot'],
           agentBoundaries: { git: limits, database: limits, commitLanguage: 'en' },
+          branches: { integration: 'develop', release: 'main', staging: 'staging' },
+          deployTarget: 'vercel',
+          devcontainer: true,
           ...changes,
         }
         const context: RepoContext = { scan, profile, cliVersion: 'test' }
         const variant = `${mode}, typescript=${typescript}, limits=${limits}`
         for (const op of await nodeTsPack.contribute(context)) {
-          if (op.kind === 'createFile' && BILINGUAL_FILES.includes(op.path)) {
-            out.push({ path: op.path, variant, content: op.content })
-          }
+          const entry = written(op)
+          if (entry) out.push({ ...entry, variant })
         }
       }
     }
   }
   return out
+}
+
+/** Every bilingual file the pack generates. */
+async function generated(changes: Partial<Profile>): Promise<{ path: string; variant: string; content: string }[]> {
+  return (await everything(changes)).filter((entry) => BILINGUAL_FILES.includes(entry.path))
+}
+
+/**
+ * The name heuristic of the F0-16 file-name control, from
+ * `scripts/english-only.mjs`. Loaded at run time: the script is plain
+ * JavaScript, outside the TypeScript project.
+ */
+async function spanishNameEvidence(name: string): Promise<string[]> {
+  const script = fileURLToPath(new URL('../../../../scripts/english-only.mjs', import.meta.url))
+  const loaded: unknown = await import(/* @vite-ignore */ script)
+  if (typeof loaded !== 'object' || loaded === null || !('spanishNameEvidence' in loaded)) {
+    throw new Error(`${script} no longer exports spanishNameEvidence`)
+  }
+  const heuristic = loaded.spanishNameEvidence
+  if (typeof heuristic !== 'function') throw new Error('spanishNameEvidence is not a function')
+  const evidence: unknown = heuristic(name)
+  if (!Array.isArray(evidence)) throw new Error('spanishNameEvidence did not return a list')
+  return evidence.map(String)
+}
+
+/** `workflow: job id` of every job of the generated workflows. */
+async function jobIds(language: OutputLanguage): Promise<string[]> {
+  const ids = new Set<string>()
+  for (const { path, content } of await generated({ language })) {
+    if (!path.startsWith('.github/workflows/')) continue
+    const workflow = parseYamlToJson(content)
+    const jobs = typeof workflow === 'object' && workflow !== null ? (workflow as Record<string, unknown>)['jobs'] : undefined
+    if (typeof jobs !== 'object' || jobs === null) throw new Error(`${path} has no jobs`)
+    for (const id of Object.keys(jobs)) ids.add(`${path}: ${id}`)
+  }
+  return [...ids].sort()
 }
 
 function spanishIn(content: string): string | undefined {
@@ -106,6 +179,11 @@ describe('language of the generated files', () => {
     expect([...paths].sort()).toEqual([...BILINGUAL_FILES].sort())
   })
 
+  it('lists everything the pack writes, so a new text cannot skip the checks', async () => {
+    const paths = new Set((await everything({})).map((entry) => entry.path))
+    expect([...paths].sort()).toEqual([...BILINGUAL_FILES, ...TEXTLESS_FILES].sort())
+  })
+
   it('writes no Spanish with the default profile', async () => {
     const found = (await generated({})).flatMap(({ path, variant, content }) => {
       const evidence = spanishIn(content)
@@ -119,5 +197,32 @@ describe('language of the generated files', () => {
       .filter(({ content }) => spanishIn(content) === undefined)
       .map(({ path, variant }) => `${path} (${variant})`)
     expect(withoutSpanish).toEqual([])
+  })
+
+  it('carries the profile language into the plan, which plan and apply write headers in', async () => {
+    const scan = scanWith('greenfield', true)
+    const registry = new PackRegistry([nodeTsPack])
+    for (const language of ['en', 'es'] as const) {
+      const profile: Profile = { ...recommendedProfile(scan), language }
+      const plan = await registry.buildPlan({ scan, profile, cliVersion: 'test' })
+      expect(plan.language).toBe(language)
+    }
+  })
+})
+
+describe('job ids of the generated workflows', () => {
+  it('are the same in both languages: they are identifiers, not text', async () => {
+    const english = await jobIds('en')
+    expect(english.length).toBeGreaterThan(0)
+    expect(await jobIds('es')).toEqual(english)
+  })
+
+  it('do not look Spanish to the file-name heuristic of F0-16', async () => {
+    const flagged: string[] = []
+    for (const entry of await jobIds('en')) {
+      const id = entry.slice(entry.lastIndexOf(': ') + 2)
+      if ((await spanishNameEvidence(id)).length > 0) flagged.push(entry)
+    }
+    expect(flagged).toEqual([])
   })
 })

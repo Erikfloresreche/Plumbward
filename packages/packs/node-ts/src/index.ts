@@ -3,6 +3,7 @@ import { block, ciPushBranches, cmd, dep, file, json } from '@plumbward/packs-sd
 import type {
   DetectionResult,
   HealthCheck,
+  OutputLanguage,
   Profile,
   RepoContext,
   StackPack,
@@ -25,8 +26,58 @@ import { workflowChecks } from './workflow-checks.js'
 const PACK_VERSION = '0.1.0'
 const DEFAULT_NODE_VERSION = '22'
 
-/** Flat ESLint configuration, for projects that have no linter yet. */
+/**
+ * Flat ESLint configuration, for projects that have no linter yet. English by
+ * default; Spanish with `language: es` (F0-45).
+ */
 function eslintConfig(typescript: boolean, profile: Profile): string {
+  return profile.language === 'es' ? eslintConfigEs(typescript, profile) : eslintConfigEn(typescript, profile)
+}
+
+function eslintConfigEn(typescript: boolean, profile: Profile): string {
+  return `// ---------------------------------------------------------------------------
+// ESLint configuration (flat format, ESLint 9+).
+//
+// Only rules that catch real bugs are enabled, not style preferences: Prettier
+// already takes care of style. Every rule turned off here is one argument less
+// in code reviews.
+// ---------------------------------------------------------------------------
+import js from '@eslint/js'
+${typescript ? "import tseslint from 'typescript-eslint'\n" : ''}
+export default [
+  {
+    // Never analyse build output or dependencies.
+    ignores: ['dist/**', 'build/**', 'coverage/**', 'node_modules/**', '.next/**'],
+  },
+  js.configs.recommended,
+${typescript ? '  ...tseslint.configs.recommended,\n' : ''}  {
+    rules: {
+      // An empty catch hides failures that will show up in production.
+      'no-empty': ['error', { allowEmptyCatch: false }],
+      // A forgotten console.log is the most common information leak.
+      'no-console': ['warn', { allow: ['warn', 'error'] }],
+      'no-debugger': 'error',
+      'prefer-const': 'error',
+      'eqeqeq': ['error', 'always', { null: 'ignore' }],
+${
+  typescript
+    ? `      // 'any' cancels the only automatic defence there is against code
+      // invented by an AI assistant.
+      '@typescript-eslint/no-explicit-any': '${profile.strictness === 'strict' ? 'error' : 'warn'}',
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
+      ],
+`
+    : ''
+}    },
+  },
+]
+`
+}
+
+/** Spanish variant of `eslintConfigEn`. */
+function eslintConfigEs(typescript: boolean, profile: Profile): string {
   return `// ---------------------------------------------------------------------------
 // Configuración de ESLint (formato plano, ESLint 9+).
 //
@@ -68,19 +119,41 @@ ${
 `
 }
 
-/** Scripts the pipeline and the Makefile take for granted. */
-function packageScripts(typescript: boolean): Record<string, string> {
+/** Scripts the pipeline and the Makefile take for granted. Their messages follow the profile. */
+function packageScripts(typescript: boolean, language: OutputLanguage): Record<string, string> {
+  const es = language === 'es'
   return {
     prepare: 'husky',
     lint: 'eslint .',
     format: 'prettier --write .',
     typecheck: typescript
       ? 'tsc --noEmit'
-      : 'echo "Sin TypeScript: no hay comprobación de tipos que ejecutar."',
+      : es
+        ? 'echo "Sin TypeScript: no hay comprobación de tipos que ejecutar."'
+        : 'echo "No TypeScript: there is no type check to run."',
     test: 'vitest run --passWithNoTests',
-    build: 'echo "Configura aquí el build real del proyecto."',
+    build: es
+      ? 'echo "Configura aquí el build real del proyecto."'
+      : 'echo "Configure the real build of the project here."',
     'plumbward:check': 'npx @plumbward/cli doctor',
   }
+}
+
+/** Managed `.gitignore` block that keeps the journal out of the repository. */
+function gitignoreArtifacts(language: OutputLanguage): string {
+  return (
+    language === 'es'
+      ? [
+          '# Estado local de la herramienta de gobernanza.',
+          '# El journal permite revertir la última ejecución y no debe compartirse.',
+        ]
+      : [
+          '# Local state of the governance tool.',
+          '# The journal lets you revert the last run and must not be shared.',
+        ]
+  )
+    .concat('.governance/journal.json')
+    .join('\n')
 }
 
 function hasSignal(context: RepoContext, id: string): boolean {
@@ -104,13 +177,13 @@ export const nodeTsPack: StackPack = {
       return {
         applies: false,
         confidence: 0,
-        reason: 'No se ha encontrado package.json en la raíz del repositorio.',
+        reason: 'No package.json was found at the root of the repository.',
       }
     }
     return {
       applies: true,
       confidence: detection.confidence,
-      reason: `Detectado ${detection.name} (${detection.evidence.join(', ')}).`,
+      reason: `Detected ${detection.name} (${detection.evidence.join(', ')}).`,
     }
   },
 
@@ -123,16 +196,16 @@ export const nodeTsPack: StackPack = {
 
     // --- Environment and style ----------------------------------------------
     operations.push(
-      file('.editorconfig', editorConfig(), 'Unifica el estilo de fichero entre editores.'),
+      file('.editorconfig', editorConfig(profile.language), 'Unifies the file style across editors.'),
       file(
         '.nvmrc',
         `${DEFAULT_NODE_VERSION}\n`,
-        'Fija la versión de Node para que CI y desarrollo usen la misma.',
+        'Pins the Node version so CI and development use the same one.',
       ),
       file(
         'Makefile',
-        makefile(manager),
-        'Comandos unificados: quien entra al proyecto sólo necesita saber "make".',
+        makefile(manager, profile.language),
+        'Unified commands: anyone who joins the project only needs to know "make".',
       ),
     )
 
@@ -146,7 +219,7 @@ export const nodeTsPack: StackPack = {
           profile,
           ciPushBranches(profile),
         ),
-        'Valida cada Pull Request antes de que la revise una persona.',
+        'Validates each Pull Request before a person reviews it.',
       ),
     )
     if (profile.branches.staging) {
@@ -154,7 +227,7 @@ export const nodeTsPack: StackPack = {
         file(
           '.github/workflows/ci-staging.yml',
           ciStagingWorkflow(manager, profile),
-          'Pipeline de despliegue a staging, listo para conectar con el proveedor.',
+          'Staging deploy pipeline, ready to connect to the provider.',
         ),
       )
     }
@@ -165,8 +238,8 @@ export const nodeTsPack: StackPack = {
       operations.push(
         file(
           '.github/workflows/ci-prod.yml',
-          ciProdWorkflow(manager, release),
-          'Pipeline de producción con puerta de aprobación manual.',
+          ciProdWorkflow(manager, release, profile.language),
+          'Production pipeline with a manual approval gate.',
         ),
       )
     }
@@ -175,23 +248,23 @@ export const nodeTsPack: StackPack = {
     operations.push(
       file(
         '.gitleaks.toml',
-        gitleaksConfig(),
-        'Configura la detección de secretos antes de que lleguen al historial.',
+        gitleaksConfig(profile.language),
+        'Configures secret detection before secrets reach the history.',
       ),
       file(
         '.husky/pre-commit',
-        preCommitHook(manager),
-        'Comprueba formato, linter y secretos sólo sobre lo que vas a commitear.',
+        preCommitHook(manager, profile.language),
+        'Checks format, linter and secrets only on what is about to be committed.',
       ),
       file(
         '.husky/commit-msg',
-        commitMsgHook(manager),
-        'Valida el formato del mensaje de commit.',
+        commitMsgHook(manager, profile.language),
+        'Validates the format of the commit message.',
       ),
       file(
         'commitlint.config.js',
-        commitlintConfig(),
-        'Reglas de Conventional Commits con límites razonables.',
+        commitlintConfig(profile.language),
+        'Conventional Commits rules with reasonable limits.',
       ),
     )
 
@@ -201,13 +274,13 @@ export const nodeTsPack: StackPack = {
         file(
           'eslint.config.js',
           eslintConfig(typescript, profile),
-          'El proyecto no tenía linter: se añade uno centrado en errores reales.',
+          'The project had no linter: adds one focused on real bugs.',
         ),
-        dep(manager, '@eslint/js', 'Reglas base de ESLint.'),
-        dep(manager, 'eslint', 'Linter del proyecto.'),
+        dep(manager, '@eslint/js', 'Base ESLint rules.'),
+        dep(manager, 'eslint', 'Project linter.'),
       )
       if (typescript) {
-        operations.push(dep(manager, 'typescript-eslint', 'Reglas de ESLint para TypeScript.'))
+        operations.push(dep(manager, 'typescript-eslint', 'ESLint rules for TypeScript.'))
       }
     }
 
@@ -215,15 +288,15 @@ export const nodeTsPack: StackPack = {
     const rules = aiRules(scan, profile)
     if (profile.aiAssistants.includes('cursor')) {
       operations.push(
-        file('.cursorrules', rules, 'Reglas de arquitectura y seguridad para Cursor.'),
+        file('.cursorrules', rules, 'Architecture and security rules for Cursor.'),
       )
     }
     if (profile.aiAssistants.includes('claude')) {
-      operations.push(file('CLAUDE.md', rules, 'Reglas del proyecto para Claude Code.'))
+      operations.push(file('CLAUDE.md', rules, 'Project rules for Claude Code.'))
     }
     if (profile.aiAssistants.includes('agents')) {
       operations.push(
-        file('AGENTS.md', rules, 'Reglas del proyecto en el formato estándar AGENTS.md.'),
+        file('AGENTS.md', rules, 'Project rules in the standard AGENTS.md format.'),
       )
     }
     if (profile.aiAssistants.includes('copilot')) {
@@ -231,7 +304,7 @@ export const nodeTsPack: StackPack = {
         file(
           '.github/copilot-instructions.md',
           copilotInstructions(scan, profile),
-          'Instrucciones de proyecto para GitHub Copilot.',
+          'Project instructions for GitHub Copilot.',
         ),
       )
     }
@@ -241,8 +314,8 @@ export const nodeTsPack: StackPack = {
       operations.push(
         file(
           '.devcontainer/devcontainer.json',
-          devcontainer(manager, DEFAULT_NODE_VERSION),
-          'Entorno de desarrollo idéntico para todo el equipo.',
+          devcontainer(manager, DEFAULT_NODE_VERSION, profile.language),
+          'The same development environment for the whole team.',
         ),
       )
     }
@@ -252,7 +325,7 @@ export const nodeTsPack: StackPack = {
       file(
         'GOVERNANCE.md',
         governanceDoc(scan, profile),
-        'Explica al equipo qué se ha instalado y cómo convivir con ello.',
+        'Explains to the team what was installed and how to live with it.',
         { managed: false },
       ),
     )
@@ -262,14 +335,14 @@ export const nodeTsPack: StackPack = {
       json(
         'package.json',
         '/scripts',
-        packageScripts(typescript),
-        'Añade los scripts que esperan el pipeline y el Makefile (respeta los existentes).',
+        packageScripts(typescript, profile.language),
+        'Adds the scripts the pipeline and the Makefile expect (keeps the existing ones).',
       ),
       json(
         'package.json',
         '/lint-staged',
         lintStagedConfig(profile),
-        'Define qué se ejecuta sobre cada tipo de fichero preparado.',
+        'Defines what runs on each type of staged file.',
       ),
     )
 
@@ -278,28 +351,24 @@ export const nodeTsPack: StackPack = {
       block(
         '.gitignore',
         'gitignore-artifacts',
-        [
-          '# Estado local de la herramienta de gobernanza.',
-          '# El journal permite revertir la última ejecución y no debe compartirse.',
-          '.governance/journal.json',
-        ].join('\n'),
-        'Evita subir al repositorio el estado local de la herramienta.',
+        gitignoreArtifacts(profile.language),
+        'Keeps the local state of the tool out of the repository.',
         { commentStyle: 'hash', createIfMissing: true },
       ),
     )
 
     // --- Dependencies and bootstrap -----------------------------------------
     operations.push(
-      dep(manager, 'husky', 'Gestiona los hooks de git.'),
-      dep(manager, 'lint-staged', 'Ejecuta comprobaciones sólo sobre ficheros preparados.'),
-      dep(manager, 'prettier', 'Formateador de código.'),
-      dep(manager, '@commitlint/cli', 'Valida el formato de los mensajes de commit.'),
-      dep(manager, '@commitlint/config-conventional', 'Convención estándar de commits.'),
-      dep(manager, 'vitest', 'Ejecutor de pruebas.'),
+      dep(manager, 'husky', 'Manages the git hooks.'),
+      dep(manager, 'lint-staged', 'Runs checks only on staged files.'),
+      dep(manager, 'prettier', 'Code formatter.'),
+      dep(manager, '@commitlint/cli', 'Validates the format of commit messages.'),
+      dep(manager, '@commitlint/config-conventional', 'Standard commit convention.'),
+      dep(manager, 'vitest', 'Test runner.'),
       cmd(
         manager === 'npm' ? 'npx' : manager,
         manager === 'npm' ? ['husky'] : ['exec', 'husky'],
-        'Activa los hooks de git en la copia local.',
+        'Enables the git hooks in the local clone.',
         { optional: true },
       ),
     )
@@ -313,45 +382,45 @@ export const nodeTsPack: StackPack = {
     const checks: HealthCheck[] = [
       {
         id: 'package-json',
-        label: 'package.json presente',
+        label: 'package.json present',
         ok: files.has('package.json'),
         detail: files.has('package.json')
-          ? 'Encontrado en la raíz.'
-          : 'No se encuentra package.json en la raíz.',
-        fixHint: 'Ejecuta la CLI desde la raíz del proyecto Node.',
+          ? 'Found at the root.'
+          : 'There is no package.json at the root.',
+        fixHint: 'Run the CLI from the root of the Node project.',
       },
       {
         id: 'ci',
-        label: 'Pipeline de validación de PRs',
+        label: 'PR validation pipeline',
         ok: files.has('.github/workflows/ci-dev.yml'),
         detail: files.has('.github/workflows/ci-dev.yml')
-          ? 'Configurado.'
-          : 'Falta el workflow de validación.',
-        fixHint: 'Ejecuta `plumbward apply` para generarlo.',
+          ? 'Configured.'
+          : 'The validation workflow is missing.',
+        fixHint: 'Run `plumbward apply` to generate it.',
       },
       {
         id: 'hooks',
-        label: 'Hooks de pre-commit',
+        label: 'Pre-commit hooks',
         ok: files.has('.husky/pre-commit'),
-        detail: files.has('.husky/pre-commit') ? 'Instalados.' : 'No hay hook de pre-commit.',
-        fixHint: 'Ejecuta `plumbward apply` y después el script `prepare`.',
+        detail: files.has('.husky/pre-commit') ? 'Installed.' : 'There is no pre-commit hook.',
+        fixHint: 'Run `plumbward apply` and then the `prepare` script.',
       },
       {
         id: 'secrets',
-        label: 'Configuración de escaneo de secretos',
+        label: 'Secret scanning configuration',
         ok: files.has('.gitleaks.toml'),
-        detail: files.has('.gitleaks.toml') ? 'Configurado.' : 'Falta .gitleaks.toml.',
-        fixHint: 'Ejecuta `plumbward apply`.',
+        detail: files.has('.gitleaks.toml') ? 'Configured.' : '.gitleaks.toml is missing.',
+        fixHint: 'Run `plumbward apply`.',
       },
       {
         id: 'ai-rules',
-        label: 'Reglas para asistentes de IA',
+        label: 'Rules for AI assistants',
         ok: files.has('.cursorrules') || files.has('CLAUDE.md') || files.has('AGENTS.md'),
         detail:
           files.has('.cursorrules') || files.has('CLAUDE.md') || files.has('AGENTS.md')
-            ? 'Presentes.'
-            : 'El repositorio no declara reglas para asistentes de IA.',
-        fixHint: 'Ejecuta `plumbward apply`.',
+            ? 'Present.'
+            : 'The repository declares no rules for AI assistants.',
+        fixHint: 'Run `plumbward apply`.',
       },
     ]
 

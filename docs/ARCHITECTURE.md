@@ -195,8 +195,8 @@ This mechanism is what will make the subscription model technically possible.
 > behaviour.
 
 The comments these files carry are generated for the client, so they follow the
-profile language. The examples show them in English, as F0-45 makes the default;
-until then the CLI writes them in Spanish.
+profile language: English by default, Spanish with `language: es`. The plan
+carries that language, so `plan` and `apply` write the same header.
 
 There are two cases:
 
