@@ -1902,10 +1902,13 @@ profile, not withdrawn. The wizard (F4-1) asks the company for the language.
    does not see, because they carry no accent and no listed word, in
    `packages/core`, `packages/ast`, `packages/scanner` and
    `packages/packs-sdk` (`plan.ts`, `registry.ts`, `apply.ts`, `json.ts`,
-   `yaml.ts`, `rollback.ts`, `conformance.ts`, `maturity.ts`), and translate
-   them with the rest. Found in the review of F0-43: only the literals with an
-   accent or a listed word were declared as fragments, so the fragment list is
-   not the whole inventory.
+   `yaml.ts`, `rollback.ts`, `conformance.ts`, `maturity.ts`), and in
+   `packages/cli` and `packages/packs/node-ts` (`commands.ts:91`, `:96`,
+   `:231`, `:233`; `index.ts:24`, `:36`; `workflow-checks.ts:100`, `:103`; the
+   `config.yml` header lines in `context.ts`), and translate them with the
+   rest. Found in the reviews of F0-43 and F0-44 (PR #24): only the literals
+   with an accent or a listed word were declared as fragments, so the fragment
+   list is not the whole inventory.
 7. Update the header of `packages/ast/src/yaml.ts`, which says the generated
    YAML carries explanatory comments in Spanish: they follow the language of
    the profile.
@@ -2079,8 +2082,11 @@ Goes after F0-46 in the queue: both change `doc-links.mjs` and
 `scripts/doc-links.test.mjs` and `scripts/english-only.test.mjs` that fail
 against the current code. Item 3 is prose and not mechanisable, but a lost
 escape already fails: the decoded Spanish lands in `english-only.json`, which is
-neither pending nor an exception. Item 5 is covered by the English control once
-F0-44 takes `check-coherence.mjs` out of the pending list.
+neither pending nor an exception. Item 5 is not covered by the English control:
+both verdict lines carry no accent and no listed word, so `findSpanish()`
+returns `undefined` for them (fresh-context review of PR #24). Item 5 is its
+own test, which runs `check-coherence.mjs` and fails if either verdict line is
+not the English one.
 
 **Acceptance criteria:**
 - A link to a heading that does not exist, in another file or in the same one,
