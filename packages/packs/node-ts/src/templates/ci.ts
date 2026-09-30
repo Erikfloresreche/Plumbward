@@ -30,6 +30,25 @@ function runCommand(manager: PackageManager, script: string): string {
 }
 
 /**
+ * PR-validation trigger: every Pull Request, plus push on the configured
+ * branches. Shared by both languages so one mutation anchor covers both
+ * (F0-45).
+ */
+function ciTrigger(pushBranches: readonly string[]): string {
+  return `on:
+  pull_request:
+${pushBranches.length > 0 ? `  push:
+    branches: [${pushBranches.join(', ')}]
+` : ''}`
+}
+
+/** Staging branch name, shared by both languages (F0-45). */
+function stagingBranch(profile: Profile): string {
+  const staging = profile.branches.staging ?? 'staging'
+  return staging
+}
+
+/**
  * Validation workflow for every Pull Request.
  *
  * It is the heart of the value proposition: what is automated here is exactly
@@ -141,11 +160,7 @@ name: CI · PR validation
 # Runs on EVERY Pull Request, whatever branch it targets. Filtering by target
 # branch left unreviewed the PRs aimed at a branch the tool had not identified
 # as the main one.
-on:
-  pull_request:
-${pushBranches.length > 0 ? `  push:
-    branches: [${pushBranches.join(', ')}]
-` : ''}
+${ciTrigger(pushBranches)}
 # Cancels older runs on the same branch: saves CI minutes and money.
 concurrency:
   group: \${{ github.workflow }}-\${{ github.ref }}
@@ -235,7 +250,7 @@ ${setupStepsEn(manager, mode !== 'greenfield')}
 }
 
 function ciStagingWorkflowEn(manager: PackageManager, profile: Profile): string {
-  const staging = profile.branches.staging ?? 'staging'
+  const staging = stagingBranch(profile)
 
   return `# ---------------------------------------------------------------------------
 # Deploy to STAGING
@@ -417,11 +432,7 @@ name: CI · Validación de PR
 # Se ejecuta en TODAS las Pull Requests, vayan a la rama que vayan. Filtrar por
 # rama de destino dejaba sin revisar las PRs dirigidas a una rama que la
 # herramienta no había identificado como principal.
-on:
-  pull_request:
-${pushBranches.length > 0 ? `  push:
-    branches: [${pushBranches.join(', ')}]
-` : ''}
+${ciTrigger(pushBranches)}
 # Cancela ejecuciones antiguas de la misma rama: ahorra minutos de CI y dinero.
 concurrency:
   group: \${{ github.workflow }}-\${{ github.ref }}
@@ -512,7 +523,7 @@ ${setupStepsEs(manager, mode !== 'greenfield')}
 
 /** Spanish variant of `ciStagingWorkflowEn`. */
 function ciStagingWorkflowEs(manager: PackageManager, profile: Profile): string {
-  const staging = profile.branches.staging ?? 'staging'
+  const staging = stagingBranch(profile)
 
   return `# ---------------------------------------------------------------------------
 # Despliegue a STAGING
