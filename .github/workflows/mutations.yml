@@ -1,5 +1,5 @@
 # ---------------------------------------------------------------------------
-# Mutation tests of the protected-branch logic.
+# Mutation tests of the protected-branch logic and of the journal guard.
 #
 # `check:mutations` undoes on purpose each piece of the branch logic and checks
 # that some test fails. Until F0-27 it ran nowhere: it depended on someone
@@ -34,6 +34,8 @@ on:
       - 'packages/cli/test/e2e.test.ts'
       - 'packages/cli/test/head-moved.test.ts'
       - 'packages/cli/test/protected-branches.test.ts'
+      - 'packages/core/src/rollback.test.ts'
+      - 'packages/core/src/rollback.ts'
       - 'packages/packs-sdk/src/branches.test.ts'
       - 'packages/packs-sdk/src/branches.ts'
       - 'packages/packs-sdk/src/contract.ts'
@@ -65,7 +67,7 @@ jobs:
     # A job of its own, with no matrix and no `if` conditions: what decides
     # whether this runs is the `paths:` filter above, in a single place.
     runs-on: ubuntu-latest
-    # Thirty mutations, each one a full test suite. Locally it takes about three
+    # Thirty-one mutations, each one a full test suite. Locally it takes about three
     # minutes; the margin is for a slow runner, not for the normal case. The
     # script also has its own 5-minute cap per mutation.
     timeout-minutes: 30
