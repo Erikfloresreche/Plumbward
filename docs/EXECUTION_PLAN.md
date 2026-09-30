@@ -5,8 +5,8 @@
 > criterion it is considered finished. Each task is closed by updating its
 > checkbox in this file, inside the same Pull Request that implements it.
 
-**Last updated:** 2026-09-15
-**Global status:** Phase 0 in progress — F0-1, F0-3, F0-5, F0-8, F0-13, F0-14, F0-15, F0-16, F0-17, F0-18, F0-24, F0-27, F0-29, F0-30, F0-40, F0-41, F0-42, F0-43, F0-44, F0-45, F0-47 and F0-48 completed. Remaining: F0-2, F0-4, F0-6, F0-7, F0-9 to F0-12, F0-19 to F0-23, F0-25, F0-26, F0-28, F0-31 to F0-39, F0-46, F0-49 to F0-53, and F3-11.
+**Last updated:** 2026-09-30
+**Global status:** replanned towards an early beta on 2026-09-30 (F0-54): the work is ordered by milestones M1 to M9, not by phase (§5). Current milestone: **M1 — client repository safety**. Completed: F0-1, F0-3, F0-5, F0-8, F0-13 to F0-18, F0-24, F0-27, F0-29, F0-30, F0-40 to F0-45, F0-47, F0-48 and F0-54. Remaining: every other task, in the order of the execution queue (§5).
 **Product:** Plumbward · https://github.com/Erikfloresreche/Plumbward
 **Business model:** annual subscription per repository — see
 [BUSINESS_MODEL.md](BUSINESS_MODEL.md)
@@ -26,6 +26,12 @@
 5. **The next task is the first one in the execution queue** (§5). The order
    is not decided in each session: it is changed by moving the entry in the
    queue, with its reason, when the developer decides on another priority.
+6. **The prefix of an identifier is the phase the task was created in, not
+   when it is done** (F0-54). Tasks keep their identifiers, because PRs,
+   commits and documents cite them; the milestone each one belongs to is in
+   the correspondence table of §5. A pending task never depends on
+   `Phase N complete`: it lists the tasks it depends on, and
+   `pnpm check:coherence` fails otherwise.
 
 ---
 
@@ -202,6 +208,12 @@ It applies to **all** tasks, on top of their own criteria:
       does not count: it decays.
 
 ---
+
+> **Phases are a catalogue by origin (F0-54).** The phases below group the
+> tasks by the area they were created for, and keep their identifiers. The
+> order of the work, and the exit criterion that decides when a stage is over,
+> are those of the **milestones** in §5. The objective and exit criterion of
+> each phase stay as a description of its area.
 
 ## PHASE 0 — Repository foundation
 
@@ -1637,8 +1649,13 @@ out saying so.
 
 **What becomes a mechanical control:** the entry itself, if it is added.
 
+**Queue consequence (F0-54):** if the journal guard joins the battery, F0-32
+and F0-50 can give empty greens on it. In that case, the same PR moves both in
+the queue to right after F0-36, inside M1, with this reason.
+
 **Acceptance criteria:**
 - No mutation name describes a piece other than the one it mutates.
+- If the journal guard joins the battery, F0-32 and F0-50 are in M1.
 
 ---
 
@@ -2274,6 +2291,60 @@ file is named.
 
 ---
 
+### [x] F0-54 — Replan towards an early beta
+**Branch:** `docs/f0-replan-beta-first` · **Depends on:** F0-45
+
+**Origin:** decision of the developer on 2026-09-30. The plan had seven
+sequential phases with the launch at the end, and Phase 0 had piled up
+internal tooling. The product already works end to end for Node/TypeScript,
+but no outside user has tried it. The plan is reordered so that the product
+reaches real repositories sooner, without lowering the quality bar.
+
+**Decisions it applies (taken by the developer, not reopened here):**
+1. Launch scope: Node/TypeScript only. Other stacks (Phase 2) and i18n
+   (Phase 1) wait until the beta shows demand. They are moved, not deleted.
+2. Client repository safety first (R5, R7). Tasks that only govern this
+   repository go to an internal tooling backlog (M9), unless something earlier
+   needs them.
+3. A private beta over real repositories (Phase 7, M3), with no telemetry.
+4. What is charged for recurrently is the measurement: baseline, ratchet,
+   diff-only CI and the report over time (M4).
+5. Licensing and payments after the paid core and before the public launch;
+   the first pilots are invoiced by hand.
+6. A team dashboard for tech leads and PMs, per repository and team, never per
+   developer: a stage after the launch (M8).
+
+**Work:**
+1. Milestones M1 to M9 in §5, each with its objective and a measurable exit
+   criterion, and the queue grouped by milestone.
+2. Identifiers kept (option A of the proposal): a correspondence table from
+   identifier to milestone, and dependencies listed task by task.
+3. New tasks F7-1 to F7-7 (beta), F5-6, F6-5 and F8-1; amended dependencies
+   of F1-1, F1-5, F2-1, F3-1, F4-1, F4-4, F5-1, F5-5, F6-1 to F6-4.
+4. [ADR 0006](adr/0006-free-cycle-paid-measurement.md), `proposed`: the full
+   cycle free on one repository, and charging for measurement.
+5. README (status and roadmap) and BUSINESS_MODEL (go-to-market proposal in
+   §11, and §10) aligned with the new order.
+
+**What becomes a mechanical control:** `scripts/execution-queue.mjs` rejects a
+pending task that depends on `Phase N complete`, with its test. Without it,
+the next edit of the plan brings the whole-phase dependency back, and it would
+drag along tasks moved to a later milestone.
+
+**Not mechanisable:** the correspondence table of §5 repeats the queue. If
+they disagree, the queue wins; the table is an index for finding a task.
+
+**Acceptance criteria:**
+- The plan is organised in milestones M1 to M9 with measurable exit criteria.
+- No pending task declares `Phase N complete`, and the control fails if one
+  does.
+- A correspondence table from identifier to milestone.
+- README, BUSINESS_MODEL §10 and the go-to-market section (§11) updated.
+- ADR 0006 with status `proposed`.
+- `pnpm check:coherence` green.
+
+---
+
 ## PHASE 1 — Internationalisation of the template engine
 
 **Objective:** make `Profile.language` really work.
@@ -2287,7 +2358,7 @@ entirely in English, with the same file structure as `language: es`.
 ---
 
 ### [ ] F1-1 — `@plumbward/i18n` package
-**Branch:** `feat/f1-i18n-package` · **Depends on:** Phase 0 complete
+**Branch:** `feat/f1-i18n-package` · **Depends on:** F6-4
 
 **Work:**
 1. New package with a typed catalogue: the `en` keys derive from the type of
@@ -2356,11 +2427,16 @@ determinism.
 
 ---
 ### [ ] F1-5 — Provenance: each rule cites its source
-**Branch:** `feat/f1-rule-provenance` · **Depends on:** F1-1
+**Branch:** `feat/f1-rule-provenance` · **Depends on:** F0-45
 
-**Why in this phase:** it is the same lesson as i18n. Today there is one pack;
-after Phase 2 there will be five, and adding a mandatory field to the contract
-with five packs written costs five times more.
+**Why before the launch (M6, F0-54):** BUSINESS_MODEL §3 promises in public
+that every control cites the official documentation it relies on. Launching
+without it is exactly risk R7. It does not need the i18n package: the
+provenance is data of the pack contract, not a translated text.
+
+**Why before the other stacks:** it is the same lesson as i18n. Today there is
+one pack; after Phase 2 there will be five, and adding a mandatory field to the
+contract with five packs written costs five times more.
 
 **Why it matters commercially:** it defuses the objection *"why should I trust
 your standards?"*. The answer becomes: **no rule is our opinion, each one cites
@@ -2398,7 +2474,7 @@ Python, PHP/Laravel and Go repos, and on one with an unsupported stack.
 ---
 
 ### [ ] F2-1 — Multi-stack detection in the scanner
-**Branch:** `feat/f2-scanner-multistack` · **Depends on:** Phase 1 complete
+**Branch:** `feat/f2-scanner-multistack` · **Depends on:** F1-4
 
 **Current state:** [stack.ts](../packages/scanner/src/stack.ts) only recognises
 `node-ts` and `go`.
@@ -2750,7 +2826,7 @@ green from day one, and still prevents it from getting worse.
 ---
 
 ### [ ] F3-1 — Baseline: a snapshot of the existing debt
-**Branch:** `feat/f3-baseline` · **Depends on:** Phase 2 complete
+**Branch:** `feat/f3-baseline` · **Depends on:** F7-7, F5-6
 
 **Work:**
 1. Generate `.governance/baseline.json` (the `BASELINE_FILE` constant already
@@ -2818,8 +2894,9 @@ month, in a measurable way.
    debt goes up**, even if the absolute values are still high.
 2. When a PR reduces the debt, the baseline is automatically updated downwards:
    the ratchet never goes back.
-3. `plumbward report` shows the evolution of the maturity score and of the debt
-   over time.
+
+The evolution over time in `plumbward report` moved to F4-4 (F0-54): `report`
+does not exist yet when this task is done.
 
 **Acceptance criteria:**
 - A PR that adds a new `any` fails, even if the repo has 3,000.
@@ -3123,14 +3200,15 @@ rules without losing a single client customisation.
 ---
 
 ### [ ] F4-1 — Interactive wizard `plumbward init`
-**Branch:** `feat/f4-wizard-init` · **Depends on:** Phase 3 complete
+**Branch:** `feat/f4-wizard-init` · **Depends on:** F3-4
 
 **Work:**
 1. An `init` command with `@clack/prompts` (already a dependency of the CLI).
 2. Questions, **with a default value derived from the scan** so that pressing
    Enter gives a correct result —except the deployment branch, which has none
    on purpose—:
-   - Branch strategy (F3-5).
+   - Branch strategy: only `branches` until F3-5 (M7) brings the full
+     strategy.
    - Deployment target per environment **and the branch it is deployed from**
      (`branches.release`). It is the only thing Plumbward never infers (ADR
      0005): it is always asked, with no default value.
@@ -3205,7 +3283,7 @@ other branches are not checked. `doctor` has warned about it since F0-14;
 ---
 
 ### [ ] F4-4 — Commercial report `plumbward report`
-**Branch:** `feat/f4-sales-report` · **Depends on:** F4-3
+**Branch:** `feat/f4-sales-report` · **Depends on:** F3-4
 
 **Why:** whoever decides the purchase is not whoever runs the CLI, and they will
 not read terminal output. This report is the sales tool: it is generated for
@@ -3218,10 +3296,15 @@ free, shared by email and creates the need the product solves.
 2. `--json` for integrations.
 3. A sober, professional design, with no external dependencies and no
    telemetry.
+4. The evolution of the maturity score and of the debt over time, read from
+   the baseline history of F3-4 (moved from F3-4 in F0-54). Whether the history
+   is free or paid is decided by ADR 0006 in F5-6, before this task.
 
 **Acceptance criteria:**
 - The HTML opens offline and reads well on a phone.
 - The numbers it shows can be justified with the scan data; nothing made up.
+- The report shows at least two points of history on a repository of the
+  corpus.
 
 ---
 
@@ -3342,7 +3425,7 @@ vendor review by a corporate security department.
 ---
 
 ### [ ] F5-1 — `@plumbward/licensing` package
-**Branch:** `feat/f5-licensing-sdk` · **Depends on:** Phase 4 complete
+**Branch:** `feat/f5-licensing-sdk` · **Depends on:** F4-2
 
 **Work:**
 1. HTTPS client for the licence API, with short timeouts and error messages
@@ -3418,7 +3501,7 @@ vendor review by a corporate security department.
 ---
 
 ### [ ] F5-5 — Annual subscription and volume tiers
-**Branch:** `feat/f5-annual-subscription` · **Depends on:** F5-3
+**Branch:** `feat/f5-annual-subscription` · **Depends on:** F5-3, F6-5
 
 **Origin:** business decision of 2026-09-09,
 [ADR 0004](adr/0004-annual-subscription.md). It replaces the one-off payment
@@ -3442,6 +3525,37 @@ model with twelve months of updates.
   configuration it already had.
 - Without network, a repository with a valid cached licence is not affected.
 - Moving from one tier to another does not force reconfiguring any repository.
+- The price of each tier is the one closed with the pilots in F6-5.
+
+---
+
+### [ ] F5-6 — Close ADR 0006 and align the licence
+**Branch:** `docs/f5-licence-model-decision` · **Depends on:** F7-7
+
+**Origin:** F0-54. [ADR 0006](adr/0006-free-cycle-paid-measurement.md) proposes
+that the full cycle be free on one repository and that what is charged for be
+the measurement. It is decided with the results of the beta in hand.
+
+**Why here, at the start of the paid core (M4):** the *Additional Use Grant*
+of the `LICENSE` is worded by property —every command that does not modify the
+repository is free— and each published version keeps its grant forever. A
+read-only `report` with history is already free under that wording. If the
+history is going to be paid for, the grant has to be narrowed **before** a
+version with history is published, not after.
+
+**Work:**
+1. Decide ADR 0006 with the results of M3 (F7-7): `accepted` or `rejected`,
+   with the reason.
+2. If it is accepted: `LICENSE`, README, ADR 0003, ADR 0004 and
+   BUSINESS_MODEL §4 and §10 say the same thing.
+3. If it is rejected: the ADR records why, and nothing else changes.
+
+**Acceptance criteria:**
+- ADR 0006 is `accepted` or `rejected`.
+- If accepted, `LICENSE`, README, ADR 0003/0004 and BUSINESS_MODEL are
+  coherent with it.
+- No version with a historical report is published before this task is
+  closed.
 
 ---
 
@@ -3449,13 +3563,19 @@ model with twelve months of updates.
 
 **Objective:** a product that can be bought exists.
 **Estimate:** 2-3 work sessions.
-**Phase exit criterion:** a client runs `npx @your-company/plumbward scan`, sees
-the value, pays and applies.
+**Phase exit criterion:** a client runs `npx @plumbward/cli scan`, sees the
+value, pays and applies.
 
 ---
 
 ### [ ] F6-1 — Publishing on NPM
-**Branch:** `build/f6-npm-publishing` · **Depends on:** Phase 5 complete
+**Branch:** `build/f6-npm-publishing` · **Depends on:** F0-2, F0-6, F0-11, F0-38
+
+**Moved to M2 (F0-54):** it publishes the beta. It goes out with the `beta`
+dist-tag; `latest` only arrives with 1.0 in F6-4. It needs a single version
+source (F0-2), a repeatable release (F0-6), a reversible installation (F0-11)
+and a `rollback` that does not overwrite work (F0-38): outside testers install
+it without cloning.
 
 **Work:**
 1. Scope and organisation already resolved in F0-8: `@plumbward/*`,
@@ -3463,29 +3583,34 @@ the value, pays and applies.
 2. Packaging: a single executable through `tsup`, fast startup, correct `bin`.
 3. Check `npx` on macOS, Linux and Windows, with the Node versions CI tests at
    that moment (today 22.13, 24 and 26).
-4. Automatic publishing from `main` with changesets and provenance.
+4. Automatic publishing from `Prod` with changesets and provenance, under the
+   `beta` dist-tag.
 5. Check the package size: `npx` runs in every demo, and a slow download ruins
    the first impression.
 
 **Acceptance criteria:**
-- `npx @your-company/plumbward scan` works on the three platforms.
+- `npx @plumbward/cli@beta scan` works on the three platforms.
 - Startup under 2 seconds.
+- The version the journal records matches `package.json`.
+- `latest` does not point to any beta version.
 
 ---
 
 ### [ ] F6-2 — E2E validation over real repositories
-**Branch:** `test/f6-real-repo-e2e` · **Depends on:** F6-1
+**Branch:** `test/f6-real-repo-e2e` · **Depends on:** F6-1, F7-2
 
 **Why:** it is Phase 4 of the original PDF and the only filter that catches
-what synthetic tests do not see.
+what synthetic tests do not see. Since F0-54 it is part of the beta (M3): the
+automatic subset of the corpus that F7-5 runs by hand in full.
 
 **Work:**
-1. A battery over real public repositories, one per profile:
+1. A battery over real public TypeScript repositories taken from the corpus
+   (F7-2), one per profile:
    - Greenfield (< 2,000 SLOC).
    - Medium, with debt (2,000-50,000).
    - Large monorepo (> 50,000).
-   - One per supported stack.
-   - One of an **unsupported** stack (it checks the base pack).
+   - One of an **unsupported** stack: Plumbward exits cleanly and writes
+     nothing.
 2. For each one: `scan` → `plan` → `apply` → green CI → `rollback` → repo
    identical to the original.
 3. Really measure the total time and compare it with the PDF's promise of
@@ -3499,7 +3624,7 @@ what synthetic tests do not see.
 ---
 
 ### [ ] F6-3 — Sales materials
-**Branch:** `docs/f6-landing-and-demo` · **Depends on:** F6-2
+**Branch:** `docs/f6-landing-and-demo` · **Depends on:** F6-2, F5-5
 
 **Work:**
 1. A landing page with the value proposition, the price and an `asciinema` of
@@ -3515,86 +3640,339 @@ what synthetic tests do not see.
 ---
 
 ### [ ] F6-4 — 1.0 launch
-**Branch:** `chore/f6-launch` · **Depends on:** F6-3
+**Branch:** `chore/f6-launch` · **Depends on:** F6-3, F1-5
 
 **Work:**
 1. Freeze the public `StackPack` API: from 1.0 on, breaking it has a cost.
 2. Support and versioning policy published.
 3. Support channel and incident process.
-4. First three pilot clients with a discount in exchange for structured
-   feedback.
+4. The `latest` dist-tag points to 1.0.
+
+The pilot clients moved to F6-5 (F0-54): prices are closed with them before
+the landing page shows them.
+
+**Acceptance criteria:**
+- `npx @plumbward/cli scan` installs 1.0 from `latest`.
+- Every generated security rule cites its source (F1-5).
+
+---
+
+### [ ] F6-5 — Three pilots invoiced by hand
+**Branch:** `docs/f6-pilot-pricing` · **Depends on:** F3-4, F4-4
+
+**Origin:** F0-54, with point 4 of F6-4. The first pilots are invoiced by hand,
+before the licensing exists: what is validated is the demand and the price, not
+the payment flow.
+
+**Why it matters:** the beta testers of M3 are acquaintances. They validate
+that the product can be used, not that someone pays for it. The pilots are the
+first validation of demand.
+
+**Work:**
+1. Three pilot clients with a written agreement: scope, discount, duration and
+   the structured feedback they give in exchange.
+2. Each pilot follows the beta protocol (F7-1) and reports with its template
+   (F7-3).
+3. The price per plan is closed with what the pilots accept and pay.
+
+**Acceptance criteria:**
+- Three pilots with a written agreement and structured feedback.
+- At least one of the three completes the full cycle with no help from us.
+- The prices per plan are closed and written in BUSINESS_MODEL §4.
+
+---
+
+## PHASE 7 — Private beta over real repositories
+
+**Objective:** validate the Node/TypeScript cycle on real repositories before
+building what is charged for.
+**Origin:** F0-54. The product works end to end on synthetic repositories;
+nobody outside has used it.
+**How it is tested:** almost every test is run by the developer, on forks of
+the corpus (F7-5). Two outside testers each run one individual test, on
+request, on a fork of their own (F7-6). No telemetry: every metric is
+collected by hand.
+**Phase exit criterion:** the exit criterion of M3 (§5).
+
+---
+
+### [ ] F7-2 — Corpus of target repositories
+**Branch:** `docs/f7-beta-corpus` · **Depends on:** F0-1
+
+**Why first in M1:** it is documentation with no risk and depends on nothing
+pending. With the list written, the safety tests of M1 can be checked against
+real repositories, and forks can be prepared in the meantime.
+
+**Work:**
+1. `docs/beta/corpus.md` with 15 to 20 public TypeScript repositories, each
+   with a pinned commit SHA and its licence.
+2. Variety: three sizes by SLOC; npm, pnpm, yarn and bun; three or four
+   monorepos; no linter, legacy ESLint, flat ESLint and Biome; with and without
+   CI or husky.
+3. The monorepos are there to measure known defects (ARCHITECTURE §8, F2-7),
+   not to hide them: a task of its own opens only for what blocks the beta.
+
+**Acceptance criteria:**
+- 15 to 20 repositories, each with SHA, licence and one line that justifies
+  its inclusion.
+- Every variety of point 2 is covered by at least one repository.
+
+---
+
+### [ ] F7-4 — Metrics collected by hand
+**Branch:** `docs/f7-beta-metrics` · **Depends on:** F7-2
+
+**Work:**
+1. `docs/beta/metrics.md` defines how each metric is measured:
+   - cycle time, from `scan` to green CI;
+   - conflicts, by type;
+   - `rollback` success: an empty diff against the previous commit;
+   - generated files kept or deleted after 14 days;
+   - green CI on the first push.
+2. A results template in `docs/beta/results.md`.
+
+**Acceptance criteria:**
+- Every metric has a definition that two people would measure the same way.
+- No metric needs telemetry.
+
+---
+
+### [ ] F7-1 — Beta protocol
+**Branch:** `docs/f7-beta-protocol` · **Depends on:** F6-1, F7-4
+
+**Work:**
+1. `docs/beta/PROTOCOL.md` explains:
+   - how to install, from the repository or from `@beta`;
+   - that it is only used on a fork;
+   - which cycle to test and what to report;
+   - that it is non-production use under the BUSL.
+
+**Acceptance criteria:**
+- A new tester completes the cycle without asking anything (checked in
+  F7-6).
+
+---
+
+### [ ] F7-3 — Feedback issue template
+**Branch:** `chore/f7-beta-feedback-template` · **Depends on:** F7-4
+
+**Work:**
+1. `.github/ISSUE_TEMPLATE/beta-feedback.yml` asks for every metric of F7-4,
+   the version, the size of the repository and the package manager.
+
+**Acceptance criteria:**
+- The template asks for every metric of F7-4.
+- It is in English.
+
+---
+
+### [ ] F7-5 — Internal pass over the corpus
+**Branch:** `docs/f7-corpus-internal-pass` · **Depends on:** F6-2, F7-4
+
+**Work:**
+1. The developer runs the full cycle on a fork of every repository of the
+   corpus and records it in `docs/beta/results.md`.
+
+**Acceptance criteria:**
+- Every repository of the corpus has its full cycle recorded.
+- Every defect ends in a new task, or is recorded as accepted with its reason.
+
+---
+
+### [ ] F7-6 — Two outside testers
+**Branch:** `docs/f7-external-testers` · **Depends on:** F7-1, F7-3, F7-5
+
+**Why after F7-5:** the testers are asked once the internal pass is clean, so
+they do not stumble on defects that are already known.
+
+**Work:**
+1. Two individual tests, on request. Each tester completes the cycle on a fork
+   of their own, using only the protocol (F7-1), and reports with the template
+   (F7-3).
+
+**Acceptance criteria:**
+- 2 of 2 testers complete the cycle without help.
+- Every report is triaged into a new task or an accepted defect with its
+  reason.
+- Their metrics are consolidated in `docs/beta/results.md`.
+
+**Risk:** two acquaintances validate the use, not the demand. The demand is
+validated with the pilots (F6-5).
+
+---
+
+### [ ] F7-7 — Beta exit review
+**Branch:** `docs/f7-beta-exit-review` · **Depends on:** F7-6
+
+**Work:**
+1. `docs/beta/exit-review.md` compares the results with the exit criterion of
+   M3 and with the validation metrics of BUSINESS_MODEL §11.
+2. The thresholds of M3 are a proposal: this review confirms them or records
+   why they change.
+
+**Acceptance criteria:**
+- The go or no-go decision is recorded, with its reason.
+
+---
+
+## PHASE 8 — Team dashboard
+
+**Objective:** a view for tech leads and PMs, per repository and per team.
+**Origin:** F0-54, decision 6. A stage after the launch, not an immediate task.
+**Phase exit criterion:** the exit criterion of M8 (§5).
+
+---
+
+### [ ] F8-1 — Team dashboard: discovery
+**Branch:** `docs/f8-team-dashboard-discovery` · **Depends on:** F6-4, F4-4
+
+**Why it starts with discovery and not with code:** individual metrics per
+developer are a GDPR and labour law risk in the EU, and developers reject
+them. The scope is fixed before a single line is written.
+
+**Work:**
+1. An ADR with the scope: repository and team yes, individual never.
+2. A GDPR and labour law analysis.
+3. Validation with at least three clients.
+
+**Acceptance criteria:**
+- The ADR is accepted, with the analysis attached.
+- At least three clients validated it before any code is written.
 
 ---
 
 ## 5. Execution order and dependencies
 
-```
-PHASE 0 ─────────────────> PHASE 1 ────> PHASE 2 ────> PHASE 3 ────> PHASE 4 ────> PHASE 5 ────> PHASE 6
-(foundation)              (i18n)        (stacks)      (modes)       (lifecycle)   (licensing)   (launch)
-```
+Since F0-54 the work is ordered by **milestones**, not by phase. A milestone is
+a stage with a measurable exit criterion; a phase (the prefix of the
+identifier) is only the area a task was created for. Milestones are done in
+this order: M1 → M2 → M3 → M4 → M5 → M6 → M9 → M7 → M8. M9 goes before M7
+because "at the end" means "never", and internal tooling debt grows with the
+project.
 
-Phases are sequential, but **inside each phase there is parallelism**:
+Inside a milestone there is parallelism wherever the dependencies allow it,
+but the queue fixes one order for everybody.
 
-- **Phase 0:** F0-1 first. Then F0-2, F0-3 and F0-5 in parallel. F0-4, F0-6 and
-  F0-7 depend on F0-3.
-- **Phase 2:** F2-1 → F2-2 → F2-3, and then **F2-4, F2-5 and F2-6 are parallel**.
-  It is the best point of the plan to share out work.
-- **Phase 3:** F3-5 only depends on F2-2, so it can be brought forward.
+### MILESTONE 1 — Client repository safety
+
+**Objective:** hold what we promise before anyone else runs the product: risks
+R5 and R7.
+**Exit criterion:**
+- Coverage of `core` at 90 % or more, blocking in CI.
+- An e2e with a real installation (without `--no-install`): `apply` +
+  `rollback` leaves `git status --porcelain` empty and the lockfile identical.
+- A symbolic link escape test is green.
+- `rollback` over a file modified after `apply` refuses to act.
+
+### MILESTONE 2 — Publishable beta build
+
+**Objective:** third parties can install it without cloning.
+**Exit criterion:**
+- `npx @plumbward/cli@beta scan` works on macOS, Linux and Windows.
+- Startup under 2 seconds.
+- The version the journal records matches `package.json`.
+- The release is reproducible from changesets.
+- The journal contract is documented.
+
+### MILESTONE 3 — Private beta
+
+**Objective:** validate the cycle on real repositories.
+**Exit criterion** (thresholds proposed in F0-54; F7-7 confirms them or
+records why they change):
+- 15 or more repositories of the corpus with the full cycle recorded.
+- 2 of 2 outside testers complete the cycle without help.
+- 0 corruptions of a repository.
+- `rollback` leaves the repository identical in 100 % of the cycles.
+- Median cycle time under 5 minutes on repositories under 50k SLOC, measured
+  (R4).
+- Green CI on the first push in 80 % or more of the repositories.
+- Every serious defect closed or in the queue.
+
+### MILESTONE 4 — Paid core: measurement
+
+**Objective:** what is charged for recurrently.
+**Exit criterion,** on the largest repository of the corpus (over 50k SLOC,
+with debt):
+- CI green on the first day.
+- A PR that adds a violation fails.
+- A PR that removes 10 violations lowers the baseline.
+- A 3-file PR is validated in under a minute.
+- `report` shows at least two points of history.
+
+### MILESTONE 5 — Monetisation
+
+**Objective:** being able to charge.
+**Exit criterion:**
+- Three pilots invoiced by hand, and prices closed.
+- A licence bought and validated offline.
+- An expired licence degrades nothing (test).
+- `upgrade` over an installation of the previous version respects the edited
+  files.
+
+### MILESTONE 6 — Public launch
+
+**Objective:** 1.0.
+**Exit criterion:**
+- `latest` is 1.0 on npm.
+- A landing page that is understood in 30 seconds.
+- Every generated security rule cites its source (F1-5).
+
+### MILESTONE 9 — Internal tooling
+
+**Objective:** the backlog of this repository's own controls.
+**Exit criterion:** none with a date. It is emptied without blocking anything,
+after M6 and before M7.
+
+### MILESTONE 7 — Later scaling
+
+**Objective:** stacks, i18n, branch flow and the recurrence engine.
+**Exit criterion:** its entry is conditioned by demand: three or more requests
+from beta users or pilots for the same stack or language.
+
+### MILESTONE 8 — Team dashboard (future)
+
+**Objective:** a view for tech leads and PMs.
+**Exit criterion:** the design approved in an ADR: aggregation only per
+repository and team, never per developer, with a GDPR and labour law analysis
+before any code.
+
+### Correspondence: identifier → milestone
+
+The prefix says where a task was born; this table says where it went. It is an
+index for finding a task: if it disagrees with the queue, **the queue wins**.
+
+| Phase of origin | Pending tasks → milestone |
+|---|---|
+| Phase 0 | F0-7, F0-9 to F0-11, F0-33, F0-34, F0-36 to F0-39 → **M1** · F0-2, F0-6, F0-19, F0-20, F0-26, F0-28, F0-31, F0-35, F0-51 to F0-53 → **M2** · F0-4, F0-21 to F0-23, F0-25, F0-32, F0-46, F0-49, F0-50 → **M9** (F0-32 and F0-50 go to M1 if F0-36 decides so) · F0-12 → **M7** |
+| Phase 1 | F1-5 → **M6** · F1-1 to F1-4 → **M7** |
+| Phase 2 | F2-1 to F2-9, F2-11 to F2-13 → **M7** |
+| Phase 3 | F3-1 to F3-4 → **M4** · F3-5 to F3-11 → **M7** |
+| Phase 4 | F4-4 → **M4** · F4-1, F4-2 → **M5** · F4-3, F4-5 to F4-8 → **M7** |
+| Phase 5 | F5-6 → **M4** · F5-1 to F5-5 → **M5** |
+| Phase 6 | F6-1 → **M2** · F6-2 → **M3** · F6-5 → **M5** · F6-3, F6-4 → **M6** |
+| Phase 7 | F7-2, F7-4 → **M1** · F7-1, F7-3, F7-5 to F7-7 → **M3** |
+| Phase 8 | F8-1 → **M8** |
 
 ### Execution queue
 
 **The next task is always the first one in this list.** It is the answer to
 any question about the state of the plan or about what comes next, whoever
-asks it and in whatever language. If the developer changes a priority —like
-bringing forward the switch to English, which gets more expensive the more the
-project grows—, the entry is moved and the reason is written in the matching
-criterion. When a task is closed, its PR takes it out of the queue; when a new
-task is created, the same PR places it. `pnpm check:coherence` fails if a
-pending task is missing, if a completed one is still there, or if any comes
-before something it depends on.
-
-The order of Phase 0 follows four criteria, in this order of priority:
-
-1. **First, English as the main language.** Decision of 2026-09-13 (F0-41):
-   instructions, plan, documentation, comments, tests and what the product
-   generates by default switch to English. It goes before everything because
-   every later task reads and writes in that language: done first, the next
-   tasks are already written in English and every session reads fewer tokens;
-   done last, everything they produced would have to be translated too. Inside
-   the block, first the control that stops new Spanish and the instructions
-   read in every session; then the names, so the translations land on their
-   final path; then the plan, which is what is read the most.
-2. **Then, making green mean something.** Before touching what can lose data,
-   the tests and controls that claim to cover it have to fail when it breaks. A
-   risky change on a net full of holes is the scenario reviews have found again
-   and again.
-3. **Next, the guarantees we sell and do not hold today** (risks R5 and R7):
-   writing outside the repository, a `rollback` that loses work, an
-   irreversible installation. The journal format is decided before changing it
-   again, and its contract is documented after the last change, not before.
-4. **Last, detection, conventions and publishing infrastructure**, which do not
-   put a client's repository at risk.
-
-The following phases go in their dependency order. Inside each one, the
-controls that watch the work of the phase go before that work.
+asks it and in whatever language. If the developer changes a priority, the
+entry is moved and the reason is written in the matching criterion. When a
+task is closed, its PR takes it out of the queue; when a new task is created,
+the same PR places it. `pnpm check:coherence` fails if a pending task is
+missing, if a completed one is still there, if any comes before something it
+depends on, or if a pending task depends on `Phase N complete`.
 
 <!-- queue:start -->
 
-#### Phase 0 · 2. Making green mean something
+#### M1 — Client repository safety
 
+- **F7-2** — the corpus first: no risk, and M1 can be checked against real repositories.
+- **F7-4** — how each beta metric is measured, before anyone measures it.
 - **F0-34** — the only full-cycle e2e does not exercise the commit check.
-- **F0-22** — the tests in `packages/*/test/` do not go through the typecheck, and the control of the `quality` job watches itself.
-- **F0-32** — the mutation control gives empty greens through gaps in its parsers.
-- **F0-46** — the name and link controls of F0-16 pass without looking in some cases and flag valid English names.
-- **F0-49** — the link control ignores heading anchors, and the fragment escapes of the English control are undocumented.
-- **F0-50** — `check:mutations` applies its `extra` replacement without verifying it still matches.
-- **F0-51** — coverage gaps left in `language.test.ts`: job ids and gitleaks ids are checked by heuristic, not pinned.
-- **F0-52** — `loadProfile` accepts an invalid `profile.language` with no error.
-- **F0-36** — decide whether the journal guard joins the mutation battery before touching it again.
+- **F0-36** — decide whether the journal guard joins the mutation battery; if it does, F0-32 and F0-50 move right after it.
 - **F0-7** — 90 % coverage threshold in `core`, the declared mitigation of R5.
-
-#### Phase 0 · 3. Guarantees we sell and do not hold today
-
 - **F0-10** — a symbolic link allows writing outside the repository: the boundary `SECURITY.md` presents.
 - **F0-9** — a new operation type would be ignored by `plan` and run by `apply`.
 - **F0-37** — policy for old journals and a remedy that leaves the tree clean, before changing the format again.
@@ -3602,34 +3980,76 @@ controls that watch the work of the phase go before that work.
 - **F0-39** — pin down with tests the messages F0-38 makes final.
 - **F0-11** — dependency installation stays outside the journal.
 - **F0-33** — live code that only one test reaches, in the return notice.
-- **F0-31** — contract of `readJournal`, with the format already stable.
-- **F0-35** — full contract of the journal and its versioning policy.
 
-#### Phase 0 · 4. Detection, conventions and publishing
+#### M2 — Publishable beta build
 
-- **F0-26** — `doctor` and the `branches` validation look at data without understanding it.
-- **F0-25** — exemptions by name in the branch control.
+- **F0-52** — testers will edit `config.yml`: an invalid `profile.language` falls back to English in silence.
+- **F0-53** — `GOVERNANCE.md` is the file the tester sees, and its rule-file list is wrong for `copilot`/`agents`.
+- **F0-51** — pin the generated output before third parties use it.
+- **F0-19** — Spanish-speaking testers will use `es`, and its branch template contradicts itself.
+- **F0-26** — `doctor` gives a false green on the client's workflows.
 - **F0-20** — decide the merge strategy.
-- **F0-28** — the `git branch -d` advice, according to that decision.
-- **F0-19** — the client's branch template contradicts itself in Spanish.
+- **F0-28** — the CLI prints the client a `git branch -d` that fails.
+- **F0-31** — contract of `readJournal`, a public API, before publishing the packages.
+- **F0-35** — the beta journals will outlive updates: full contract and versioning policy.
+- **F0-2** — a single source for the version, or the journal and the headers lie from the first release.
+- **F0-6** — a repeatable release for the beta.
+- **F6-1** — publishing on npm under the `beta` dist-tag.
+
+#### M3 — Private beta
+
+- **F7-1** — beta protocol.
+- **F7-3** — feedback issue template.
+- **F6-2** — automatic E2E over a subset of the corpus.
+- **F7-5** — internal pass over the whole corpus.
+- **F7-6** — two outside testers, once the internal pass is clean.
+- **F7-7** — beta exit review: go or no-go.
+
+#### M4 — Paid core: measurement
+
+- **F5-6** — close ADR 0006 before any version with a historical report is published.
+- **F3-1** — baseline of the existing debt.
+- **F3-2** — ratchet over what changes.
+- **F3-3** — CI only over the diff.
+- **F3-4** — no getting worse.
+- **F4-4** — report, with the evolution over time.
+
+#### M5 — Monetisation
+
+- **F4-1** — `init` wizard: ADR 0002 validates the licence in `init`.
+- **F4-2** — `upgrade`: the rule updates are what is paid for.
+- **F6-5** — three pilots invoiced by hand: prices and first demand.
+- **F5-1** — `@plumbward/licensing`.
+- **F5-2** — licence service.
+- **F5-3** — entitlements.
+- **F5-4** — tolerance to network failures.
+- **F5-5** — annual subscription and tiers, at the prices of the pilots.
+
+#### M6 — Public launch
+
+- **F1-5** — provenance of each rule: a public promise of BUSINESS_MODEL §3.
+- **F6-3** — sales materials.
+- **F6-4** — 1.0 launch.
+
+#### M9 — Internal tooling
+
+- **F0-22** — the tests in `packages/*/test/` do not go through the typecheck, and the control of the `quality` job watches itself.
+- **F0-32** — the mutation control gives empty greens through gaps in its parsers.
+- **F0-50** — `check:mutations` applies its `extra` replacement without verifying it still matches.
+- **F0-46** — the name and link controls of F0-16 pass without looking in some cases and flag valid English names.
+- **F0-49** — the link control ignores heading anchors, and the fragment escapes of the English control are undocumented.
+- **F0-25** — exemptions by name in the branch control.
 - **F0-21** — leftovers of the plan and of the branch diagram.
 - **F0-23** — the history scan to its own workflow.
-- **F0-2** — a single source for the version, used by the journal and `upgrade`.
-- **F0-4** — dogfooding: our own hooks and linters.
-- **F0-6** — automated versioning and changelog.
-- **F0-12** — the remaining controls from review findings (forbidden terms, protected facts...).
-- **F0-53** — `GOVERNANCE.md`'s rule-file list is wrong for `copilot`/`agents`, and has a stray comma.
+- **F0-4** — dogfooding: our own hooks and linters; the beta tests the same with more value.
 
-#### Phase 1 — Internationalisation
+#### M7 — Later scaling
 
+- **F0-12** — the remaining controls from review findings; F2-13 and F3-9 need it.
 - **F1-1** — `@plumbward/i18n` package.
 - **F1-2** — Node/TS pack to the catalogues.
 - **F1-3** — CLI messages in both languages.
 - **F1-4** — parity between languages.
-- **F1-5** — provenance of each rule.
-
-#### Phase 2 — Stack coverage
-
 - **F2-1** — multi-stack detection.
 - **F2-2** — universal base pack.
 - **F2-3** — conformance kit.
@@ -3642,55 +4062,31 @@ controls that watch the work of the phase go before that work.
 - **F2-7** — monorepos.
 - **F2-8** — guide for pack authors.
 - **F2-11** — real boundary for third-party packs.
-
-#### Phase 3 — Application modes and workflow
-
 - **F3-5** — governance of the branch flow.
 - **F3-11** — required checks must key on job id, not job name.
 - **F3-6** — delivery flow and assisted review.
-- **F3-1** — baseline of the existing debt.
-- **F3-2** — ratchet over what changes.
-- **F3-3** — CI only over the diff.
-- **F3-4** — no getting worse.
 - **F3-7** — testing coupled to the change.
 - **F3-8** — security posture.
 - **F3-9** — controls derived from incidents.
 - **F3-10** — guided session close.
-
-#### Phase 4 — Lifecycle
-
-- **F4-1** — `init` wizard.
-- **F4-2** — `upgrade` with detection of customisations.
 - **F4-3** — `doctor --fix`.
-- **F4-4** — commercial report.
 - **F4-5** — detect a new version without telemetry.
 - **F4-6** — targeted changelog.
 - **F4-7** — capability catalogue.
 - **F4-8** — guided flows.
 
-#### Phase 5 — Licensing
+#### M8 — Team dashboard
 
-- **F5-1** — `@plumbward/licensing`.
-- **F5-2** — licence service.
-- **F5-3** — entitlements.
-- **F5-4** — tolerance to network failures.
-- **F5-5** — annual subscription and tiers.
-
-#### Phase 6 — Launch
-
-- **F6-1** — publishing on NPM.
-- **F6-2** — E2E over real repositories.
-- **F6-3** — sales materials.
-- **F6-4** — 1.0 launch.
+- **F8-1** — discovery: scope, GDPR and labour law, before any code.
 
 <!-- queue:end -->
 
 ### Shortest path to a sellable demo
 
-If at some point the product has to be shown before the plan is finished, the
-defensible minimum is: **F0-1 → F0-3 → F0-5 → F2-1 → F2-2 → F4-4**. With that
-there is a serious repository, universal coverage through the base pack and a
-report to show whoever decides the purchase.
+If the product has to be shown before M3 closes, the defensible minimum is a
+fork of a TypeScript repository of the corpus (F7-2) and the cycle `scan` →
+`plan` → `apply` → `rollback` on it. No other stack is shown: today there is
+no pack for it.
 
 ---
 
@@ -3702,9 +4098,10 @@ report to show whoever decides the purchase.
 | R7 | Documenting guarantees the code does not fully hold | Loss of credibility exactly at the point we sell | The fresh-context review (F3-6) detected it in F0-5; tasks F0-9, F0-10, F0-11 and F2-11 |
 | R2 | The licence model is source-available: it can be copied | Loss of revenue | What is sold is the continuous updating and the support, not the binary. Conscious decision (ADR 0002) |
 | R3 | Every new pack is a permanent maintenance surface | The cost grows with the catalogue | The conformance kit (F2-3) and the catalogue open to third parties (F2-8) |
-| R4 | The "5 minutes" promise may not hold on large repos | Commercial credibility | Measure it in F6-2 and adjust the product or the message, never hide it |
+| R4 | The "5 minutes" promise may not hold on large repos | Commercial credibility | Measure it in F6-2 and F7-5 (exit of M3) and adjust the product or the message, never hide it |
 | R5 | An `apply` that corrupts a client's repo | Loss of the client and of word of mouth | Journal, rollback, dry-run by default and 90% coverage in `core` (F0-7) |
 | R6 | Changes in the tools we generate (ESLint 10, ruff...) | The templates go stale | It is precisely what the client pays for with the subscription; budget for continuous maintenance |
+| R8 | The two outside beta testers are acquaintances: they validate the use, not the demand. ADR 0006 and the go-to-market are decided without anyone paying | Building the paid core for a demand nobody showed | The pilots (F6-5) are the validation of demand: at least one of the three completes the cycle with no help from us. The go-to-market stays a proposal until then |
 
 **Open decisions, to be closed in their phase:**
 
@@ -3715,6 +4112,10 @@ report to show whoever decides the purchase.
 2. ~~**Product name**~~ — it was closed as "AegisCode" on 2026-09-08 and reopened on discovering that the niche was taken by a namesake competitor. Closed for good on 2026-09-09: **Plumbward**, with the npm organisation and the domains already registered.
 3. **Telemetry**: the recommendation is **none by default**, explicit opt-in.
    We sell trust; instrumenting the CLI contradicts it.
+4. **What the licence charges for**: [ADR 0006](adr/0006-free-cycle-paid-measurement.md)
+   proposes the full cycle free on one repository and charging for the
+   measurement. `proposed`; decided in F5-6 with the beta results, before any
+   version with a historical report is published.
 
 ---
 
@@ -3722,7 +4123,7 @@ report to show whoever decides the purchase.
 
 | Indicator | Target |
 |---|---|
-| Stacks with their own pack | 5 at the end of Phase 2 |
+| Stacks with their own pack | 1 (Node/TS) at the launch; 5 at the end of M7 |
 | Repositories where the tool does nothing | 0 after F2-2 |
 | Coverage of `@plumbward/core` | ≥ 90% |
 | `scan` time on a 100k SLOC repo | < 10 s |
