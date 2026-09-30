@@ -6,7 +6,7 @@
 > checkbox in this file, inside the same Pull Request that implements it.
 
 **Last updated:** 2026-09-15
-**Global status:** Phase 0 in progress — F0-1, F0-3, F0-5, F0-8, F0-13, F0-14, F0-15, F0-16, F0-17, F0-18, F0-24, F0-27, F0-29, F0-30, F0-40, F0-41, F0-42, F0-43, F0-44, F0-45, F0-47 and F0-48 completed. Remaining: F0-2, F0-4, F0-6, F0-7, F0-9 to F0-12, F0-19 to F0-23, F0-25, F0-26, F0-28, F0-31 to F0-39, F0-46 and F0-49.
+**Global status:** Phase 0 in progress — F0-1, F0-3, F0-5, F0-8, F0-13, F0-14, F0-15, F0-16, F0-17, F0-18, F0-24, F0-27, F0-29, F0-30, F0-40, F0-41, F0-42, F0-43, F0-44, F0-45, F0-47 and F0-48 completed. Remaining: F0-2, F0-4, F0-6, F0-7, F0-9 to F0-12, F0-19 to F0-23, F0-25, F0-26, F0-28, F0-31 to F0-39, F0-46, F0-49 to F0-53, and F3-11.
 **Product:** Plumbward · https://github.com/Erikfloresreche/Plumbward
 **Business model:** annual subscription per repository — see
 [BUSINESS_MODEL.md](BUSINESS_MODEL.md)
@@ -2139,6 +2139,141 @@ not the English one.
 
 ---
 
+### [ ] F0-50 — `check:mutations` applies its `extra` replacement without verifying it still matches
+**Branch:** `fix/f0-mutation-extra-anchor-unchecked` · **Depends on:** F0-27
+
+**Origin:** fresh-context review of PR #25 (F0-45). Fixing the blocker where
+three mutation anchors matched twice in `ci.ts` (same review) found a second,
+non-blocking gap: `scripts/check-mutations.mjs:143` applies the optional
+`extra` replacement (`mutated = mutated.replace(extra[0], extra[1])`) with no
+check on how many times `extra[0]` occurs, unlike the primary anchor a few
+lines above, which fails as `STALE ANCHOR` unless it matches exactly once.
+The `'Deploy with no configured branch'` mutation (`index.ts`) declares an
+`extra` for `'ciProdWorkflow(manager, release)'`, but F0-45 changed that call
+to `ciProdWorkflow(manager, release, profile.language)`: `extra[0]` no longer
+occurs, so the replacement is a silent no-op. The mutation still shows
+`DETECTED` today because the primary replacement alone is enough, but the
+`extra` stopped doing anything the day the signature changed, with nothing
+saying so.
+
+**Work:**
+1. Count `extra[0]` occurrences the same way the primary anchor is counted;
+   if it is not exactly one, report `STALE ANCHOR` instead of silently
+   skipping the replacement.
+2. Update the `'Deploy with no configured branch'` entry's `extra` to match
+   the current `ciProdWorkflow(manager, release, profile.language)` call.
+3. Add a test of `check-mutations.mjs` itself (or a throwaway fixture) proving
+   a stale `extra` anchor is reported, not silently ignored.
+
+**What becomes a mechanical control:** the test from point 3.
+
+**Acceptance criteria:**
+- A staled `extra` anchor is reported as `STALE ANCHOR`, the same as a staled
+  primary anchor.
+- The `'Deploy with no configured branch'` mutation's `extra` replacement
+  matches current `index.ts` and actually forces `release` to be used while
+  `null`.
+- `pnpm check:mutations` stays at 30 of 30 detected.
+
+---
+
+### [ ] F0-51 — Close the `language.test.ts` coverage gaps found in review
+**Branch:** `fix/f0-language-test-coverage` · **Depends on:** F0-45
+
+**Origin:** fresh-context review of PR #25 (F0-45). The F0-45 Result records
+that some of what `language.test.ts` claims to cover is checked by heuristic,
+not pinned: job ids and gitleaks rule ids/tags are only asserted not to "look
+Spanish" (`spanishNameEvidence`), not asserted against literal expected
+values, and only for the package manager the test happens to exercise. The
+Result's own "Not mechanisable" note undersells what is actually fixable here.
+
+**Work:**
+1. Pin the job ids (`quality`, `secrets`, `governance`, `deploy`) and the
+   gitleaks rule ids/tags as literal expected values, not just "not Spanish
+   looking" — a rename to another English word currently passes unnoticed.
+2. Add a golden snapshot of at least one full `es`-generated file, so a
+   regression in the Spanish variant shows in the diff instead of relying only
+   on the heuristic.
+3. Loop the existing assertions over every `PackageManager` (`npm`, `pnpm`,
+   `yarn`, `bun`), not only the one the test currently exercises.
+4. Extend the scan to the generated `lint-staged` configuration, which F0-45
+   did not check and which can carry command text.
+5. Reread the F0-45 Result against this fix and correct the sentence that
+   calls the job-id check "not mechanisable" where it no longer is.
+
+**What becomes a mechanical control:** every point above is a test in
+`language.test.ts`; reverting any of them turns it red.
+
+**Acceptance criteria:**
+- Renaming a job id, a gitleaks id/tag, or a lint-staged string is caught for
+  every package manager.
+- A snapshot of the `es` output exists and changes to it are visible in review.
+- The F0-45 Result accurately states what is mechanised after this task.
+
+---
+
+### [ ] F0-52 — Validate `profile.language` when loading `config.yml`
+**Branch:** `fix/f0-validate-profile-language` · **Depends on:** F0-45
+
+**Origin:** fresh-context review of PR #25 (F0-45). `loadProfile`
+(`packages/cli/src/context.ts:69-77`) builds the profile with
+`{ ...base, ...fromFile }` and casts the result `as Profile`: a `language`
+value in `config.yml` other than `en`/`es` is accepted with no error and
+silently falls through the `profile.language === 'es' ? ... : ...` ternaries
+as English, with nothing telling the team their configuration is wrong.
+
+**Work:**
+1. After merging `fromFile`, validate `language` against what `OutputLanguage`
+   allows; reject anything else the same way `loadProfile` already throws for
+   a `config.yml` that cannot be parsed.
+2. Check `mode` and `strictness` for the same gap while here — fix if found,
+   don't assume they are fine.
+3. Test: an unknown `language` in `config.yml` fails `loadProfile` with a
+   clear English message.
+
+**What becomes a mechanical control:** the test from point 3, in
+`packages/cli/src/context.test.ts`.
+
+**Acceptance criteria:**
+- `config.yml` with `language: fr` (or any value outside `OutputLanguage`)
+  fails `loadProfile` instead of silently defaulting to English.
+- Existing valid configs (`en`, `es`, and no `language` at all) keep working.
+
+---
+
+### [ ] F0-53 — `GOVERNANCE.md`'s rule-file list is wrong for `copilot`/`agents`, and has a stray comma
+**Branch:** `fix/f0-governance-doc-rule-files` · **Depends on:** F0-45
+
+**Origin:** fresh-context review of PR #25 (F0-45). `ruleFiles`
+(`packages/packs/node-ts/src/templates/docs.ts:19-23`, shared by
+`governanceDocEn` and `governanceDocEs`) only accounts for `'cursor'` and
+`'claude'` out of the four values `AiAssistant` allows (`'cursor' | 'claude' |
+'copilot' | 'agents'`, `packages/packs-sdk/src/contract.ts:15`):
+- With `aiAssistants` containing `claude` but not `cursor`, the text starts
+  with a stray leading comma before `CLAUDE.md`, because the cursor branch is
+  empty and the claude one is unconditionally prefixed with a comma and space.
+- `copilot` and `agents` are never listed, even though `index.ts` generates
+  `.github/copilot-instructions.md` and `AGENTS.md` for them.
+
+**Work:**
+1. Rewrite `ruleFiles` to join only the paths that apply, comma-separated,
+   with no leading or trailing comma for any subset of assistants.
+2. Add the missing `copilot` (`.github/copilot-instructions.md`) and `agents`
+   (`AGENTS.md`) cases.
+
+**What becomes a mechanical control:** a test in
+`packages/packs/node-ts/src/language.test.ts` (or a new `docs.test.ts`) that
+generates `GOVERNANCE.md` for every single-assistant profile and for pairs,
+and asserts no leading/trailing comma and that every configured assistant's
+file is named.
+
+**Acceptance criteria:**
+- `aiAssistants: ['claude']` alone produces "`CLAUDE.md`" with no leading
+  comma.
+- `aiAssistants` containing `copilot` or `agents` lists their rule files.
+
+---
+
 ## PHASE 1 — Internationalisation of the template engine
 
 **Objective:** make `Profile.language` really work.
@@ -2938,6 +3073,42 @@ thesis of the product —controls beat rules— applied to cost.
 
 ---
 
+### [ ] F3-11 — Required checks must key on job id, not job name
+**Branch:** `fix/f3-required-checks-job-id` · **Depends on:** F3-5
+
+**Origin:** fresh-context review of PR #25 (F0-45). The header comment of
+`ciDevWorkflow` (`packages/packs/node-ts/src/templates/ci.ts:40`) says job ids
+are language-neutral "so a check required by branch protection does not
+change name" — true of the job `id` (`quality`, `secrets`, `governance`), but
+GitHub branch protection and rulesets match required checks by the job's
+`name`, not its `id`, and `name` (`Code quality` in English, its translated
+equivalent in Spanish) still differs by language. Switching a repository's
+`profile.language` after
+F3-5 has generated protection rules would silently break every required
+check.
+
+**Work:**
+1. Decide, as part of F3-5's design, whether required checks reference the
+   job `id` (stable across languages; needs a GitHub feature or workaround if
+   the API only accepts `name`) or the job `name` (today's reality — then a
+   language switch must regenerate the ruleset in the same `upgrade`, the same
+   way F3-5 already promises for a matrix change).
+2. Correct the misleading comment at `ci.ts:40` once decided.
+3. Add "the repository's language changed" as a case for F3-5's `doctor`
+   check that "warns if a required check matches no job."
+
+**What becomes a mechanical control:** an F3-5 test that changes
+`profile.language` between two generations and asserts either the
+required-check list is regenerated to match, or `doctor` warns.
+
+**Acceptance criteria:**
+- Changing `profile.language` never leaves a required check pointing at a job
+  name that no longer exists, silently and without warning.
+- `ci.ts:40`'s comment accurately describes what actually keeps required
+  checks stable.
+
+---
+
 ## PHASE 4 — Lifecycle of the installed product
 
 **Objective:** the tool is useful on day 200, not only on day 1.
@@ -3416,6 +3587,9 @@ controls that watch the work of the phase go before that work.
 - **F0-32** — the mutation control gives empty greens through gaps in its parsers.
 - **F0-46** — the name and link controls of F0-16 pass without looking in some cases and flag valid English names.
 - **F0-49** — the link control ignores heading anchors, and the fragment escapes of the English control are undocumented.
+- **F0-50** — `check:mutations` applies its `extra` replacement without verifying it still matches.
+- **F0-51** — coverage gaps left in `language.test.ts`: job ids and gitleaks ids are checked by heuristic, not pinned.
+- **F0-52** — `loadProfile` accepts an invalid `profile.language` with no error.
 - **F0-36** — decide whether the journal guard joins the mutation battery before touching it again.
 - **F0-7** — 90 % coverage threshold in `core`, the declared mitigation of R5.
 
@@ -3444,6 +3618,7 @@ controls that watch the work of the phase go before that work.
 - **F0-4** — dogfooding: our own hooks and linters.
 - **F0-6** — automated versioning and changelog.
 - **F0-12** — the remaining controls from review findings (forbidden terms, protected facts...).
+- **F0-53** — `GOVERNANCE.md`'s rule-file list is wrong for `copilot`/`agents`, and has a stray comma.
 
 #### Phase 1 — Internationalisation
 
@@ -3471,6 +3646,7 @@ controls that watch the work of the phase go before that work.
 #### Phase 3 — Application modes and workflow
 
 - **F3-5** — governance of the branch flow.
+- **F3-11** — required checks must key on job id, not job name.
 - **F3-6** — delivery flow and assisted review.
 - **F3-1** — baseline of the existing debt.
 - **F3-2** — ratchet over what changes.
