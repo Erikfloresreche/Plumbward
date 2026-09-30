@@ -2362,6 +2362,60 @@ they disagree, the queue wins; the table is an index for finding a task.
 
 ---
 
+### [ ] F0-55 — Edge cases of the mutation control parsers after F0-32
+**Branch:** `fix/f0-mutation-parser-edge-cases` · **Depends on:** F0-32
+
+**Origin:** fresh-context review of the F0-32 PR. Its one blocker —a comment in
+column 0 between `pull_request:` and `paths:` read as "no filter", green, with
+no test guarding it— was fixed inside the PR. These are the non-blocking ones
+(§6.4 of `CLAUDE.md`). Since F0-32, `workflowPaths` returns `null` for "no
+filter", which is green: every place that can reach `null` by mistake is a new
+kind of empty green.
+
+**Work:**
+1. Empty greens on workflows that never gate a PR: `types: [closed]` returns
+   `null` (the job runs only after the merge); a `pull_request:` line inside a
+   `run: |` block of a workflow with no PR trigger returns `null`, because the
+   search matches any line of the file. Look for the trigger only under `on:`,
+   and treat a `types:` that excludes `opened`/`synchronize` as not gating.
+2. Workflows GitHub rejects, read as valid: `paths:` followed by
+   `paths-ignore:` returns the list (the check only looks before `paths:`), and
+   a `paths:` nested under `branches:` is taken as the filter.
+3. Valid YAML that fails red with a false reason: `on: pull_request`,
+   `on: [pull_request]`, `pull_request: {}` and `pull_request: # comment`. The
+   last one is the most plausible edit to the real `mutations.yml`, and it
+   reports "no `pull_request:` trigger".
+4. The `TESTS` scanner: the double-quote, backtick and escape branches have no
+   test, and a commented-out `// const TESTS = [ 'x' ]` above the real array is
+   taken as the array, losing the real entries —an empty green—. The constant
+   and inline-mutation regexes still read commented-out code (older than
+   F0-32).
+5. Point 3 of F0-32 is tested in `triggerBranchProblems`, but
+   `check-coherence.mjs` passes `() => workflows`, which cannot throw: moving
+   `readWorkflows` back inside the network `try` breaks no test. Either pass
+   the array and drop the callback, or record that the wiring of the script is
+   not mechanisable.
+6. Minor false reds: an unquoted `a#b.ts` is read as `a` (YAML reads
+   `a#b.ts`), and a missing `mutations.yml` is reported as "the paths: filter
+   cannot be checked: ENOENT".
+
+**Queue:** M9, next to the other control fixes. Every case is contrived for
+today's `mutations.yml`, and none is a regression from before F0-32 in
+practice.
+
+**What becomes a mechanical control:** points 1 to 4 and 6, each with its test.
+Point 5, depending on the option chosen.
+
+**Acceptance criteria:**
+- Each input listed in points 1 to 3 and 6 has a test with the expected
+  verdict, and the test fails when its fix is reverted.
+- The double-quote, backtick and escape branches of the `TESTS` scanner each
+  have a test that kills their removal.
+- Point 5 is either mechanised or recorded as not mechanisable, with the
+  reason, in this task.
+
+---
+
 ## PHASE 1 — Internationalisation of the template engine
 
 **Objective:** make `Profile.language` really work.
@@ -3960,7 +4014,7 @@ index for finding a task: if it disagrees with the queue, **the queue wins**.
 
 | Phase of origin | Pending tasks → milestone |
 |---|---|
-| Phase 0 | F0-7, F0-9 to F0-11, F0-32, F0-33, F0-34, F0-36 to F0-39, F0-50 → **M1** · F0-2, F0-6, F0-19, F0-20, F0-26, F0-28, F0-31, F0-35, F0-51 to F0-53 → **M2** · F0-4, F0-21 to F0-23, F0-25, F0-46, F0-49 → **M9** (F0-32 and F0-50 moved to M1 by F0-36) · F0-12 → **M7** |
+| Phase 0 | F0-7, F0-9 to F0-11, F0-32, F0-33, F0-34, F0-36 to F0-39, F0-50 → **M1** · F0-2, F0-6, F0-19, F0-20, F0-26, F0-28, F0-31, F0-35, F0-51 to F0-53 → **M2** · F0-4, F0-21 to F0-23, F0-25, F0-46, F0-49, F0-55 → **M9** (F0-32 and F0-50 moved to M1 by F0-36) · F0-12 → **M7** |
 | Phase 1 | F1-5 → **M6** · F1-1 to F1-4 → **M7** |
 | Phase 2 | F2-1 to F2-9, F2-11 to F2-13 → **M7** |
 | Phase 3 | F3-1 to F3-4 → **M4** · F3-5 to F3-11 → **M7** |
@@ -4050,6 +4104,7 @@ depends on, or if a pending task depends on `Phase N complete`.
 - **F0-22** — the tests in `packages/*/test/` do not go through the typecheck, and the control of the `quality` job watches itself.
 - **F0-46** — the name and link controls of F0-16 pass without looking in some cases and flag valid English names.
 - **F0-49** — the link control ignores heading anchors, and the fragment escapes of the English control are undocumented.
+- **F0-55** — edge cases of the mutation control parsers left by F0-32: contrived empty greens and false reds.
 - **F0-25** — exemptions by name in the branch control.
 - **F0-21** — leftovers of the plan and of the branch diagram.
 - **F0-23** — the history scan to its own workflow.

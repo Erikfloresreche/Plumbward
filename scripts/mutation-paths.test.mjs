@@ -107,6 +107,13 @@ describe('paths of the workflow filter', () => {
     expect(workflowPaths('on:\n  pull_request:\n  workflow_dispatch:\n')).toBeNull()
   })
 
+  it('does not stop looking for the filter at a comment in column 0', () => {
+    // Stopping there reads as "no filter", which is green: the real filter
+    // below would be ignored while it leaves files out.
+    const wf = "on:\n  pull_request:\n# note\n    paths:\n      - 'a.ts'\n"
+    expect(workflowPaths(wf)).toEqual(['a.ts'])
+  })
+
   it('fails out loud if there is no pull_request trigger', () => {
     expect(() => workflowPaths('on:\n  push:\n    paths:\n      - a.ts\n')).toThrow(/pull_request/)
   })
