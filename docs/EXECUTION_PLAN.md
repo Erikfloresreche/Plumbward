@@ -6,7 +6,7 @@
 > checkbox in this file, inside the same Pull Request that implements it.
 
 **Last updated:** 2026-09-30
-**Global status:** replanned towards an early beta on 2026-09-30 (F0-54): the work is ordered by milestones M1 to M9, not by phase (§5). Current milestone: **M1 — client repository safety**. Completed: F0-1, F0-3, F0-5, F0-8, F0-13 to F0-18, F0-24, F0-27, F0-29, F0-30, F0-40 to F0-45, F0-47, F0-48, F0-54 and F7-2. Remaining: every other task, in the order of the execution queue (§5).
+**Global status:** replanned towards an early beta on 2026-09-30 (F0-54): the work is ordered by milestones M1 to M9, not by phase (§5). Current milestone: **M1 — client repository safety**. Completed: F0-1, F0-3, F0-5, F0-8, F0-13 to F0-18, F0-24, F0-27, F0-29, F0-30, F0-40 to F0-45, F0-47, F0-48, F0-54, F7-2 and F7-4. Remaining: every other task, in the order of the execution queue (§5).
 **Product:** Plumbward · https://github.com/Erikfloresreche/Plumbward
 **Business model:** annual subscription per repository — see
 [BUSINESS_MODEL.md](BUSINESS_MODEL.md)
@@ -3719,7 +3719,7 @@ real repositories, and forks can be prepared in the meantime.
 
 ---
 
-### [ ] F7-4 — Metrics collected by hand
+### [x] F7-4 — Metrics collected by hand
 **Branch:** `docs/f7-beta-metrics` · **Depends on:** F7-2
 
 **Work:**
@@ -3950,7 +3950,7 @@ index for finding a task: if it disagrees with the queue, **the queue wins**.
 | Phase 4 | F4-4 → **M4** · F4-1, F4-2 → **M5** · F4-3, F4-5 to F4-8 → **M7** |
 | Phase 5 | F5-6 → **M4** · F5-1 to F5-5 → **M5** |
 | Phase 6 | F6-1 → **M2** · F6-2 → **M3** · F6-5 → **M5** · F6-3, F6-4 → **M6** |
-| Phase 7 | F7-4 → **M1** · F7-1, F7-3, F7-5 to F7-7 → **M3** |
+| Phase 7 | F7-1, F7-3, F7-5 to F7-7 → **M3** |
 | Phase 8 | F8-1 → **M8** |
 
 ### Execution queue
@@ -3968,7 +3968,6 @@ depends on, or if a pending task depends on `Phase N complete`.
 
 #### M1 — Client repository safety
 
-- **F7-4** — how each beta metric is measured, before anyone measures it.
 - **F0-34** — the only full-cycle e2e does not exercise the commit check.
 - **F0-36** — decide whether the journal guard joins the mutation battery; if it does, F0-32 and F0-50 move right after it.
 - **F0-7** — 90 % coverage threshold in `core`, the declared mitigation of R5.
