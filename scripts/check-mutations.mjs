@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 /**
- * Mutation tests of the protected-branch logic.
+ * Mutation tests of the protected-branch logic and of the journal guard of
+ * `rollback`.
  *
  * Each mutation undoes, on purpose, one specific piece of the logic —almost all
  * of them are real failures the reviews of F0-14 found— and checks that some
@@ -40,6 +41,7 @@ const TESTS = [
   'packages/cli/test/head-moved.test.ts',
   'packages/packs/node-ts/src/validate.test.ts',
   'packages/cli/test/e2e.test.ts',
+  'packages/core/src/rollback.test.ts',
 ]
 
 const BR = 'packages/packs-sdk/src/branches.ts'
@@ -51,6 +53,7 @@ const PK = 'packages/packs/node-ts/src/index.ts'
 const CI = 'packages/packs/node-ts/src/templates/ci.ts'
 const WF = 'packages/packs/node-ts/src/workflow-checks.ts'
 const VS = 'vitest.setup.ts'
+const RB = 'packages/core/src/rollback.ts'
 
 /** [description, file, original text, mutated text, optional extra replacement] */
 const MUTATIONS = [
@@ -83,7 +86,10 @@ const MUTATIONS = [
   ['doctor accepts filtered PRs', WF, '  if (filter === null) return { ...base, ok: true', '  if (filter !== undefined) return { ...base, ok: true'],
   ['Inherit the GIT_* variables of the environment', VS, "  if (name.startsWith('GIT_')) delete process.env[name]\n", ''],
   ['Apply even if HEAD changes during the confirmation', CM, '  if (headMoved(scan.git, headBefore, await readHead(scan.repoRoot))) {', '  if (false) {'],
-  ['Compare only the branch, not the commit', CM, ' || now.commit !== before.commit', ''],
+  ['Apply even if the commit moves under the same branch', CM, ' || now.commit !== before.commit', ''],
+  // The journal guard (F0-36): `rollback` refuses once the changes of `apply`
+  // are committed, because the snapshots belong to the commit it wrote on.
+  ['Rollback without checking the commit of the journal', RB, '  assertSameCommit(journal, current.currentCommit)\n', ''],
 ]
 
 const hostile = join(mkdtempSync(join(tmpdir(), 'plumbward-hostile-')), 'gitconfig')

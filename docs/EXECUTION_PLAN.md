@@ -6,7 +6,7 @@
 > checkbox in this file, inside the same Pull Request that implements it.
 
 **Last updated:** 2026-09-30
-**Global status:** replanned towards an early beta on 2026-09-30 (F0-54): the work is ordered by milestones M1 to M9, not by phase (§5). Current milestone: **M1 — client repository safety**. Completed: F0-1, F0-3, F0-5, F0-8, F0-13 to F0-18, F0-24, F0-27, F0-29, F0-30, F0-34, F0-40 to F0-45, F0-47, F0-48, F0-54, F7-2 and F7-4. Remaining: every other task, in the order of the execution queue (§5).
+**Global status:** replanned towards an early beta on 2026-09-30 (F0-54): the work is ordered by milestones M1 to M9, not by phase (§5). Current milestone: **M1 — client repository safety**. Completed: F0-1, F0-3, F0-5, F0-8, F0-13 to F0-18, F0-24, F0-27, F0-29, F0-30, F0-34, F0-36, F0-40 to F0-45, F0-47, F0-48, F0-54, F7-2 and F7-4. Remaining: every other task, in the order of the execution queue (§5).
 **Product:** Plumbward · https://github.com/Erikfloresreche/Plumbward
 **Business model:** annual subscription per repository — see
 [BUSINESS_MODEL.md](BUSINESS_MODEL.md)
@@ -1550,13 +1550,17 @@ is a green that means nothing.
 **Not mechanisable, and that is why it is written here:** the filter covers the
 files that are mutated, not all the ones that can make a mutation survive. The
 `TESTS` import production code that is not in the filter
-—`packages/core/src/`, `packages/cli/src/apply.ts`—, so a change there can leave
+—the rest of `packages/core/src/`, `packages/cli/src/apply.ts`—, so a change there can leave
 a mutation alive without the job ever running. It meets what F0-27 asks —"at
 least" those PRs—, but the derived control gives an impression of completeness
 it does not have. Really closing it requires the import graph, not a list.
 
 **What becomes a mechanical control:** points 1 to 6, each with its test. The
 previous paragraph, no: it stays written where it is read.
+
+**Queue (F0-36):** moved from M9 to M1, right after F0-36. The battery now
+mutates the journal guard of `rollback`, so an empty green here would hide a
+gap in M1 safety.
 
 **Acceptance criteria:**
 - Removing the `paths:` filter from `mutations.yml` leaves `check:coherence`
@@ -1634,7 +1638,7 @@ written where it is read.
 
 ---
 
-### [ ] F0-36 — The commit mutation is named after something other than what it mutates
+### [x] F0-36 — The commit mutation is named after something other than what it mutates
 **Branch:** `fix/f0-mutation-name-collision` · **Depends on:** F0-30
 
 **Origin:** finding 6 of the fresh-context review of the F0-30 PR.
@@ -1656,6 +1660,16 @@ the queue to right after F0-36, inside M1, with this reason.
 **Acceptance criteria:**
 - No mutation name describes a piece other than the one it mutates.
 - If the journal guard joins the battery, F0-32 and F0-50 are in M1.
+
+**Result:** the headMoved entry is renamed `Apply even if the commit moves
+under the same branch`. The journal guard joins the battery as `Rollback
+without checking the commit of the journal`, which removes the
+`assertSameCommit` call in `packages/core/src/rollback.ts`; both
+`packages/core/src/rollback.test.ts` and the e2e run against it. The
+`paths:` filter of `mutations.yml` names both files. It joins because it is
+the guard M1 exists for, and F0-34 already proved a test kills it: leaving it
+out meant a green battery that says nothing about `rollback`. F0-32 and F0-50
+move to M1, right after F0-36.
 
 ---
 
@@ -2182,6 +2196,9 @@ saying so.
 3. Add a test of `check-mutations.mjs` itself (or a throwaway fixture) proving
    a stale `extra` anchor is reported, not silently ignored.
 
+**Queue (F0-36):** moved from M9 to M1, right after F0-36, for the same reason
+as F0-32: the battery now covers the journal guard of `rollback`.
+
 **What becomes a mechanical control:** the test from point 3.
 
 **Acceptance criteria:**
@@ -2190,7 +2207,7 @@ saying so.
 - The `'Deploy with no configured branch'` mutation's `extra` replacement
   matches current `index.ts` and actually forces `release` to be used while
   `null`.
-- `pnpm check:mutations` stays at 30 of 30 detected.
+- `pnpm check:mutations` stays at 31 of 31 detected.
 
 ---
 
@@ -3943,7 +3960,7 @@ index for finding a task: if it disagrees with the queue, **the queue wins**.
 
 | Phase of origin | Pending tasks → milestone |
 |---|---|
-| Phase 0 | F0-7, F0-9 to F0-11, F0-33, F0-34, F0-36 to F0-39 → **M1** · F0-2, F0-6, F0-19, F0-20, F0-26, F0-28, F0-31, F0-35, F0-51 to F0-53 → **M2** · F0-4, F0-21 to F0-23, F0-25, F0-32, F0-46, F0-49, F0-50 → **M9** (F0-32 and F0-50 go to M1 if F0-36 decides so) · F0-12 → **M7** |
+| Phase 0 | F0-7, F0-9 to F0-11, F0-32, F0-33, F0-34, F0-36 to F0-39, F0-50 → **M1** · F0-2, F0-6, F0-19, F0-20, F0-26, F0-28, F0-31, F0-35, F0-51 to F0-53 → **M2** · F0-4, F0-21 to F0-23, F0-25, F0-46, F0-49 → **M9** (F0-32 and F0-50 moved to M1 by F0-36) · F0-12 → **M7** |
 | Phase 1 | F1-5 → **M6** · F1-1 to F1-4 → **M7** |
 | Phase 2 | F2-1 to F2-9, F2-11 to F2-13 → **M7** |
 | Phase 3 | F3-1 to F3-4 → **M4** · F3-5 to F3-11 → **M7** |
@@ -3968,7 +3985,8 @@ depends on, or if a pending task depends on `Phase N complete`.
 
 #### M1 — Client repository safety
 
-- **F0-36** — decide whether the journal guard joins the mutation battery; if it does, F0-32 and F0-50 move right after it.
+- **F0-32** — the mutation control gives empty greens through gaps in its parsers; moved from M9 by F0-36, because the battery now guards `rollback`.
+- **F0-50** — `check:mutations` applies its `extra` replacement without verifying it still matches; moved from M9 by F0-36, same reason.
 - **F0-7** — 90 % coverage threshold in `core`, the declared mitigation of R5.
 - **F0-10** — a symbolic link allows writing outside the repository: the boundary `SECURITY.md` presents.
 - **F0-9** — a new operation type would be ignored by `plan` and run by `apply`.
@@ -4031,8 +4049,6 @@ depends on, or if a pending task depends on `Phase N complete`.
 #### M9 — Internal tooling
 
 - **F0-22** — the tests in `packages/*/test/` do not go through the typecheck, and the control of the `quality` job watches itself.
-- **F0-32** — the mutation control gives empty greens through gaps in its parsers.
-- **F0-50** — `check:mutations` applies its `extra` replacement without verifying it still matches.
 - **F0-46** — the name and link controls of F0-16 pass without looking in some cases and flag valid English names.
 - **F0-49** — the link control ignores heading anchors, and the fragment escapes of the English control are undocumented.
 - **F0-25** — exemptions by name in the branch control.
