@@ -4,7 +4,7 @@ import { mkdtemp, rm, writeFile, mkdir, readFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { applyPlan, rollbackLastApply, simulatePlan } from '@plumbward/core'
+import { applyPlan, rollbackLastApply, RollbackError, simulatePlan } from '@plumbward/core'
 import type { ChangePlan, Operation } from '@plumbward/core'
 import { scanRepository } from '@plumbward/scanner'
 import { PackRegistry, checkPackConformance, file, recommendedProfile } from '@plumbward/packs-sdk'
@@ -61,8 +61,32 @@ async function buildTestPlan(root: string): Promise<ChangePlan> {
 }
 
 async function gitStatus(root: string): Promise<string> {
-  const { stdout } = await execa('git', ['status', '--porcelain'], { cwd: root })
+  const { stdout } = await execa('git', ['status', '--porcelain', '--untracked-files=all'], { cwd: root })
   return stdout.trim()
+}
+
+/**
+ * The commit HEAD points at, as the CLI reads it. The journal must carry it:
+ * with `null` on both sides, `assertSameCommit` compares `null === null` and
+ * checks nothing (F0-34).
+ */
+async function headCommit(root: string): Promise<string> {
+  const { stdout } = await execa('git', ['rev-parse', '--verify', 'HEAD'], { cwd: root })
+  return stdout.trim()
+}
+
+const LOCKFILES = ['package-lock.json', 'pnpm-lock.yaml', 'yarn.lock', 'bun.lockb', 'bun.lock']
+
+/**
+ * Everything the `rollback` success metric checks (docs/beta/metrics.md §4),
+ * except the tree status, which each test asserts itself. The test repository
+ * has no lockfile, so none may appear.
+ */
+async function expectSameAsStart(root: string, startCommit: string): Promise<void> {
+  expect(await headCommit(root)).toBe(startCommit)
+  const { stdout: diff } = await execa('git', ['diff', startCommit], { cwd: root })
+  expect(diff).toBe('')
+  expect(LOCKFILES.filter((name) => existsSync(join(root, name)))).toEqual([])
 }
 
 describe('full cycle on a real repository', () => {
@@ -109,12 +133,13 @@ describe('full cycle on a real repository', () => {
   it('apply writes what was planned and rollback leaves the repository identical', async () => {
     const plan = await buildTestPlan(root)
     const originalPackage = await readFile(join(root, 'package.json'), 'utf8')
+    const startCommit = await headCommit(root)
 
     const firstApply = await applyPlan(plan, {
       repoRoot: root,
       version: VERSION,
       writtenOnBranch: 'main',
-      writtenOnCommit: null,
+      writtenOnCommit: startCommit,
       startedOnBranch: 'main',
       runCommands: false,
     })
@@ -133,11 +158,36 @@ describe('full cycle on a real repository', () => {
     // The comment in the client's tsconfig is still there.
     expect(await readFile(join(root, 'tsconfig.json'), 'utf8')).toContain('Client comment')
 
-    await rollbackLastApply(root, { currentBranch: 'main', currentCommit: null })
+    await rollbackLastApply(root, { currentBranch: 'main', currentCommit: await headCommit(root) })
 
     expect(await gitStatus(root)).toBe('')
+    await expectSameAsStart(root, startCommit)
     expect(await readFile(join(root, 'package.json'), 'utf8')).toBe(originalPackage)
     expect(existsSync(join(root, '.github/workflows/ci-dev.yml'))).toBe(false)
+  })
+
+  it('rollback refuses once the changes of apply are committed', async () => {
+    await applyPlan(await buildTestPlan(root), {
+      repoRoot: root,
+      version: VERSION,
+      writtenOnBranch: 'main',
+      writtenOnCommit: await headCommit(root),
+      startedOnBranch: 'main',
+      runCommands: false,
+    })
+    await execa('git', ['add', '-A'], { cwd: root })
+    await execa('git', ['commit', '-m', 'governance'], { cwd: root })
+    const committed = await headCommit(root)
+
+    // Same branch, another commit: only the commit check tells the sites apart.
+    await expect(
+      rollbackLastApply(root, { currentBranch: 'main', currentCommit: committed }),
+    ).rejects.toThrow(RollbackError)
+
+    // Nothing was restored over the commit.
+    expect(await gitStatus(root)).toBe('')
+    expect(await headCommit(root)).toBe(committed)
+    expect(existsSync(join(root, '.github/workflows/ci-dev.yml'))).toBe(true)
   })
 
   it('a second apply produces no change (end-to-end idempotence)', async () => {
@@ -145,7 +195,7 @@ describe('full cycle on a real repository', () => {
       repoRoot: root,
       version: VERSION,
       writtenOnBranch: 'main',
-      writtenOnCommit: null,
+      writtenOnCommit: await headCommit(root),
       startedOnBranch: 'main',
       runCommands: false,
     })
@@ -159,7 +209,7 @@ describe('full cycle on a real repository', () => {
       repoRoot: root,
       version: VERSION,
       writtenOnBranch: 'main',
-      writtenOnCommit: null,
+      writtenOnCommit: await headCommit(root),
       startedOnBranch: 'main',
       runCommands: false,
     })
@@ -188,7 +238,7 @@ describe('full cycle on a real repository', () => {
         repoRoot: root,
         version: VERSION,
         writtenOnBranch: 'main',
-        writtenOnCommit: null,
+        writtenOnCommit: await headCommit(root),
         startedOnBranch: 'main',
         runCommands: false,
       }),
@@ -225,7 +275,7 @@ describe('full cycle on a real repository', () => {
         repoRoot: root,
         version: VERSION,
         writtenOnBranch: 'main',
-        writtenOnCommit: null,
+        writtenOnCommit: await headCommit(root),
         startedOnBranch: 'main',
         runCommands: false,
       }),
