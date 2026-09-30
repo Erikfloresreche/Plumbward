@@ -83,14 +83,19 @@ describe('execution queue of the plan', () => {
     expect(checkQueue(text)).toEqual([])
   })
 
-  it('requires the whole phase before a task that depends on "Phase N complete"', () => {
+  it('rejects a pending task that depends on "Phase N complete", even in a valid order', () => {
+    // F0-54. The prefix is the phase of origin, not the milestone: a whole-phase
+    // dependency would drag along tasks moved to a later milestone.
     const text = plan(
-      [task('F0-1', false, 'nothing'), task('F0-2', false, 'nothing'), task('F1-1', false, 'Phase 0 complete')],
-      ['F0-1', 'F1-1', 'F0-2'],
+      [task('F0-1', false, 'nothing'), task('F0-2', false, 'nothing'), task('F1-1', false, 'F0-1, Phase 0 complete')],
+      ['F0-1', 'F0-2', 'F1-1'],
     )
-    expect(checkQueue(text)).toEqual([
-      expect.stringMatching(/F1-1 is in the queue before F0-2, which it depends on \(Phase 0 complete\)/),
-    ])
+    expect(checkQueue(text)).toEqual([expect.stringMatching(/F1-1 depends on "Phase 0 complete"/)])
+  })
+
+  it('accepts "Phase N complete" in a completed task: its dependencies no longer order anything', () => {
+    const text = plan([task('F0-1', true, 'nothing'), task('F1-1', true, 'Phase 0 complete')], [])
+    expect(checkQueue(text)).toEqual([])
   })
 
   it('fails when a task has no dependency line it recognises, instead of reading no dependencies', () => {

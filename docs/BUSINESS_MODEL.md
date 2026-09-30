@@ -6,7 +6,7 @@ important as all of that— **what we cannot promise**.
 It is a living document: every decision that changes the model is reflected
 here and, if it is structural, in an ADR.
 
-**Last updated:** 2026-09-09
+**Last updated:** 2026-09-30
 
 ---
 
@@ -161,7 +161,10 @@ A subscription is renewed for one of two reasons: because losing it hurts, or
 because what is new is worth it. The first is ruled out by ADR 0002. All of our
 recurrence depends on the second.
 
-Four pieces, all of them in the execution plan:
+Four pieces, all of them in the execution plan. Since the replanning of
+2026-09-30 (F0-54) they come after the public launch (milestone M7): the first
+renewal arrives twelve months after the first sale, and the measurement that
+justifies it (F3-1 to F3-4, F4-4) comes before, in milestone M4.
 
 **Version detection without telemetry** (F4-5). The CLI knows there is a new
 version by querying the npm registry. It never phones home.
@@ -229,7 +232,7 @@ it away. It lies in three places:
 | N3 | One person does not sell enterprise | Self-service with free `scan` as the hook; agencies as the first paying segment; enterprise later or with a partner |
 | N4 | Overpromising ("bug-free code") destroys credibility in the first technical meeting | §3 of this document is required reading before writing any sales material |
 | N5 | A subscription has more friction than a one-off payment in the Spanish market | One-off payment as an entry offer, product designed for subscription |
-| N6 | The competitor gets weeks ahead of us | Their scope is generating rules; ours includes applying and measuring them. Executing Phase 3 is the answer |
+| N6 | The competitor gets weeks ahead of us | Their scope is generating rules; ours includes applying and measuring them. Executing the paid core (milestone M4) is the answer |
 
 ---
 
@@ -254,8 +257,25 @@ it away. It lies in three places:
 - BUSL-1.1 licence ([ADR 0003](adr/0003-busl-license.md)).
 - Local-first licence validation ([ADR 0002](adr/0002-local-first-licensing.md)).
 - `scan` and `report` free forever, guaranteed by the licence.
+- **Launch scope: Node/TypeScript only** (2026-09-30, F0-54). Other stacks and
+  i18n wait until the beta shows demand.
+- **Order of the work:** client repository safety, a publishable beta, a
+  private beta over real repositories, the paid core (measurement),
+  monetisation and the public launch. Milestones M1 to M6 of the execution
+  plan.
+- **The first pilots are invoiced by hand**, before the licensing exists
+  (F6-5).
 
 **Open:**
+
+- **What the licence charges for.** [ADR 0006](adr/0006-free-cycle-paid-measurement.md),
+  `proposed`: the full cycle free on one repository, and the measurement paid
+  for (multi-repository policy, ratchet in CI, historical report, rule
+  updates). Decided in F5-6 with the beta results, and **before** any version
+  with a historical report is published: the BUSL grant is fixed per version,
+  and a read-only report is already free under today's wording.
+- **Go-to-market.** §11 is a proposal until the beta and the pilots validate
+  it.
 
 - **Payment gateway.** Lemon Squeezy or Paddle act as *merchant of record* and
   handle the VAT of each EU country for a ~5% fee; Stripe charges ~2% but you
@@ -263,6 +283,59 @@ it away. It lies in three places:
   countries from Spain, the first option probably pays off. To be decided
   before F5-2.
 - **Exact price per tier.** The ranges in §4 are indicative. They are closed
-  with the first three pilot clients (F6-4).
+  with the first three pilot clients (F6-5).
 - **Trademark registration.** OEPM ~€150 per class, EUIPO ~€850. It is not
   needed to launch; it makes sense once there are sales to protect.
+
+---
+
+## 11. Go-to-market (proposal)
+
+> **Status: proposal of 2026-09-30 (F0-54).** Nothing in this section is a
+> decision yet. It is confirmed or changed with the results of the private
+> beta (F7-7) and of the three pilots (F6-5).
+
+### Ideal client
+
+Agencies and small TypeScript teams **without a platform team**: nobody's job
+is to set up CI, linters, hooks and secret scanning, so it does not get done.
+Agencies come first because each account has many repositories, and the same
+setup repeated across them is where the product saves the most hours.
+
+### Channels
+
+- **Technical content from real `scan` results** on popular open source
+  TypeScript repositories: what is missing, what it would cost to add by hand,
+  what Plumbward would do. The maintainers are told before anything is
+  published, and the tone is diagnosis, never shaming: a project that feels
+  exposed is a public enemy, not a case study.
+- **Show HN**, **r/typescript**, **r/node**, **dev.to** and **LinkedIn**, with
+  the same content adapted to each one. No paid acquisition before the pilots.
+
+### The hook for agencies
+
+The free diagnosis (`scan` and `report`) run on one of the agency's client
+repositories. The agency gets a report it can show its own client; we get the
+conversation about the other repositories of the account.
+
+### The first three pilots (F6-5)
+
+1. Chosen among agencies or small teams that match the ideal client.
+2. A written agreement: scope, discount, duration and the structured feedback
+   they give in exchange.
+3. They follow the beta protocol (F7-1) and report with its template (F7-3).
+4. The price per plan in §4 is closed with what they accept and pay.
+
+### Validation metrics: from beta to launch
+
+Proposed thresholds, to be confirmed in F7-7:
+
+| Metric | Threshold |
+|---|---|
+| Exit criterion of the private beta (milestone M3) | Met, as the execution plan defines it |
+| Pilots that complete the full cycle with no help from us | At least 1 of 3 |
+| Pilots that pay the closed price when the pilot ends | At least 2 of 3 |
+| Requests from beta users or pilots for the same stack or language | 3 or more, before starting that stack or language (milestone M7) |
+
+The two beta testers are acquaintances: they validate that the product can be
+used, not that anyone wants it. The demand is validated only by the pilots.

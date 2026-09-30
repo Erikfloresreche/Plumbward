@@ -8,9 +8,8 @@ hooks, secret scanning and context rules for AI assistants.
 
 > **Status: in active development, before version 1.0.** It is **not yet
 > published on npm**: it is used by cloning the repository (see
-> [Development](#development)). Today only the Node.js/TypeScript pack exists;
-> the rest arrives in Phase 2. The full plan is in
-> [docs/EXECUTION_PLAN.md](docs/EXECUTION_PLAN.md).
+> [Development](#development)). It supports **Node.js/TypeScript only**, and
+> that is the scope of the first public version. See the [roadmap](#roadmap).
 >
 > When we publish, it will be under the `@plumbward/` scope.
 
@@ -88,6 +87,25 @@ Strictness adapts to size: in a small project everything is enforced from the
 first file; in one of 200,000 lines only what changes is audited, so that CI
 does not turn red on the first day.
 
+## Roadmap
+
+The work is ordered by milestones. Each one has a measurable exit criterion,
+and the next one does not start until it is met.
+
+1. **Client repository safety.** Coverage, path containment, a `rollback` that
+   never overwrites your work, and a reversible installation.
+2. **Publishable beta.** Installable with `npx @plumbward/cli@beta`, with no
+   need to clone.
+3. **Private beta.** The full cycle on 15 or more real public TypeScript
+   repositories, and on the forks of outside testers.
+4. **Measurement.** Baseline, ratchet, CI that audits only the diff, and a
+   report over time.
+5. **Monetisation.** Licensing and the first pilot clients.
+6. **1.0 launch.** Every generated rule cites its source.
+
+Other stacks and languages come after 1.0, when there is demand for them. The
+full plan, task by task, is in [docs/EXECUTION_PLAN.md](docs/EXECUTION_PLAN.md).
+
 ## Architecture
 
 A monorepo of packages with dependencies in a single direction, so that the
@@ -129,6 +147,8 @@ offered as a competing service.
 The commands that do not modify your repository (`scan`, `plan`, `doctor`) are
 free to use in production and with no limit on repositories. Those that do
 modify it (`apply`, `rollback`) require a commercial licence per repository.
+A change to this model is under discussion, and nothing changes until it is
+decided: see [ADR 0006](docs/adr/0006-free-cycle-paid-measurement.md).
 
 Each version converts to Apache-2.0 on the conversion date set in the
 `LICENSE`, or four years after it is published, whichever comes first.

@@ -13,6 +13,11 @@
  * new task with no place in the queue turns the CI red, which is what forces
  * deciding its order at the moment it is created.
  *
+ * Since F0-54 the prefix of an identifier is the phase the task was created in,
+ * not the milestone it is done in: `Phase 3 complete` would drag along tasks
+ * that were moved to a later milestone. A pending task lists the tasks it
+ * depends on, and this control rejects the old form.
+ *
  * Pure functions, like `branch-names.mjs`: `check-coherence.mjs` only wires
  * them. Task F0-40.
  */
@@ -160,8 +165,8 @@ export function checkQueue(text) {
     }
   }
 
-  /** @param {string} dependency @param {string} id @param {number} index @param {string} label */
-  const requireBefore = (dependency, id, index, label) => {
+  /** @param {string} dependency @param {string} id @param {number} index */
+  const requireBefore = (dependency, id, index) => {
     const target = byId.get(dependency)
     if (!target) {
       failures.push(`${id} depends on ${dependency}, which does not exist in the plan`)
@@ -170,19 +175,23 @@ export function checkQueue(text) {
     if (target.done) return
     const at = position.get(dependency)
     if (at === undefined || at > index) {
-      failures.push(`${id} is in the queue before ${dependency}, which it depends on${label}`)
+      failures.push(`${id} is in the queue before ${dependency}, which it depends on`)
+    }
+  }
+
+  for (const task of tasks) {
+    if (task.done) continue
+    for (const phase of task.dependsOnPhases) {
+      failures.push(
+        `${task.id} depends on "Phase ${phase} complete": the prefix is the phase of origin, not the milestone (F0-54); list the tasks it depends on`,
+      )
     }
   }
 
   queue.forEach((id, index) => {
     const task = byId.get(id)
     if (!task || position.get(id) !== index) return
-    for (const dependency of task.dependsOnTasks) requireBefore(dependency, id, index, '')
-    for (const phase of task.dependsOnPhases) {
-      for (const member of tasks) {
-        if (member.phase === phase) requireBefore(member.id, id, index, ` (Phase ${phase} complete)`)
-      }
-    }
+    for (const dependency of task.dependsOnTasks) requireBefore(dependency, id, index)
   })
 
   return failures
