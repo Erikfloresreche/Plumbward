@@ -61,7 +61,7 @@ export async function loadProfile(scan: RepoScan): Promise<{
 
   try {
     const parsed = parseYamlToJson(raw)
-    if (typeof parsed !== 'object' || parsed === null) throw new Error('contenido vacío')
+    if (typeof parsed !== 'object' || parsed === null) throw new Error('empty content')
     // The recommended profile acts as the base: that way a config.yml from an
     // old version keeps working when new fields are added.
     const base = recommendedProfile(scan)
@@ -78,7 +78,7 @@ export async function loadProfile(scan: RepoScan): Promise<{
     return { profile, fromFile: true }
   } catch (cause) {
     const detail = cause instanceof Error ? cause.message : String(cause)
-    throw new Error(`El fichero ${CONFIG_FILE} no se puede leer: ${detail}`)
+    throw new Error(`The file ${CONFIG_FILE} cannot be read: ${detail}`)
   }
 }
 
@@ -98,11 +98,56 @@ export async function buildContext(cwd: string): Promise<{
   }
 }
 
-/** Serialises the profile with explanatory comments in Spanish. */
+/**
+ * Serialises the profile with explanatory comments in the profile language:
+ * English by default, Spanish with `language: es` (F0-45).
+ */
 export function profileToYaml(profile: Profile): string {
   const body = stringifyYaml(profile)
+  return `${profile.language === 'es' ? CONFIG_HEADER_ES : CONFIG_HEADER_EN}${body}`
+}
 
-  return `# ---------------------------------------------------------------------------
+const CONFIG_HEADER_EN = `# ---------------------------------------------------------------------------
+# Governance configuration of the repository
+#
+# This file is the SOURCE OF TRUTH: the CLI is a deterministic function of its
+# content. Change it through a Pull Request and run \`plumbward plan\` again to
+# see exactly what the change would imply.
+#
+# Fields:
+#   strictness    "strict" or "moderate". Sets how hard the linter and thresholds are.
+#   mode          Application mode derived from the size of the repository:
+#                 greenfield | ratchet | non-disruptive
+#   branches      Role of each branch. Any of them can be null.
+#                   integration  Branch the Pull Requests go to. It was proposed
+#                                from the remote when this file was created:
+#                                check that it is the right one. If you delete
+#                                it, it stays unconfigured; it is not deduced again.
+#                   release      Branch that deploys to production.
+#                                It is NEVER deduced: write it yourself. Without
+#                                it the deploy workflow is not generated.
+#                   staging      Pre-production branch, if you use one.
+#   deployTarget  vercel | aws | docker | render | none
+#   devcontainer  Generates a containerised development environment.
+#   aiAssistants  Assistants that get rule files generated.
+#   language      Language of the generated texts and comments: "en" (the
+#                 default) or "es".
+#   agentBoundaries
+#                 What an AI assistant is forbidden to RUN:
+#                   git             true = it does not run commit, push, merge,
+#                                   rebase or reset; a person runs them.
+#                                   Read-only commands are allowed.
+#                   database        true = it does not run migrations, seeds or
+#                                   writes; a person runs them. Inspection
+#                                   SELECTs are allowed.
+#                   commitLanguage  Language of commit messages and Pull Request
+#                                   descriptions.
+#                 Turning them off is a team decision: do it in a PR so it is
+#                 reviewed and audited.
+# ---------------------------------------------------------------------------
+`
+
+const CONFIG_HEADER_ES = `# ---------------------------------------------------------------------------
 # Configuración de gobernanza del repositorio
 #
 # Este fichero es la FUENTE DE VERDAD: la CLI es una función determinista de su
@@ -125,7 +170,8 @@ export function profileToYaml(profile: Profile): string {
 #   deployTarget  vercel | aws | docker | render | none
 #   devcontainer  Genera un entorno de desarrollo contenedorizado.
 #   aiAssistants  Para qué asistentes se generan ficheros de reglas.
-#   language      Idioma de los textos y comentarios generados.
+#   language      Idioma de los textos y comentarios generados: "en" (por
+#                 defecto) o "es".
 #   agentBoundaries
 #                 Qué se le prohíbe EJECUTAR a un asistente de IA:
 #                   git             true = no ejecuta commit, push, merge,
@@ -139,5 +185,4 @@ export function profileToYaml(profile: Profile): string {
 #                 Desactivarlos es una decisión del equipo: hazlo en una PR
 #                 para que quede revisada y auditada.
 # ---------------------------------------------------------------------------
-${body}`
-}
+`

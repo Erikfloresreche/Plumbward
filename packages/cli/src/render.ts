@@ -27,62 +27,62 @@ function bar(score: number, width = 24): string {
 }
 
 const MODE_LABELS: Record<RepoScan['sloc']['mode'], string> = {
-  greenfield: 'Greenfield · configuración estricta completa',
-  ratchet: 'Trinquete · reglas estrictas sólo sobre código nuevo',
-  'non-disruptive': 'No disruptivo · sólo se auditan las PRs nuevas',
+  greenfield: 'Greenfield · full strict configuration',
+  ratchet: 'Ratchet · strict rules only on new code',
+  'non-disruptive': 'Non-disruptive · only new PRs are audited',
 }
 
 export function renderScan(scan: RepoScan): string {
   const lines: string[] = []
 
-  lines.push(title('Diagnóstico del repositorio'))
+  lines.push(title('Repository diagnosis'))
 
   const stack = scan.primaryStack
   lines.push(
-    `${BULLET} Stack        ${stack ? pc.bold(stack.name) : pc.yellow('sin determinar')}`,
+    `${BULLET} Stack        ${stack ? pc.bold(stack.name) : pc.yellow('undetermined')}`,
   )
   if (stack?.frameworks.length) {
     lines.push(`${BULLET} Frameworks   ${stack.frameworks.join(', ')}`)
   }
   if (stack?.packageManager) {
-    lines.push(`${BULLET} Gestor       ${stack.packageManager}`)
+    lines.push(`${BULLET} Manager      ${stack.packageManager}`)
   }
   lines.push(
-    `${BULLET} Tamaño       ${pc.bold(scan.sloc.total.toLocaleString('es-ES'))} líneas ${pc.dim(
-      `(${scan.sloc.filesScanned} ficheros)`,
+    `${BULLET} Size         ${pc.bold(scan.sloc.total.toLocaleString('en-US'))} lines ${pc.dim(
+      `(${scan.sloc.filesScanned} files)`,
     )}`,
   )
-  lines.push(`${BULLET} Modo         ${pc.bold(MODE_LABELS[scan.sloc.mode])}`)
+  lines.push(`${BULLET} Mode         ${pc.bold(MODE_LABELS[scan.sloc.mode])}`)
   if (scan.isMonorepo) {
-    lines.push(`${BULLET} Monorepo     ${pc.yellow('sí')} ${pc.dim('(fuerza el modo no disruptivo)')}`)
+    lines.push(`${BULLET} Monorepo     ${pc.yellow('yes')} ${pc.dim('(forces the non-disruptive mode)')}`)
   }
 
-  lines.push(section('Estado de Git'))
+  lines.push(section('Git status'))
   if (!scan.git.isRepo) {
     lines.push(
-      `  ${pc.yellow('No es un repositorio git.')} ${pc.dim('Ejecuta `git init` antes de aplicar cambios.')}`,
+      `  ${pc.yellow('Not a git repository.')} ${pc.dim('Run `git init` before applying changes.')}`,
     )
   } else {
-    lines.push(`  Rama actual   ${scan.git.branch ?? '—'}`)
+    lines.push(`  Current branch  ${scan.git.branch ?? '—'}`)
     lines.push(
-      `  Cambios sin commitear  ${scan.git.isDirty ? pc.yellow('sí') : pc.green('no')}`,
+      `  Uncommitted changes  ${scan.git.isDirty ? pc.yellow('yes') : pc.green('no')}`,
     )
-    lines.push(`  Huella del repo  ${pc.dim(scan.git.fingerprint ?? '—')}`)
+    lines.push(`  Repo fingerprint  ${pc.dim(scan.git.fingerprint ?? '—')}`)
   }
 
   if (scan.sloc.byLanguage.length > 0) {
-    lines.push(section('Lenguajes'))
+    lines.push(section('Languages'))
     for (const language of scan.sloc.byLanguage.slice(0, 6)) {
       const share = scan.sloc.total === 0 ? 0 : Math.round((language.sloc / scan.sloc.total) * 100)
       lines.push(
-        `  ${language.language.padEnd(12)} ${String(language.sloc).padStart(8)} líneas ${pc.dim(
+        `  ${language.language.padEnd(12)} ${String(language.sloc).padStart(8)} lines ${pc.dim(
           `${share}%`,
         )}`,
       )
     }
   }
 
-  lines.push(section('Madurez DevSecOps'))
+  lines.push(section('DevSecOps maturity'))
   lines.push(`  ${bar(scan.maturity.score)}  ${pc.bold(`${scan.maturity.score}/100`)}`)
   lines.push('')
 
@@ -92,7 +92,7 @@ export function renderScan(scan: RepoScan): string {
   }
 
   if (scan.maturity.missing.length > 0) {
-    lines.push(section('Lo que más falta te hace'))
+    lines.push(section('What you need most'))
     for (const signal of scan.maturity.missing.slice(0, 4)) {
       lines.push(`  ${pc.yellow('→')} ${pc.bold(signal.label)}`)
       lines.push(`    ${pc.dim(signal.hint)}`)
@@ -110,37 +110,37 @@ export function renderPlan(
 ): string {
   const lines: string[] = []
 
-  lines.push(title('Plan de cambios'))
+  lines.push(title('Change plan'))
 
   if (plan.operations.length === 0) {
-    lines.push(pc.green('  No hay nada que hacer: el repositorio ya está conforme.'))
+    lines.push(pc.green('  Nothing to do: the repository already complies.'))
     return lines.join('\n')
   }
 
   lines.push(
-    `  ${pc.green(`${simulation.changes.filter((change) => change.before === null).length} ficheros nuevos`)}` +
-      `  ${pc.yellow(`${simulation.changes.filter((change) => change.before !== null).length} modificados`)}` +
-      `  ${pc.dim(`${simulation.noOps.length} ya al día`)}`,
+    `  ${pc.green(`${simulation.changes.filter((change) => change.before === null).length} new files`)}` +
+      `  ${pc.yellow(`${simulation.changes.filter((change) => change.before !== null).length} modified`)}` +
+      `  ${pc.dim(`${simulation.noOps.length} already up to date`)}`,
   )
   lines.push(
-    `  ${plan.summary.dependencies} dependencias  ${BULLET}  ${
+    `  ${plan.summary.dependencies} dependencies  ${BULLET}  ${
       synthesiseInstallCommands(plan.operations).length + plan.summary.commands
-    } comandos`,
+    } commands`,
   )
   lines.push(`  ${pc.dim(`Packs: ${plan.contributors.join(', ')}`)}`)
 
   if (plan.conflicts.length > 0) {
-    lines.push(section('Conflictos'))
+    lines.push(section('Conflicts'))
     for (const conflict of plan.conflicts) {
-      const marker = conflict.severity === 'block' ? pc.red('BLOQUEA') : pc.yellow('AVISO')
+      const marker = conflict.severity === 'block' ? pc.red('BLOCKS') : pc.yellow('WARNING')
       lines.push(`  ${marker} ${conflict.path}`)
       lines.push(`    ${pc.dim(conflict.reason)}`)
     }
   }
 
-  lines.push(section('Ficheros'))
+  lines.push(section('Files'))
   for (const change of simulation.changes) {
-    const label = change.before === null ? pc.green('crear ') : pc.yellow('editar')
+    const label = change.before === null ? pc.green('create') : pc.yellow('edit  ')
     lines.push(`  ${label} ${pc.bold(change.path)}`)
     for (const reason of change.reasons) {
       lines.push(`         ${pc.dim(reason)}`)
@@ -148,15 +148,15 @@ export function renderPlan(
   }
 
   if (simulation.sideEffects.length > 0) {
-    lines.push(section('Dependencias y comandos'))
+    lines.push(section('Dependencies and commands'))
     const installs = synthesiseInstallCommands(plan.operations)
     for (const operation of simulation.sideEffects) {
       if (operation.kind === 'addDependency') continue
-      lines.push(`  ${pc.magenta('ejecutar')} ${operation.cmd} ${operation.args.join(' ')}`)
+      lines.push(`  ${pc.magenta('run   ')} ${operation.cmd} ${operation.args.join(' ')}`)
       lines.push(`         ${pc.dim(operation.reason)}`)
     }
     for (const install of installs) {
-      lines.push(`  ${pc.magenta('ejecutar')} ${install.cmd} ${install.args.join(' ')}`)
+      lines.push(`  ${pc.magenta('run   ')} ${install.cmd} ${install.args.join(' ')}`)
       lines.push(`         ${pc.dim(install.reason)}`)
     }
   }
@@ -169,7 +169,7 @@ export function renderPlan(
         const preview = change.after.split('\n').slice(0, 14)
         for (const line of preview) lines.push(pc.green(`  + ${line}`))
         const remaining = change.after.split('\n').length - preview.length
-        if (remaining > 0) lines.push(pc.dim(`  ... ${remaining} líneas más`))
+        if (remaining > 0) lines.push(pc.dim(`  ... ${remaining} more lines`))
         continue
       }
       for (const line of collapseContext(lineDiff(change.before, change.after))) {
@@ -179,14 +179,14 @@ export function renderPlan(
       }
     }
   } else {
-    lines.push(`\n${pc.dim('Usa `--diff` para ver el contenido exacto de cada cambio.')}`)
+    lines.push(`\n${pc.dim('Use `--diff` to see the exact content of each change.')}`)
   }
 
   return lines.join('\n')
 }
 
 export function renderHealthChecks(checks: readonly HealthCheck[]): string {
-  const lines: string[] = [title('Diagnóstico de la configuración')]
+  const lines: string[] = [title('Configuration diagnosis')]
 
   for (const check of checks) {
     const mark = check.ok ? pc.green('✓') : pc.red('✗')
@@ -200,8 +200,8 @@ export function renderHealthChecks(checks: readonly HealthCheck[]): string {
   const failing = checks.filter((check) => !check.ok).length
   lines.push(
     failing === 0
-      ? `\n${pc.green('Todo correcto.')}`
-      : `\n${pc.yellow(`${failing} comprobación(es) sin pasar.`)}`,
+      ? `\n${pc.green('All good.')}`
+      : `\n${pc.yellow(`${failing} check(s) not passing.`)}`,
   )
 
   return lines.join('\n')

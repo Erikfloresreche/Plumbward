@@ -76,7 +76,7 @@ describe('apply that fails and cannot revert either', () => {
     const printed = output()
 
     expect(exitCode).toBe(1)
-    expect(printed).toContain('no se pudo revertir del todo')
+    expect(printed).toContain('it could not revert completely')
 
     // The two instructions that closed the only way out.
     expect(printed).not.toContain(`git branch -d ${GOVERNANCE_BRANCH}`)
@@ -84,7 +84,7 @@ describe('apply that fails and cannot revert either', () => {
     // Anchored to the notice line, not to a bare `plumbward rollback`: that
     // string already appears in the warning line before it, and with it the
     // assertion would hold even if the notice put the `checkout` first.
-    const revertHere = printed.indexOf('Ejecuta `plumbward rollback` aquí')
+    const revertHere = printed.indexOf('Run `plumbward rollback` here')
     expect(revertHere).toBeGreaterThan(-1)
     expect(revertHere).toBeLessThan(printed.indexOf('git checkout Prod'))
   })
@@ -108,7 +108,7 @@ describe('apply that fails and cannot revert either', () => {
     const printed = output()
 
     expect(printed).toContain(`git checkout ${startCommit}`)
-    expect(printed).not.toContain('no tenía ningún commit')
+    expect(printed).not.toContain('had no commit at all')
   })
 
   it('still proposes going back and deleting when it did revert', async () => {

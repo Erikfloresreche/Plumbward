@@ -11,13 +11,13 @@ import type { CommentStyle } from '@plumbward/ast'
  */
 export function resolveInRepo(repoRoot: string, relativePath: string): string {
   if (isAbsolute(relativePath)) {
-    throw new Error(`Ruta absoluta no permitida en una operación: "${relativePath}".`)
+    throw new Error(`Absolute path not allowed in an operation: "${relativePath}".`)
   }
   const root = resolve(repoRoot)
   const target = resolve(root, relativePath)
   const rel = relative(root, target)
   if (rel.startsWith('..') || rel.startsWith(`..${sep}`) || isAbsolute(rel)) {
-    throw new Error(`La ruta "${relativePath}" escapa de la raíz del repositorio.`)
+    throw new Error(`The path "${relativePath}" escapes the repository root.`)
   }
   return target
 }

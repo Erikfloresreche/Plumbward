@@ -46,7 +46,7 @@ describe('branchReturnNotice', () => {
   it('says where you are, how to go back and that the isolated branch is left over', () => {
     const text = notice(ISOLATED, 'Prod')
 
-    expect(text).toContain(`Sigues en la rama "${ISOLATED}"`)
+    expect(text).toContain(`You are still on branch "${ISOLATED}"`)
     expect(text).toContain('git checkout Prod')
     expect(text).toContain(`git branch -d ${ISOLATED}`)
   })
@@ -61,14 +61,14 @@ describe('branchReturnNotice', () => {
   it('warns that HEAD was left detached', () => {
     const text = notice(null, 'Prod')
 
-    expect(text).toContain('desacoplado')
+    expect(text).toContain('detached')
     expect(text).toContain('git checkout Prod')
   })
 
   it('does not invent a branch to go back to if the work started with a detached HEAD', () => {
     const text = notice(ISOLATED, null)
 
-    expect(text).toContain(`Sigues en la rama "${ISOLATED}"`)
+    expect(text).toContain(`You are still on branch "${ISOLATED}"`)
     // The only `git checkout` back is to the recorded commit (F0-30): there is
     // no branch to name, and there used to be an unfilled `<commit>` here.
     expect(text).toContain(`git checkout ${STARTED_COMMIT}`)
@@ -92,7 +92,7 @@ describe('branchReturnNotice with a pending rollback', () => {
   it('proposes neither going back nor deleting: revert first, then go back', () => {
     const text = noticePending(ISOLATED, 'Prod')
 
-    expect(text).toContain(`Sigues en la rama "${ISOLATED}"`)
+    expect(text).toContain(`You are still on branch "${ISOLATED}"`)
     expect(text).toContain('plumbward rollback')
     expect(text).not.toContain('git branch -d')
     // The `git checkout` can only appear after the rollback, never before.
@@ -100,11 +100,11 @@ describe('branchReturnNotice with a pending rollback', () => {
   })
 
   it('warns that deleting the isolated branch makes the rollback impossible', () => {
-    expect(noticePending(ISOLATED, 'Prod')).toMatch(/No borres[\s\S]*rollback/)
+    expect(noticePending(ISOLATED, 'Prod')).toMatch(/Do not delete[\s\S]*rollback/)
   })
 
   it('does not call a tree with half-written files "unchanged"', () => {
-    expect(noticePending(ISOLATED, 'Prod')).not.toContain('sin cambios')
+    expect(noticePending(ISOLATED, 'Prod')).not.toContain('with no changes')
   })
 
   it('stays silent all the same if the branch did not change: nothing to say about branches', () => {
@@ -144,6 +144,6 @@ describe('branchReturnNotice when the work started with a detached HEAD', () => 
     }).join('\n')
 
     expect(text).not.toContain('<commit>')
-    expect(text).toContain('no tenía ningún commit')
+    expect(text).toContain('had no commit at all')
   })
 })

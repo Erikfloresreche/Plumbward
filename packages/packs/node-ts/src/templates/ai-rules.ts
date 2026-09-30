@@ -1,4 +1,4 @@
-import type { Profile } from '@plumbward/packs-sdk'
+import type { OutputLanguage, Profile } from '@plumbward/packs-sdk'
 import type { RepoScan } from '@plumbward/scanner'
 
 /**
@@ -9,6 +9,76 @@ import type { RepoScan } from '@plumbward/scanner'
  * can disable it from the profile, and because it is the most consulted section.
  */
 function boundariesSection(profile: Profile): string {
+  return profile.language === 'es' ? boundariesSectionEs(profile) : boundariesSectionEn(profile)
+}
+
+/** Name of the commit language, written in English. */
+function languageNameEn(language: OutputLanguage): string {
+  return language === 'en' ? 'English' : 'Spanish'
+}
+
+function boundariesSectionEn(profile: Profile): string {
+  const { git, database, commitLanguage } = profile.agentBoundaries
+
+  const gitBlock = git
+    ? `### Git commands that change state
+
+Forbidden to run: \`commit\`, \`push\`, \`pull\`, \`merge\`, \`rebase\`,
+\`checkout\`, \`switch\`, \`reset\`, \`revert\`, \`cherry-pick\`, \`stash\`,
+\`tag\`, \`clean\` and remote management.
+
+**The person working at the time runs them by hand.** Leave the changes in the
+working tree, list the files you touched and deliver the commit message ready
+to copy.
+
+You may use the read-only ones: \`status\`, \`log\`, \`diff\`, \`show\`,
+\`blame\`, \`branch --list\`.
+
+*Why:* whoever signs the commit answers for what enters the history. An
+automatic push puts unreviewed code into a shared repository, and reverting it
+becomes a problem for the whole team.
+
+`
+    : ''
+
+  const dbBlock = database
+    ? `### Database commands that write
+
+Forbidden to run: migrations (\`migrate\`, \`db:push\`, \`db:seed\`,
+\`upgrade\`), \`INSERT\`, \`UPDATE\`, \`DELETE\`, \`DROP\`, \`TRUNCATE\`,
+\`ALTER\`, backup restores and any database CLI that alters data or schema.
+
+**The person working at the time runs them by hand.** Write the migration file
+or the query and explain how to run it, but do not run it.
+
+You may run inspection \`SELECT\`s and query the schema.
+
+*Why:* a migration has no undo button. The cost of a mistake is not a badly
+written file, it is lost data.
+
+`
+    : ''
+
+  return `## 7. What you must NOT run
+
+${gitBlock}${dbBlock}### Language of the git history
+
+Even if the project is documented in another language, **commit messages, Pull
+Request titles and descriptions and branch names are always written in
+${languageNameEn(commitLanguage)}**. All of that stays in the git history, and people who were not
+in the conversation will read it.
+
+- Commits and PR titles follow Conventional Commits.
+- Branches follow the format \`<type>/<kebab-case-description>\`, for example
+  \`fix/protected-branch-detection\`. Propose the branch name before you start
+  working.
+
+Deliver all of it as text, for the person who runs git to use.
+
+`
+}
+
+function boundariesSectionEs(profile: Profile): string {
   const { git, database, commitLanguage } = profile.agentBoundaries
   const commitLanguageName = commitLanguage === 'en' ? 'inglés' : 'español'
 
@@ -77,8 +147,115 @@ Entrégalo todo como texto para que lo use la persona que ejecuta git.
  * A single body of rules is generated and published in the files each tool
  * expects. Keeping one source stops Cursor and Claude from ending up with
  * diverging instructions about the same repository.
+ *
+ * English by default; the Spanish variant is chosen with `language: es` in the
+ * profile (F0-45). Moving both to catalogues is F1-2.
  */
 export function aiRules(scan: RepoScan, profile: Profile): string {
+  return profile.language === 'es' ? aiRulesEs(scan, profile) : aiRulesEn(scan, profile)
+}
+
+function aiRulesEn(scan: RepoScan, profile: Profile): string {
+  const stack = scan.primaryStack
+  const typescript = stack?.typescript ?? false
+  const frameworks = stack?.frameworks ?? []
+  const manager = stack?.packageManager ?? 'npm'
+  const strict = profile.strictness === 'strict'
+
+  const frameworkLine =
+    frameworks.length > 0
+      ? `Detected frameworks: ${frameworks.join(', ')}.`
+      : 'No dominant framework was detected.'
+
+  const modeLine =
+    profile.mode === 'greenfield'
+      ? 'Small project: apply the full standards from the first file.'
+      : profile.mode === 'ratchet'
+        ? 'Growing project: NEW code meets the full standard; legacy code is migrated only when it is already being touched for another reason.'
+        : 'Large project or monorepo: do not start mass migrations. Limit each change to the scope strictly asked for.'
+
+  return `# Project context rules
+
+These rules are mandatory for any AI assistant that generates code in this
+repository. They are versioned and reviewed in Pull Requests.
+
+## 1. Project context
+
+- Main stack: ${stack?.name ?? 'undetermined'}.
+- ${frameworkLine}
+- Package manager: **${manager}**. Do not use any other one or mix lockfiles.
+- Repository size: ~${scan.sloc.total.toLocaleString('en-US')} lines of code.
+- ${modeLine}
+
+## 2. Before writing code
+
+1. **Search before creating.** Find the utilities, types and patterns that
+   already exist in the repository and reuse them. Duplicated logic is the most
+   common flaw of AI-generated code and the most expensive to clean up later.
+2. **Follow the style of the file you are touching**, not your preferences:
+   names, import order, comment density and error handling.
+3. **If information is missing, ask.** Do not invent API names, file paths,
+   environment variables or endpoints. A plausible invention costs more review
+   time than a question.
+
+## 3. Code rules${typescript ? ' (TypeScript)' : ''}
+
+${
+  typescript
+    ? `- \`any\` is forbidden. If you do not know the type, use \`unknown\` and narrow it
+  with explicit checks.
+- Every exported function declares its return type explicitly.
+- API responses and system boundaries are modelled with interfaces.
+- Do not use \`@ts-ignore\`. If it is really needed, use \`@ts-expect-error\` with
+  a comment that explains why and when it can be removed.
+- Non-null assertions (\`!\`) are forbidden unless a comment justifies the
+  invariant that guarantees them.`
+    : `- Document with JSDoc the parameters and the return value of every exported function.
+- Validate every external input at the system boundary before using it.`
+}
+- No \`console.log\` in production code: use the project logger.
+- Errors are handled explicitly. An empty \`catch\`, or a \`catch\` that only logs
+  and carries on as if nothing had happened, is forbidden.
+- No magic numbers or strings: extract named constants.
+- Guideline limit: ${strict ? '50' : '80'} lines per function and ${strict ? '400' : '600'} per file.
+  Going over it signals more than one responsibility inside.
+
+## 4. Security (non-negotiable)
+
+- **Never** write secrets, tokens, API keys or credentials in the code, not even
+  as an example or default value. Use environment variables and document the
+  new variable in \`.env.example\`.
+- Never build SQL by concatenating strings: use parameterised queries.
+- Validate and sanitise all input coming from the user or an external service.
+- Do not add new dependencies without a real need. If you do, say so explicitly
+  in the PR description and justify it.
+
+## 5. Tests
+
+- Every new behaviour comes with its test. No exceptions.
+- Cover the happy path, at least one error case and the boundary values.
+- Tests do not depend on the network, the system clock or the execution order.
+${strict ? '- Fixing a bug starts with writing the test that reproduces it.\n' : ''}
+## 6. Pull Requests
+
+- One PR, one purpose. Do not mix refactoring with new functionality.
+- Size target: under ${strict ? '400' : '800'} added lines. Above that, split it.
+- The description explains **what changes and why**, it does not repeat the diff.
+- If you generated the code with an assistant, review it yourself before asking
+  someone else for a review. The code is the responsibility of whoever opens the PR.
+
+${boundariesSection(profile)}## 8. What you must NEVER do
+
+- Modify files inside \`plumbward:begin\` / \`plumbward:end\` markers: they are
+  regenerated automatically and you will lose your changes.
+- Touch CI/CD files, \`.env\`, lockfiles or deployment configuration without
+  being explicitly asked to.
+- Disable linter rules to make the pipeline pass. Fix the cause.
+- Reformat whole files: it pollutes the diff and makes the review impossible.
+`
+}
+
+function aiRulesEs(scan: RepoScan, profile: Profile): string {
   const stack = scan.primaryStack
   const typescript = stack?.typescript ?? false
   const frameworks = stack?.frameworks ?? []
@@ -181,6 +358,37 @@ ${boundariesSection(profile)}## 8. Lo que NUNCA debes hacer
 
 /** Instructions for GitHub Copilot, which expects a shorter file. */
 export function copilotInstructions(scan: RepoScan, profile: Profile): string {
+  return profile.language === 'es'
+    ? copilotInstructionsEs(scan, profile)
+    : copilotInstructionsEn(scan, profile)
+}
+
+function copilotInstructionsEn(scan: RepoScan, profile: Profile): string {
+  const stack = scan.primaryStack
+  const strict = profile.strictness === 'strict'
+
+  return `# Instructions for GitHub Copilot
+
+Stack: ${stack?.name ?? 'undetermined'}${
+    stack?.frameworks.length ? ` (${stack.frameworks.join(', ')})` : ''
+  }.
+Package manager: ${stack?.packageManager ?? 'npm'}.
+
+When proposing code in this repository:
+
+- Reuse what already exists before creating anything new.
+${stack?.typescript ? '- `any` is forbidden; use `unknown` and narrow the type. Explicit return type on everything exported.\n' : ''}- Never include secrets or credentials, not even as an example.
+- Every new behaviour comes with its test.
+- Handle errors explicitly; no empty \`catch\` blocks.
+- Keep functions under ${strict ? '50' : '80'} lines.
+- Do not modify CI/CD, \`.env\` or lockfiles unless explicitly asked.
+${profile.agentBoundaries.git ? '- Do not run git commands that change state (commit, push, merge, reset): the person working runs them.\n' : ''}${profile.agentBoundaries.database ? '- Do not run migrations or statements that write to the database: the person working runs them.\n' : ''}- Write commit messages, PRs and branch names in ${languageNameEn(profile.agentBoundaries.commitLanguage)}.
+
+The full rules are in \`.cursorrules\`.
+`
+}
+
+function copilotInstructionsEs(scan: RepoScan, profile: Profile): string {
   const stack = scan.primaryStack
   const strict = profile.strictness === 'strict'
 

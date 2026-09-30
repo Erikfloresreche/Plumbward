@@ -18,9 +18,9 @@ interface SignalDefinition {
 const SIGNALS: readonly SignalDefinition[] = [
   {
     id: 'ci',
-    label: 'Integración continua',
+    label: 'Continuous integration',
     weight: 15,
-    hint: 'Sin CI, cada PR se valida a ojo. Es la base de todo lo demás.',
+    hint: 'Without CI, every PR is validated by eye. It is the base of everything else.',
     matches: (has) =>
       has(/^\.github\/workflows\/.+\.ya?ml$/) ||
       has('.gitlab-ci.yml') ||
@@ -29,9 +29,9 @@ const SIGNALS: readonly SignalDefinition[] = [
   },
   {
     id: 'tests',
-    label: 'Suite de pruebas',
+    label: 'Test suite',
     weight: 15,
-    hint: 'Sin tests, el código generado por IA entra sin red de seguridad.',
+    hint: 'Without tests, AI-generated code gets in with no safety net.',
     matches: (has) =>
       has(/(^|\/)(tests?|__tests__|spec)\//i) ||
       has(/\.(test|spec)\.[jt]sx?$/) ||
@@ -40,9 +40,9 @@ const SIGNALS: readonly SignalDefinition[] = [
   },
   {
     id: 'linter',
-    label: 'Linter configurado',
+    label: 'Linter configured',
     weight: 12,
-    hint: 'Automatiza la mitad de los comentarios que hoy escribe un senior en cada PR.',
+    hint: 'Automates half of the comments a senior writes on every PR today.',
     matches: (has) =>
       has(/^(eslint\.config\.[mc]?[jt]s|\.eslintrc(\.[a-z]+)?)$/) ||
       has('biome.json') ||
@@ -54,9 +54,9 @@ const SIGNALS: readonly SignalDefinition[] = [
   },
   {
     id: 'formatter',
-    label: 'Formateador y estilo unificado',
+    label: 'Formatter and unified style',
     weight: 6,
-    hint: 'Elimina los diffs de formato que ensucian las revisiones.',
+    hint: 'Removes the formatting diffs that clutter reviews.',
     matches: (has) =>
       has(/^\.prettierrc/) ||
       has('prettier.config.js') ||
@@ -66,17 +66,17 @@ const SIGNALS: readonly SignalDefinition[] = [
   },
   {
     id: 'hooks',
-    label: 'Hooks de pre-commit',
+    label: 'Pre-commit hooks',
     weight: 12,
-    hint: 'Detiene los problemas antes del push, no en la revisión.',
+    hint: 'Stops problems before the push, not in review.',
     matches: (has) =>
       has(/^\.husky\//) || has('.pre-commit-config.yaml') || has('lefthook.yml'),
   },
   {
     id: 'secrets',
-    label: 'Escaneo de secretos',
+    label: 'Secret scanning',
     weight: 14,
-    hint: 'Un token filtrado por un asistente de IA es la brecha más común y más cara.',
+    hint: 'A token leaked by an AI assistant is the most common and most expensive breach.',
     matches: (has) =>
       has('.gitleaks.toml') ||
       has('gitleaks.toml') ||
@@ -85,9 +85,9 @@ const SIGNALS: readonly SignalDefinition[] = [
   },
   {
     id: 'ai-rules',
-    label: 'Reglas de contexto para asistentes de IA',
+    label: 'Context rules for AI assistants',
     weight: 12,
-    hint: 'Sin ellas, cada desarrollador obtiene una arquitectura distinta del mismo prompt.',
+    hint: 'Without them, each developer gets a different architecture from the same prompt.',
     matches: (has) =>
       has('.cursorrules') ||
       has(/^\.cursor\/rules\//) ||
@@ -98,9 +98,9 @@ const SIGNALS: readonly SignalDefinition[] = [
   },
   {
     id: 'containers',
-    label: 'Entorno contenedorizado',
+    label: 'Containerised environment',
     weight: 8,
-    hint: 'Acaba con el "en mi máquina funciona" y acelera el alta de nuevos perfiles.',
+    hint: 'Ends "it works on my machine" and speeds up onboarding new people.',
     matches: (has) =>
       has(/^Dockerfile/) || has(/^docker-compose\.ya?ml$/) || has(/^compose\.ya?ml$/),
   },
@@ -108,43 +108,43 @@ const SIGNALS: readonly SignalDefinition[] = [
     id: 'devcontainer',
     label: 'DevContainer',
     weight: 4,
-    hint: 'Un clon y a trabajar: entorno idéntico para todo el equipo.',
+    hint: 'Clone and start working: an identical environment for the whole team.',
     matches: (has) => has(/^\.devcontainer\//),
   },
   {
     id: 'codeowners',
     label: 'CODEOWNERS',
     weight: 5,
-    hint: 'Enruta cada PR a quien de verdad conoce esa parte del código.',
+    hint: 'Routes each PR to whoever really knows that part of the code.',
     matches: (has) => has(/(^|\/)CODEOWNERS$/),
   },
   {
     id: 'dependency-updates',
-    label: 'Actualización automática de dependencias',
+    label: 'Automatic dependency updates',
     weight: 5,
-    hint: 'Evita que la deuda de seguridad se acumule en silencio.',
+    hint: 'Keeps security debt from piling up in silence.',
     matches: (has) =>
       has('renovate.json') || has('.github/dependabot.yml') || has('.renovaterc.json'),
   },
   {
     id: 'docs',
-    label: 'README y documentación de arranque',
+    label: 'README and getting-started documentation',
     weight: 4,
-    hint: 'Es lo primero que lee tanto un desarrollador nuevo como un asistente de IA.',
+    hint: 'It is the first thing both a new developer and an AI assistant read.',
     matches: (has) => has(/^README(\.md)?$/i),
   },
   {
     id: 'security-policy',
-    label: 'Política de seguridad',
+    label: 'Security policy',
     weight: 3,
-    hint: 'Requisito habitual en auditorías y en ventas a empresa.',
+    hint: 'A common requirement in audits and in enterprise sales.',
     matches: (has) => has(/(^|\/)SECURITY\.md$/i),
   },
   {
     id: 'env-example',
-    label: 'Plantilla de variables de entorno',
+    label: 'Environment variables template',
     weight: 5,
-    hint: 'Documenta qué secretos hacen falta sin publicar ninguno.',
+    hint: 'Documents which secrets are needed without publishing any.',
     matches: (has) => has(/^\.env\.(example|sample|template)$/),
   },
 ]
