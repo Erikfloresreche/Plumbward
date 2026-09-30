@@ -6,7 +6,7 @@
 > checkbox in this file, inside the same Pull Request that implements it.
 
 **Last updated:** 2026-09-30
-**Global status:** replanned towards an early beta on 2026-09-30 (F0-54): the work is ordered by milestones M1 to M9, not by phase (§5). Current milestone: **M1 — client repository safety**. Completed: F0-1, F0-3, F0-5, F0-8, F0-13 to F0-18, F0-24, F0-27, F0-29, F0-30, F0-34, F0-36, F0-40 to F0-45, F0-47, F0-48, F0-54, F7-2 and F7-4. Remaining: every other task, in the order of the execution queue (§5).
+**Global status:** replanned towards an early beta on 2026-09-30 (F0-54): the work is ordered by milestones M1 to M9, not by phase (§5). Current milestone: **M1 — client repository safety**. Completed: F0-1, F0-3, F0-5, F0-8, F0-13 to F0-18, F0-24, F0-27, F0-29, F0-30, F0-32, F0-34, F0-36, F0-40 to F0-45, F0-47, F0-48, F0-54, F7-2 and F7-4. Remaining: every other task, in the order of the execution queue (§5).
 **Product:** Plumbward · https://github.com/Erikfloresreche/Plumbward
 **Business model:** annual subscription per repository — see
 [BUSINESS_MODEL.md](BUSINESS_MODEL.md)
@@ -1507,7 +1507,7 @@ written where it is read.
 
 ---
 
-### [ ] F0-32 — Follow-ups from the review of the F0-27 PR
+### [x] F0-32 — Follow-ups from the review of the F0-27 PR
 **Branch:** `fix/f0-mutation-control-followups` · **Depends on:** F0-27
 
 **Origin:** fresh-context review of the F0-27 PR. The three blockers —constants
@@ -3985,7 +3985,6 @@ depends on, or if a pending task depends on `Phase N complete`.
 
 #### M1 — Client repository safety
 
-- **F0-32** — the mutation control gives empty greens through gaps in its parsers; moved from M9 by F0-36, because the battery now guards `rollback`.
 - **F0-50** — `check:mutations` applies its `extra` replacement without verifying it still matches; moved from M9 by F0-36, same reason.
 - **F0-7** — 90 % coverage threshold in `core`, the declared mitigation of R5.
 - **F0-10** — a symbolic link allows writing outside the repository: the boundary `SECURITY.md` presents.
