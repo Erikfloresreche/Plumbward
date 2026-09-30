@@ -107,7 +107,8 @@ point 3). None of them is fixed here.
    (F2-7).
 3. **Linters the scanner does not know.** `xo` (10), TSLint (4) and oxlint
    (16) do not count as a configured linter. What a pack generates next to them
-   is one of the conflicts the beta counts (F7-4).
+   is one of the conflicts the beta counts
+   ([metrics §3](metrics.md#3-conflicts-by-type)).
 4. **Hooks the scanner does not know.** husky v4, configured in `package.json`
    or `.huskyrc.json` (4, 6, 7, 9), and simple-git-hooks (13) do not count as
    hooks.
