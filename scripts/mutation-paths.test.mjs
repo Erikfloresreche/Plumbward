@@ -53,6 +53,22 @@ describe('files the script mutates or runs', () => {
     const dup = "const BR = 'packages/a/b.ts'\nconst TESTS = [\n  'packages/a/b.ts',\n]"
     expect(mutationInputs(dup)).toEqual(['packages/a/b.ts'])
   })
+
+  it('does not take a commented-out test as a file', () => {
+    // A path that no longer runs demanded in the filter: a false red.
+    const commented = "const TESTS = [\n  'packages/a.test.ts',\n  // 'packages/old.test.ts',\n  /* 'packages/older.test.ts' */\n]"
+    expect(mutationInputs(commented)).toEqual(['packages/a.test.ts'])
+  })
+
+  it('does not end the TESTS array at a ] inside a comment', () => {
+    // The paths after the comment were lost in silence: a false green.
+    const bracket = "const TESTS = [\n  'packages/a.test.ts',\n  // see [F0-27]\n  'packages/b.test.ts',\n]"
+    expect(mutationInputs(bracket)).toEqual(['packages/a.test.ts', 'packages/b.test.ts'])
+  })
+
+  it('fails out loud if the TESTS array is never closed', () => {
+    expect(() => mutationInputs("const TESTS = [\n  'packages/a.test.ts',\n")).toThrow(/never closed/)
+  })
 })
 
 describe('paths of the workflow filter', () => {
@@ -82,11 +98,53 @@ describe('paths of the workflow filter', () => {
 
   it('does not mistake paths-ignore for the filter', () => {
     const wf = "on:\n  pull_request:\n    paths-ignore:\n      - 'docs/**'\n"
-    expect(workflowPaths(wf)).toEqual([])
+    expect(() => workflowPaths(wf)).toThrow(/paths-ignore/)
   })
 
-  it('returns an empty list if there is no filter', () => {
-    expect(workflowPaths('on:\n  pull_request:\n    branches: [develop]\n')).toEqual([])
+  it('tells apart no filter from a filter that leaves files out', () => {
+    // No filter: the workflow runs on every PR. Not the same as an empty list.
+    expect(workflowPaths('on:\n  pull_request:\n    branches: [develop]\n')).toBeNull()
+    expect(workflowPaths('on:\n  pull_request:\n  workflow_dispatch:\n')).toBeNull()
+  })
+
+  it('does not stop looking for the filter at a comment in column 0', () => {
+    // Stopping there reads as "no filter", which is green: the real filter
+    // below would be ignored while it leaves files out.
+    const wf = "on:\n  pull_request:\n# note\n    paths:\n      - 'a.ts'\n"
+    expect(workflowPaths(wf)).toEqual(['a.ts'])
+  })
+
+  it('fails out loud if there is no pull_request trigger', () => {
+    expect(() => workflowPaths('on:\n  push:\n    paths:\n      - a.ts\n')).toThrow(/pull_request/)
+  })
+
+  it('fails out loud on an inline filter it does not read', () => {
+    expect(() => workflowPaths("on:\n  pull_request:\n    paths: ['a.ts']\n")).toThrow(/inline/)
+  })
+
+  it('stops at the end of the list, not at the next entry of another key', () => {
+    // Kills the mutant that removes the indentation check: the less indented
+    // `- ` would be read as one more path.
+    const wf = "on:\n  pull_request:\n    paths:\n      - 'a.ts'\n  - 'no.ts'\n"
+    expect(workflowPaths(wf)).toEqual(['a.ts'])
+  })
+
+  it('reads a list not indented under its key, and ends it at the next key', () => {
+    const wf = "on:\n  pull_request:\n    paths:\n    - 'a.ts'\n    - b.ts\n    branches:\n    - develop\n"
+    expect(workflowPaths(wf)).toEqual(['a.ts', 'b.ts'])
+  })
+
+  it('fails out loud on an entry it cannot read, instead of cutting or skipping', () => {
+    // Cutting the list loses every path after it; skipping loses one in
+    // silence. Either way the red blames the wrong file, or none.
+    const wf = "on:\n  pull_request:\n    paths:\n      - 'a.ts'\n      - key: value\n      - 'b.ts'\n"
+    expect(() => workflowPaths(wf)).toThrow(/key: value/)
+  })
+
+  it('reads double quotes, no quotes and a comment at the end of an entry', () => {
+    const wf =
+      "on:\n  pull_request:\n    paths:\n      - \"a.ts\"\n      - b.ts # why\n      - 'c.ts'  # why\n      - 'd.ts'\n"
+    expect(workflowPaths(wf)).toEqual(['a.ts', 'b.ts', 'c.ts', 'd.ts'])
   })
 })
 
@@ -102,6 +160,14 @@ describe('filter coverage', () => {
     )
     expect(withNewMutation).not.toBe(script)
     expect(uncoveredMutationInputs(withNewMutation, workflow)).toEqual(['packages/new/src/piece.ts'])
+  })
+
+  it('accepts the real workflow with its paths: filter removed', () => {
+    // The emergency exit mutations.yml documents for the day the job becomes
+    // required: with no filter the workflow runs on every PR.
+    const withoutFilter = workflow.replace(/\n    paths:\n(?:      .*\n|\s*\n)+/, '\n')
+    expect(workflowPaths(withoutFilter)).toBeNull()
+    expect(uncoveredMutationInputs(script, withoutFilter)).toEqual([])
   })
 
   it('does not accept a broad pattern instead of the exact path', () => {

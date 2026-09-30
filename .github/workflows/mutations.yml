@@ -18,7 +18,8 @@
 # CAREFUL WHEN MAKING IT REQUIRED: with a `paths:` filter, a PR that does not
 # touch those files does not trigger this workflow, and a required check that
 # never arrives stays *pending* forever and blocks the merge. If it enters the
-# ruleset, the filter has to go first.
+# ruleset, the filter has to go first. `check:coherence` accepts the workflow
+# without it: with no filter it runs on every PR and covers everything (F0-32).
 # ---------------------------------------------------------------------------
 name: Mutations
 

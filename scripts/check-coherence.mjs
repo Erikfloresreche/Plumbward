@@ -16,6 +16,7 @@ import { join, dirname, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { checkPlan, checkPullRequestBranch } from './branch-names.mjs'
 import { uncoveredMutationInputs } from './mutation-paths.mjs'
+import { matrixConditionProblems, readWorkflows, triggerBranchProblems } from './workflow-checks.mjs'
 import { checkQueue } from './execution-queue.mjs'
 import { checkEnglishOnly } from './english-only.mjs'
 import { checkDocLinks, withDirectories } from './doc-links.mjs'
@@ -48,21 +49,18 @@ if (!matrix) {
 }
 
 // ── 1b. No condition points at a version that is not in the matrix ────────
-// Born from the review of PR #6: after changing the matrix from '22' to '22.13',
-// two steps with `if: matrix.node == '22'` were skipped in silence on every run
-// — among them the typecheck and this very script. An `if` that never matches
-// does not fail: it disappears.
-if (matrix) {
-  const versions = matrix[1].split(',').map((v) => v.trim().replace(/'/g, ''))
-  // Only real `if:` lines: a comment quoting the pattern does not count.
-  for (const m of ci.matchAll(/^\s*if:.*matrix\.node\s*==\s*'([^']+)'/gm)) {
-    if (!versions.includes(m[1])) {
-      fail(
-        'matrix-condition',
-        `ci.yml has a condition "matrix.node == '${m[1]}'" but the matrix is [${versions.join(', ')}]. That step would never run.`,
-      )
-    }
-  }
+// Born from the review of PR #6: an `if: matrix.node == '22'` that never
+// matches does not fail, it disappears. Every workflow, not only `ci.yml`; the
+// logic lives in `scripts/workflow-checks.mjs`, covered by its test.
+/** @type {import('./workflow-checks.mjs').Workflow[]} */
+let workflows = []
+try {
+  workflows = readWorkflows(root)
+} catch (error) {
+  fail('workflows', `.github/workflows could not be read (${error.message}): controls 1b and 4 are blind`)
+}
+for (const reason of matrixConditionProblems(workflows)) {
+  fail('matrix-condition', reason)
 }
 
 // ── 1c. The types and coherence job uses the floor version ────────────────
@@ -121,49 +119,25 @@ for (const dir of packageDirs) {
 // Born from a review: the workflows triggered on `main`, a branch that does
 // not exist in this repository — the release one is called `Prod`. The result
 // was that the release branch had no CI at all, in silence.
-try {
+// The listing of workflows goes outside the soft `try` of the network: see
+// `triggerBranchProblems` in `scripts/workflow-checks.mjs`.
+{
   const { execSync } = await import('node:child_process')
-  const remoteBranches = execSync('git ls-remote --heads origin', {
-    cwd: root,
-    encoding: 'utf8',
-    stdio: ['ignore', 'pipe', 'ignore'],
-    timeout: 15_000,
-  })
-    .split('\n')
-    .map((l) => l.split('refs/heads/')[1])
-    .filter(Boolean)
+  const listRemoteBranches = () =>
+    execSync('git ls-remote --heads origin', {
+      cwd: root,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+      timeout: 15_000,
+    })
+      .split('\n')
+      .map((l) => l.split('refs/heads/')[1])
+      .filter(Boolean)
 
-  if (remoteBranches.length > 0) {
-    // Every workflow, not a hand-written list: a new workflow with a trigger on
-    // a branch that does not exist would have no control.
-    const workflows = readdirSync(join(root, '.github/workflows'))
-      .filter((f) => f.endsWith('.yml') || f.endsWith('.yaml'))
-      .map((f) => `.github/workflows/${f}`)
-    for (const wf of workflows) {
-      const text = read(wf)
-      for (const m of text.matchAll(/branches: \[([^\]]+)\]/g)) {
-        for (const branch of m[1].split(',').map((r) => r.trim())) {
-          if (remoteBranches.includes(branch)) continue
-
-          // Git branch names ARE case-sensitive: `Prod` and `prod` are
-          // different branches. A case mismatch is the most likely mistake and
-          // the hardest to see at a glance, so it is diagnosed separately
-          // instead of saying "does not exist" and leaving the reader to
-          // compare letter by letter.
-          const caseMatch = remoteBranches.find((r) => r.toLowerCase() === branch.toLowerCase())
-          fail(
-            'trigger-branches',
-            caseMatch
-              ? `${wf} triggers on "${branch}", but the remote branch is called "${caseMatch}". Branch names are case-sensitive: the trigger would never fire.`
-              : `${wf} triggers on the branch "${branch}", which does not exist on the remote. That branch would have no CI. Available branches: ${remoteBranches.join(', ')}.`,
-          )
-        }
-      }
-    }
-  }
-} catch {
+  const { skipped, problems } = triggerBranchProblems(() => workflows, listRemoteBranches)
   // No network or no remote: it cannot be checked, and that is no reason to fail.
-  console.warn('  (warning: the remote branches could not be listed; control skipped)')
+  if (skipped) console.warn('  (warning: the remote branches could not be listed; control skipped)')
+  for (const reason of problems) fail('trigger-branches', reason)
 }
 
 // ── 4 bis. The mutation workflow filter covers what is mutated ────────────
@@ -173,10 +147,15 @@ try {
 // the job stops running on the PRs that change it without turning red —it does
 // not run, it does not fail—. The logic lives in `scripts/mutation-paths.mjs`,
 // covered by its test. Task F0-27.
-for (const file of uncoveredMutationInputs(
-  read('scripts/check-mutations.mjs'),
-  read('.github/workflows/mutations.yml'),
-)) {
+// A workflow with no filter runs on every PR and covers everything; a filter
+// the control cannot read fails with its reason, not with every file blamed.
+let uncovered = []
+try {
+  uncovered = uncoveredMutationInputs(read('scripts/check-mutations.mjs'), read('.github/workflows/mutations.yml'))
+} catch (error) {
+  fail('mutation-filter', `the paths: filter of .github/workflows/mutations.yml cannot be checked: ${error.message}`)
+}
+for (const file of uncovered) {
   fail(
     'mutation-filter',
     `check-mutations.mjs mutates or runs "${file}", but the paths: filter of .github/workflows/mutations.yml does not name it. A PR that changes that file would not launch the mutations.`,
