@@ -32,6 +32,7 @@ import { tmpdir } from 'node:os'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { isFailure, label, mutationOutcome } from './mutation-outcome.mjs'
+import { applyMutation } from './mutation-apply.mjs'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const TESTS = [
@@ -80,7 +81,7 @@ const MUTATIONS = [
   ['Declare push even with no branches', CI, "${pushBranches.length > 0 ? `  push:\n    branches: [${pushBranches.join(', ')}]\n` : ''}", "  push:\n    branches: [${pushBranches.join(', ')}]\n"],
   ['Staging with a literal name', CI, "  const staging = profile.branches.staging ?? 'staging'", "  const staging = 'staging'"],
   ['Push CI without wiring the profile', PK, '          ciPushBranches(profile),', '          ciPushBranches({ branches: { integration: null, release: null, staging: null } }),'],
-  ['Deploy with no configured branch', PK, "if (profile.deployTarget !== 'none' && release !== null) {", "if (profile.deployTarget !== 'none') {", ['ciProdWorkflow(manager, release)', "ciProdWorkflow(manager, release ?? 'main')"]],
+  ['Deploy with no configured branch', PK, "if (profile.deployTarget !== 'none' && release !== null) {", "if (profile.deployTarget !== 'none') {", ['ciProdWorkflow(manager, release, profile.language)', "ciProdWorkflow(manager, release ?? 'main', profile.language)"]],
   ['doctor ignores an existing ci-prod.yml', WF, "  if (deployTarget === 'none' && prodText === undefined) return undefined\n", "  if (deployTarget === 'none') return undefined\n"],
   ['doctor does not compare the branch of ci-prod.yml', WF, '  if (deploysFrom.length !== 1 || deploysFrom[0] !== release) {', '  if (false) {'],
   ['doctor accepts filtered PRs', WF, '  if (filter === null) return { ...base, ok: true', '  if (filter !== undefined) return { ...base, ok: true'],
@@ -139,14 +140,15 @@ const selected = only ? MUTATIONS.filter(([name]) => name.includes(only)) : MUTA
 for (const [name, file, from, to, extra] of selected) {
   const path = join(root, file)
   const original = readFileSync(path, 'utf8')
-  const count = original.split(from).length - 1
-  if (count !== 1) {
-    console.error(`  STALE ANCHOR  ${name} (${file}: ${count} occurrences). Update the list.`)
+  const applied = applyMutation(original, from, to, extra)
+  if ('stale' in applied) {
+    const { anchor, count } = applied.stale
+    const which = anchor === from ? '' : ` extra anchor ${JSON.stringify(anchor)}:`
+    console.error(`  STALE ANCHOR  ${name} (${file}:${which} ${count} occurrences). Update the list.`)
     survivors++
     continue
   }
-  let mutated = original.replace(from, to)
-  if (extra) mutated = mutated.replace(extra[0], extra[1])
+  const { mutated } = applied
   restoring = { path, content: original }
   writeFileSync(path, mutated)
   try {

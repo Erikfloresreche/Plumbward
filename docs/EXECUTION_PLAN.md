@@ -6,7 +6,7 @@
 > checkbox in this file, inside the same Pull Request that implements it.
 
 **Last updated:** 2026-09-30
-**Global status:** replanned towards an early beta on 2026-09-30 (F0-54): the work is ordered by milestones M1 to M9, not by phase (§5). Current milestone: **M1 — client repository safety**. Completed: F0-1, F0-3, F0-5, F0-8, F0-13 to F0-18, F0-24, F0-27, F0-29, F0-30, F0-32, F0-34, F0-36, F0-40 to F0-45, F0-47, F0-48, F0-54, F7-2 and F7-4. Remaining: every other task, in the order of the execution queue (§5).
+**Global status:** replanned towards an early beta on 2026-09-30 (F0-54): the work is ordered by milestones M1 to M9, not by phase (§5). Current milestone: **M1 — client repository safety**. Completed: F0-1, F0-3, F0-5, F0-8, F0-13 to F0-18, F0-24, F0-27, F0-29, F0-30, F0-32, F0-34, F0-36, F0-40 to F0-45, F0-50, F0-47, F0-48, F0-54, F7-2 and F7-4. Remaining: every other task, in the order of the execution queue (§5).
 **Product:** Plumbward · https://github.com/Erikfloresreche/Plumbward
 **Business model:** annual subscription per repository — see
 [BUSINESS_MODEL.md](BUSINESS_MODEL.md)
@@ -2170,7 +2170,7 @@ not the English one.
 
 ---
 
-### [ ] F0-50 — `check:mutations` applies its `extra` replacement without verifying it still matches
+### [x] F0-50 — `check:mutations` applies its `extra` replacement without verifying it still matches
 **Branch:** `fix/f0-mutation-extra-anchor-unchecked` · **Depends on:** F0-27
 
 **Origin:** fresh-context review of PR #25 (F0-45). Fixing the blocker where
@@ -2208,6 +2208,19 @@ as F0-32: the battery now covers the journal guard of `rollback`.
   matches current `index.ts` and actually forces `release` to be used while
   `null`.
 - `pnpm check:mutations` stays at 31 of 31 detected.
+
+**Result:** applying a mutation moves to `scripts/mutation-apply.mjs`
+(`applyMutation`), so it can be tested: `check-mutations.mjs` runs on load and
+ends in `process.exit`. The primary anchor is counted in the original and the
+`extra` anchor in the text after the primary replacement; either one that does
+not occur exactly once gives `STALE ANCHOR`, naming the `extra` anchor when it
+is that one. Both replacements are taken literally (no `$` patterns). The
+`'Deploy with no configured branch'` entry now replaces
+`ciProdWorkflow(manager, release, profile.language)` with
+`release ?? 'main'`; with the old `extra`, the new code reports it stale with 0
+occurrences. `scripts/mutation-apply.test.mjs` is the control; removing the
+`extra` count turns two of its tests red. `mutations.yml` lists the new file in
+its `paths:` filter. 31 of 31 detected.
 
 ---
 
@@ -4039,7 +4052,6 @@ depends on, or if a pending task depends on `Phase N complete`.
 
 #### M1 — Client repository safety
 
-- **F0-50** — `check:mutations` applies its `extra` replacement without verifying it still matches; moved from M9 by F0-36, same reason.
 - **F0-7** — 90 % coverage threshold in `core`, the declared mitigation of R5.
 - **F0-10** — a symbolic link allows writing outside the repository: the boundary `SECURITY.md` presents.
 - **F0-9** — a new operation type would be ignored by `plan` and run by `apply`.
