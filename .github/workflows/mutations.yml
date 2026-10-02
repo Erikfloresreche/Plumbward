@@ -51,6 +51,7 @@ on:
       - 'scripts/check-mutations.mjs'
       - 'scripts/mutation-paths.mjs'
       - 'scripts/mutation-outcome.mjs'
+      - 'scripts/mutation-apply.mjs'
       - '.github/workflows/mutations.yml'
       - 'vitest.config.ts'
   workflow_dispatch:
