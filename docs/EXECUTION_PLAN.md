@@ -5,8 +5,8 @@
 > criterion it is considered finished. Each task is closed by updating its
 > checkbox in this file, inside the same Pull Request that implements it.
 
-**Last updated:** 2026-09-30
-**Global status:** replanned towards an early beta on 2026-09-30 (F0-54): the work is ordered by milestones M1 to M9, not by phase (§5). Current milestone: **M1 — client repository safety**. Completed: F0-1, F0-3, F0-5, F0-8, F0-13 to F0-18, F0-24, F0-27, F0-29, F0-30, F0-32, F0-34, F0-36, F0-40 to F0-45, F0-50, F0-47, F0-48, F0-54, F7-2 and F7-4. Remaining: every other task, in the order of the execution queue (§5).
+**Last updated:** 2026-10-02
+**Global status:** replanned towards an early beta on 2026-09-30 (F0-54): the work is ordered by milestones M1 to M9, not by phase (§5). Current milestone: **M1 — client repository safety**. Completed: F0-1, F0-3, F0-5, F0-7, F0-8, F0-13 to F0-18, F0-24, F0-27, F0-29, F0-30, F0-32, F0-34, F0-36, F0-40 to F0-45, F0-50, F0-47, F0-48, F0-54, F7-2 and F7-4. Remaining: every other task, in the order of the execution queue (§5).
 **Product:** Plumbward · https://github.com/Erikfloresreche/Plumbward
 **Business model:** annual subscription per repository — see
 [BUSINESS_MODEL.md](BUSINESS_MODEL.md)
@@ -441,7 +441,7 @@ receive updates: they have to be able to read what changed in each one.
 
 ---
 
-### [ ] F0-7 — Test coverage threshold
+### [x] F0-7 — Test coverage threshold
 **Branch:** `test/f0-coverage-threshold` · **Depends on:** F0-3
 
 **Work:**
@@ -453,6 +453,32 @@ receive updates: they have to be able to read what changed in each one.
 **Acceptance criteria:**
 - CI fails if `core` coverage drops below 90%.
 - The thresholds reflect the real current coverage, not an aspirational number.
+
+**Closed on 2026-10-02.** Measured before the gate, over the whole suite, `core`
+was at 83 % lines and 81 % branches: a gate at 90 % would have been the
+aspirational number the second criterion forbids, and a gate at 83 % would
+have left R5 declared and not met. The missing tests were written first
+(`apply`, `fs`, `plan`, `simulate` and the corrupt-journal cases of
+`rollback`), which raised `core` to 98 % lines and 96 % branches, and the gate
+went in at 90 % on all four metrics. Delivered: `@vitest/coverage-v8`,
+`pnpm test:coverage`, the thresholds in `vitest.config.ts` and a `Coverage`
+job in `ci.yml` that uploads the report as the `coverage-report` artifact,
+also when it fails.
+
+Deviation from point 2: the other packages keep 80 % only where they already
+reach it. Where they do not (`cli` 55 % lines, `packs-sdk` 75 %, and the
+branches of `ast`, `packs-sdk` and `scanner`) the threshold is their real
+figure, rounded down: 80 % there would fail on the first run. The gate stops
+the fall; F0-58 raises those floors. The thresholds are measured over
+unit and e2e together, because the e2e tests are what covers most of `core`.
+
+Proved red with a hand mutant: without `apply.test.ts`, `pnpm test:coverage`
+fails with `Coverage for branches (87.18%) does not meet "packages/core/src/**"
+threshold (90%)`.
+
+Found while writing the tests and left out on purpose: `plan` reports "no
+change" for a patch on a missing file while `apply` fails. Testing that branch
+would have pinned the divergence, so it is F0-57.
 
 ---
 
@@ -2429,6 +2455,57 @@ Point 5, depending on the option chosen.
 
 ---
 
+### [ ] F0-57 — `plan` shows "no change" where `apply` fails: a patch on a missing file
+**Branch:** `fix/f0-simulate-missing-patch-target` · **Depends on:** F0-7
+
+**Origin:** found while writing the `core` tests of F0-7. Not tested there on
+purpose: a test would have pinned the divergence as the expected behaviour.
+
+**The symptom:** for a `patchJson` or `patchYaml` whose target file does not
+exist, `simulatePlan` records a no-op ([simulate.ts](../packages/core/src/simulate.ts),
+the `current === null` branches), while `applyPlan` throws "the file ... to
+patch does not exist" and reverts. The user reads "nothing to do" in `plan`
+and then gets a failure in `apply`. It breaks the promise `simulatePlan`
+exists for: what `plan` shows is literally what `apply` will do.
+
+**Work:** decide which side is right —most likely `apply`: patching a file
+that is not there is an error of the pack, not a no-op— and make the other one
+match. `plan` must surface the problem before anything is written: as a
+blocking conflict, or as an error of the simulation.
+
+**What becomes a mechanical control:** a test that runs `simulatePlan` and
+`applyPlan` on the same plan with a missing patch target and checks they
+agree, for both patch kinds.
+
+**Acceptance criteria:**
+- For a patch on a missing file, `plan` and `apply` give the same verdict, and
+  `plan` says so before anything is written.
+- The test fails when either side is reverted to today's behaviour.
+
+---
+
+### [ ] F0-58 — Raise the coverage floors left below 80 % by F0-7
+**Branch:** `test/f0-raise-coverage-floors` · **Depends on:** F0-7
+
+**Origin:** F0-7 set the threshold of each package at its real figure where it
+was below the planned 80 %, so the gate would not be red on its first run.
+
+**Work:** write the missing tests and raise the thresholds in
+`vitest.config.ts` to 80 % in `cli` (55 % lines, 68 % functions when the gate
+was set), `packs-sdk` (75 % lines, 73 % branches) and the branches of `ast`
+(71 %) and `scanner` (76 %). Start with what decides behaviour —`commands.ts`,
+`conformance.ts`, `registry.ts`, `stack.ts`— not with entry points such as
+`cli/src/index.ts`, whose coverage proves nothing.
+
+**What becomes a mechanical control:** the raised thresholds themselves.
+
+**Acceptance criteria:**
+- Every glob in `vitest.config.ts` except `core` is at 80 % or more on the four
+  metrics, and `pnpm test:coverage` is green.
+- No test exists only to execute lines: each one checks a result.
+
+---
+
 ## PHASE 1 — Internationalisation of the template engine
 
 **Objective:** make `Profile.language` really work.
@@ -4027,7 +4104,7 @@ index for finding a task: if it disagrees with the queue, **the queue wins**.
 
 | Phase of origin | Pending tasks → milestone |
 |---|---|
-| Phase 0 | F0-7, F0-9 to F0-11, F0-32, F0-33, F0-34, F0-36 to F0-39, F0-50 → **M1** · F0-2, F0-6, F0-19, F0-20, F0-26, F0-28, F0-31, F0-35, F0-51 to F0-53 → **M2** · F0-4, F0-21 to F0-23, F0-25, F0-46, F0-49, F0-55 → **M9** (F0-32 and F0-50 moved to M1 by F0-36) · F0-12 → **M7** |
+| Phase 0 | F0-7, F0-9 to F0-11, F0-32, F0-33, F0-34, F0-36 to F0-39, F0-50, F0-57 → **M1** · F0-2, F0-6, F0-19, F0-20, F0-26, F0-28, F0-31, F0-35, F0-51 to F0-53 → **M2** · F0-4, F0-21 to F0-23, F0-25, F0-46, F0-49, F0-55, F0-58 → **M9** (F0-32 and F0-50 moved to M1 by F0-36) · F0-12 → **M7** |
 | Phase 1 | F1-5 → **M6** · F1-1 to F1-4 → **M7** |
 | Phase 2 | F2-1 to F2-9, F2-11 to F2-13 → **M7** |
 | Phase 3 | F3-1 to F3-4 → **M4** · F3-5 to F3-11 → **M7** |
@@ -4052,7 +4129,7 @@ depends on, or if a pending task depends on `Phase N complete`.
 
 #### M1 — Client repository safety
 
-- **F0-7** — 90 % coverage threshold in `core`, the declared mitigation of R5.
+- **F0-57** — `plan` shows "no change" where `apply` fails: a patch on a missing file.
 - **F0-10** — a symbolic link allows writing outside the repository: the boundary `SECURITY.md` presents.
 - **F0-9** — a new operation type would be ignored by `plan` and run by `apply`.
 - **F0-37** — policy for old journals and a remedy that leaves the tree clean, before changing the format again.
@@ -4117,6 +4194,7 @@ depends on, or if a pending task depends on `Phase N complete`.
 - **F0-46** — the name and link controls of F0-16 pass without looking in some cases and flag valid English names.
 - **F0-49** — the link control ignores heading anchors, and the fragment escapes of the English control are undocumented.
 - **F0-55** — edge cases of the mutation control parsers left by F0-32: contrived empty greens and false reds.
+- **F0-58** — raise the coverage floors F0-7 left below 80 % in `cli`, `packs-sdk`, `ast` and `scanner`.
 - **F0-25** — exemptions by name in the branch control.
 - **F0-21** — leftovers of the plan and of the branch diagram.
 - **F0-23** — the history scan to its own workflow.
