@@ -107,6 +107,38 @@ jobs:
       - name: Coherence between what we declare and what we test
         run: pnpm check:coherence
 
+  coverage:
+    name: Coverage
+    # The thresholds of `vitest.config.ts` are measured over the whole suite,
+    # unit and e2e together: the e2e tests are the ones that cover most of
+    # `core`, so measuring them apart would give each half a false red. The
+    # full suite runs in seconds; it is `e2e.yml` that stays apart, not this.
+    # 90 % in `core` is the declared mitigation of R5 (F0-7).
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22.13'
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Tests with coverage thresholds
+        run: pnpm test:coverage
+
+      # Also on failure: a red threshold is exactly when the report is needed.
+      - name: Publish the coverage report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/
+          retention-days: 14
+
   secrets:
     name: Secret scanning
     runs-on: ubuntu-latest

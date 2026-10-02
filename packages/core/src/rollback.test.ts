@@ -231,3 +231,34 @@ describe('rollbackLastApply: on which commit reverting is allowed', () => {
     expect(await journalExists(root)).toBe(true)
   })
 })
+
+describe('rollbackLastApply: a journal it cannot trust', () => {
+  it('refuses when there is no journal at all', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'plumbward-rollback-core-'))
+    created.push(root)
+
+    await expect(
+      rollbackLastApply(root, { currentBranch: 'Prod', currentCommit: WRITTEN_COMMIT }),
+    ).rejects.toThrow(/nothing to revert/)
+  })
+
+  it.each([
+    ['is not JSON', '{ cut halfway'],
+    ['is not an object', '"a string"'],
+    ['is null', 'null'],
+    ['has a version no release wrote', JSON.stringify({ version: 99, entries: [] })],
+  ])('refuses as corrupt a journal that %s, without writing', async (_, raw) => {
+    const root = await createRepoWithJournal({})
+    await writeFile(join(root, JOURNAL_FILE), raw)
+
+    const failure = await rollbackLastApply(root, {
+      currentBranch: 'Prod',
+      currentCommit: WRITTEN_COMMIT,
+    }).catch((error: unknown) => error)
+
+    expect(failure).toBeInstanceOf(RollbackError)
+    expect((failure as RollbackError).message).toMatch(/is corrupt/)
+    expect(await readme(root)).toBe('current content\n')
+    expect(await journalExists(root)).toBe(true)
+  })
+})

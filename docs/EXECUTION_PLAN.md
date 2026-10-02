@@ -5,8 +5,8 @@
 > criterion it is considered finished. Each task is closed by updating its
 > checkbox in this file, inside the same Pull Request that implements it.
 
-**Last updated:** 2026-09-30
-**Global status:** replanned towards an early beta on 2026-09-30 (F0-54): the work is ordered by milestones M1 to M9, not by phase (§5). Current milestone: **M1 — client repository safety**. Completed: F0-1, F0-3, F0-5, F0-8, F0-13 to F0-18, F0-24, F0-27, F0-29, F0-30, F0-32, F0-34, F0-36, F0-40 to F0-45, F0-50, F0-47, F0-48, F0-54, F7-2 and F7-4. Remaining: every other task, in the order of the execution queue (§5).
+**Last updated:** 2026-10-02
+**Global status:** replanned towards an early beta on 2026-09-30 (F0-54): the work is ordered by milestones M1 to M9, not by phase (§5). Current milestone: **M1 — client repository safety**. Completed: F0-1, F0-3, F0-5, F0-7, F0-8, F0-13 to F0-18, F0-24, F0-27, F0-29, F0-30, F0-32, F0-34, F0-36, F0-40 to F0-45, F0-50, F0-47, F0-48, F0-54, F7-2 and F7-4. Remaining: every other task, in the order of the execution queue (§5).
 **Product:** Plumbward · https://github.com/Erikfloresreche/Plumbward
 **Business model:** annual subscription per repository — see
 [BUSINESS_MODEL.md](BUSINESS_MODEL.md)
@@ -441,7 +441,7 @@ receive updates: they have to be able to read what changed in each one.
 
 ---
 
-### [ ] F0-7 — Test coverage threshold
+### [x] F0-7 — Test coverage threshold
 **Branch:** `test/f0-coverage-threshold` · **Depends on:** F0-3
 
 **Work:**
@@ -453,6 +453,32 @@ receive updates: they have to be able to read what changed in each one.
 **Acceptance criteria:**
 - CI fails if `core` coverage drops below 90%.
 - The thresholds reflect the real current coverage, not an aspirational number.
+
+**Closed on 2026-10-02.** Measured before the gate, over the whole suite, `core`
+was at 83 % lines and 81 % branches: a gate at 90 % would have been the
+aspirational number the second criterion forbids, and a gate at 83 % would
+have left R5 declared and not met. The missing tests were written first
+(`apply`, `fs`, `plan`, `simulate` and the corrupt-journal cases of
+`rollback`), which raised `core` to 98 % lines and 96 % branches, and the gate
+went in at 90 % on all four metrics. Delivered: `@vitest/coverage-v8`,
+`pnpm test:coverage`, the thresholds in `vitest.config.ts` and a `Coverage`
+job in `ci.yml` that uploads the report as the `coverage-report` artifact,
+also when it fails.
+
+Deviation from point 2: the other packages keep 80 % only where they already
+reach it. Where they do not (`cli` 55 % lines, `packs-sdk` 75 %, and the
+branches of `ast`, `packs-sdk` and `scanner`) the threshold is their real
+figure, rounded down: 80 % there would fail on the first run. The gate stops
+the fall; F0-58 raises those floors. The thresholds are measured over
+unit and e2e together, because the e2e tests are what covers most of `core`.
+
+Proved red with a hand mutant: without `apply.test.ts`, `pnpm test:coverage`
+fails with `Coverage for branches (87.18%) does not meet "packages/core/src/**"
+threshold (90%)`.
+
+Found while writing the tests and left out on purpose: `plan` reports "no
+change" for a patch on a missing file while `apply` fails. Testing that branch
+would have pinned the divergence, so it is F0-57.
 
 ---
 
@@ -2429,6 +2455,96 @@ Point 5, depending on the option chosen.
 
 ---
 
+### [ ] F0-57 — `plan` shows "no change" where `apply` fails: a patch on a missing file
+**Branch:** `fix/f0-simulate-missing-patch-target` · **Depends on:** F0-7
+
+**Origin:** found while writing the `core` tests of F0-7. Not tested there on
+purpose: a test would have pinned the divergence as the expected behaviour.
+
+**The symptom:** for a `patchJson` or `patchYaml` whose target file does not
+exist, `simulatePlan` records a no-op ([simulate.ts](../packages/core/src/simulate.ts),
+the `current === null` branches), while `applyPlan` throws "the file ... to
+patch does not exist" and reverts. The user reads "nothing to do" in `plan`
+and then gets a failure in `apply`. It breaks the promise `simulatePlan`
+exists for: what `plan` shows is literally what `apply` will do.
+
+**Work:** decide which side is right —most likely `apply`: patching a file
+that is not there is an error of the pack, not a no-op— and make the other one
+match. `plan` must surface the problem before anything is written: as a
+blocking conflict, or as an error of the simulation.
+
+**What becomes a mechanical control:** a test that runs `simulatePlan` and
+`applyPlan` on the same plan with a missing patch target and checks they
+agree, for both patch kinds.
+
+**Acceptance criteria:**
+- For a patch on a missing file, `plan` and `apply` give the same verdict, and
+  `plan` says so before anything is written.
+- The test fails when either side is reverted to today's behaviour.
+
+---
+
+### [ ] F0-58 — Raise the coverage floors left below 80 % by F0-7
+**Branch:** `test/f0-raise-coverage-floors` · **Depends on:** F0-7
+
+**Origin:** F0-7 set the threshold of each package at its real figure where it
+was below the planned 80 %, so the gate would not be red on its first run.
+
+**Work:** write the missing tests and raise the thresholds in
+`vitest.config.ts` to 80 % in `cli` (55 % lines, 68 % functions when the gate
+was set), `packs-sdk` (75 % lines, 73 % branches) and the branches of `ast`
+(71 %) and `scanner` (76 %). Start with what decides behaviour —`commands.ts`,
+`conformance.ts`, `registry.ts`, `stack.ts`— not with entry points such as
+`cli/src/index.ts`, whose coverage proves nothing.
+
+**What becomes a mechanical control:** the raised thresholds themselves.
+
+**Acceptance criteria:**
+- Every glob in `vitest.config.ts` except `core` is at 80 % or more on the four
+  metrics, and `pnpm test:coverage` is green.
+- No test exists only to execute lines: each one checks a result.
+
+---
+
+### [ ] F0-59 — `rollback` shows what it will restore and asks for an explicit confirmation
+**Branch:** `feat/f0-rollback-preview-confirmation` · **Depends on:** F0-38, F0-39
+
+**Origin:** product decision of the developer during F0-7 (2026-10-02). Undoing
+is as dangerous as applying: `apply` has a dry-run by default (`plan`), and
+`rollback` writes straight away.
+
+**Why it does not replace F0-38:** a confirmation does not move the
+responsibility for a lost file to whoever confirmed. The client blames the
+tool that wrote, and the contract and terms of use decide liability, not a
+prompt. The defence is that `rollback` cannot destroy work (F0-38); this
+task is a second layer on top: the developer sees exactly what will happen
+and confirms it on purpose.
+
+**Work:**
+1. A preview before writing, built like `plan`: every file `rollback` will
+   restore or remove, with its diff against the current content, and the
+   files F0-38 refuses to touch, with the reason.
+2. An explicit confirmation that cannot be given by inertia: typing the name
+   of the branch the journal was written on, not `y`. Without an interactive
+   terminal it refuses unless the same value is passed as a flag
+   (`--confirm <branch>`); there is no `--yes` that skips the check.
+3. A record of who confirmed and when, **only local**: nothing leaves the
+   machine (no telemetry, ADR 0002). Decide in this task where it lives —the
+   journal is consumed by the rollback itself— and which identity is stored:
+   `git config user.name` at most, never the email, because a client may
+   commit the record to a public repository.
+
+**What becomes a mechanical control:** tests that run `rollback` with a wrong
+or missing confirmation and check that nothing was written, and a test that
+reads the local record after a confirmed rollback.
+
+**Acceptance criteria:**
+- `rollback` writes nothing until the confirmation matches.
+- The preview lists exactly the files the rollback then touches.
+- The record of who confirmed stays on the machine and contains no email.
+
+---
+
 ## PHASE 1 — Internationalisation of the template engine
 
 **Objective:** make `Profile.language` really work.
@@ -3270,6 +3386,46 @@ required-check list is regenerated to match, or `doctor` warns.
 
 ---
 
+### [ ] F3-12 — PR risk levels: who has to review each Pull Request
+**Branch:** `feat/f3-pr-risk-levels` · **Depends on:** F3-5, F3-6
+
+**Origin:** product decision of the developer during F0-7 (2026-10-02). Not
+every PR deserves the same review: one that touches business logic needs
+another person, one that only touches documentation may not. Today nothing
+tells them apart, so either everything is reviewed with the same weight or
+the review is skipped on what mattered.
+
+**Work:**
+1. Levels declared in `.governance/config.yml`: each level maps path globs to
+   a review requirement (for example `high`: another human, mandatory;
+   `medium`: recommended; `low`: optional). The client's team decides the
+   mapping; Plumbward proposes an initial one from the scan (business logic,
+   auth, payments, migrations and CI as `high`; documentation as `low`).
+2. A path that matches no rule counts as `high` (ADR 0005: a wrong deduction
+   gives more protection, never less). The level of a PR is the highest of the
+   files it touches.
+3. A CI check, generated by the base pack, that computes the level, labels the
+   PR (`risk: high`) and explains in a comment which files decided it.
+4. For `high`, the control and not only the advice: a ruleset with required
+   approval from someone other than the author, and `CODEOWNERS` on those
+   paths, generated through F3-5. The advice is not enough on its own: rules
+   are ignored, controls are not.
+5. The AI rules generated by F3-6 tell the assistant to state the level when
+   it delivers the PR texts ("Plumbward rates this PR as high risk: another
+   developer must review it").
+
+**What becomes a mechanical control:** tests of the level computation (no
+rule matched, mixed levels, an empty PR) and of the generated ruleset and
+`CODEOWNERS`.
+
+**Acceptance criteria:**
+- The same `config.yml` and the same diff always give the same level.
+- A `high` PR cannot be merged without the approval of someone other than its
+  author.
+- Changing the mapping in `config.yml` changes the level with no other edit.
+
+---
+
 ## PHASE 4 — Lifecycle of the installed product
 
 **Objective:** the tool is useful on day 200, not only on day 1.
@@ -4027,10 +4183,10 @@ index for finding a task: if it disagrees with the queue, **the queue wins**.
 
 | Phase of origin | Pending tasks → milestone |
 |---|---|
-| Phase 0 | F0-7, F0-9 to F0-11, F0-32, F0-33, F0-34, F0-36 to F0-39, F0-50 → **M1** · F0-2, F0-6, F0-19, F0-20, F0-26, F0-28, F0-31, F0-35, F0-51 to F0-53 → **M2** · F0-4, F0-21 to F0-23, F0-25, F0-46, F0-49, F0-55 → **M9** (F0-32 and F0-50 moved to M1 by F0-36) · F0-12 → **M7** |
+| Phase 0 | F0-7, F0-9 to F0-11, F0-32, F0-33, F0-34, F0-36 to F0-39, F0-50, F0-57, F0-59 → **M1** · F0-2, F0-6, F0-19, F0-20, F0-26, F0-28, F0-31, F0-35, F0-51 to F0-53 → **M2** · F0-4, F0-21 to F0-23, F0-25, F0-46, F0-49, F0-55, F0-58 → **M9** (F0-32 and F0-50 moved to M1 by F0-36) · F0-12 → **M7** |
 | Phase 1 | F1-5 → **M6** · F1-1 to F1-4 → **M7** |
 | Phase 2 | F2-1 to F2-9, F2-11 to F2-13 → **M7** |
-| Phase 3 | F3-1 to F3-4 → **M4** · F3-5 to F3-11 → **M7** |
+| Phase 3 | F3-1 to F3-4 → **M4** · F3-5 to F3-12 → **M7** |
 | Phase 4 | F4-4 → **M4** · F4-1, F4-2 → **M5** · F4-3, F4-5 to F4-8 → **M7** |
 | Phase 5 | F5-6 → **M4** · F5-1 to F5-5 → **M5** |
 | Phase 6 | F6-1 → **M2** · F6-2 → **M3** · F6-5 → **M5** · F6-3, F6-4 → **M6** |
@@ -4052,12 +4208,13 @@ depends on, or if a pending task depends on `Phase N complete`.
 
 #### M1 — Client repository safety
 
-- **F0-7** — 90 % coverage threshold in `core`, the declared mitigation of R5.
+- **F0-57** — `plan` shows "no change" where `apply` fails: a patch on a missing file.
 - **F0-10** — a symbolic link allows writing outside the repository: the boundary `SECURITY.md` presents.
 - **F0-9** — a new operation type would be ignored by `plan` and run by `apply`.
 - **F0-37** — policy for old journals and a remedy that leaves the tree clean, before changing the format again.
 - **F0-38** — `rollback` overwrites work: content hash in the journal.
 - **F0-39** — pin down with tests the messages F0-38 makes final.
+- **F0-59** — `rollback` shows what it will restore and asks for an explicit confirmation.
 - **F0-11** — dependency installation stays outside the journal.
 - **F0-33** — live code that only one test reaches, in the return notice.
 
@@ -4117,6 +4274,7 @@ depends on, or if a pending task depends on `Phase N complete`.
 - **F0-46** — the name and link controls of F0-16 pass without looking in some cases and flag valid English names.
 - **F0-49** — the link control ignores heading anchors, and the fragment escapes of the English control are undocumented.
 - **F0-55** — edge cases of the mutation control parsers left by F0-32: contrived empty greens and false reds.
+- **F0-58** — raise the coverage floors F0-7 left below 80 % in `cli`, `packs-sdk`, `ast` and `scanner`.
 - **F0-25** — exemptions by name in the branch control.
 - **F0-21** — leftovers of the plan and of the branch diagram.
 - **F0-23** — the history scan to its own workflow.
@@ -4144,6 +4302,7 @@ depends on, or if a pending task depends on `Phase N complete`.
 - **F3-5** — governance of the branch flow.
 - **F3-11** — required checks must key on job id, not job name.
 - **F3-6** — delivery flow and assisted review.
+- **F3-12** — PR risk levels: who has to review each Pull Request.
 - **F3-7** — testing coupled to the change.
 - **F3-8** — security posture.
 - **F3-9** — controls derived from incidents.
